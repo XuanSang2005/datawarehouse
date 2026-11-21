@@ -3,15 +3,15 @@ import ErrorBox from './ErrorBox'
 
 interface Props<T> {
   state: { data: T | null; error: Error | null; loading: boolean; reload: () => void }
-  /** Trả true nếu dữ liệu rỗng (hiện thông báo thay vì nội dung) */
+  /** Return true if the data is empty (shows a message instead of the content) */
   isEmpty?: (data: T) => boolean
   empty?: ReactNode
-  /** Chiều cao giữ chỗ khi đang tải lần đầu, để bố cục không nhảy */
+  /** Placeholder height during the first load, so the layout does not jump */
   minHeight?: number
   children: (data: T) => ReactNode
 }
 
-/** Trạng thái loading / lỗi / rỗng thống nhất cho mọi khối dữ liệu. */
+/** Consistent loading / error / empty states for every data block. */
 export default function DataState<T>({ state, isEmpty, empty, minHeight = 120, children }: Props<T>) {
   const { data, error, loading, reload } = state
   if (error) return <ErrorBox error={error} onRetry={reload} />
@@ -22,14 +22,14 @@ export default function DataState<T>({ state, isEmpty, empty, minHeight = 120, c
         style={{ minHeight }}
         aria-busy="true"
       >
-        Đang tải…
+        Loading…
       </div>
     )
   }
   if (isEmpty?.(data)) {
     return (
       <p className="border-t border-kangaroo py-6 text-oyster-ink">
-        {empty ?? 'Không có dữ liệu cho bộ lọc này.'}
+        {empty ?? 'No data for these filters.'}
       </p>
     )
   }

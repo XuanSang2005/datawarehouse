@@ -1,4 +1,4 @@
-// Trạng thái dạng ô vuông màu + chữ, như phần "Data quality" của prototype.
+// Status as a coloured square + text, like the "Data quality" section of the prototype.
 const TONE: Record<string, string> = {
   ok: 'bg-rifle',
   up: 'bg-rifle',

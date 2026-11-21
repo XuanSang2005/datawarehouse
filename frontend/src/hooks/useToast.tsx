@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
-/** Thông báo ngắn ở cuối màn hình. Trả về [phần tử cần render, hàm hiện thông báo]. */
+/** Short notice at the bottom of the screen. Returns [element to render, function that shows a message]. */
 export function useToast(): [ReactNode, (message: string) => void] {
   const [message, setMessage] = useState<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)

@@ -1,50 +1,50 @@
 # frontend/: React + Vite + TypeScript + Tailwind CSS
 
-Giao diện cho người ra quyết định, theo prototype `docs/design/prototype/` ("Maré Revenue Desk").
-Mọi request `/api/*` được Vite proxy sang backend (cổng `BACKEND_PORT` trong `.env` ở thư mục gốc).
+The UI for decision makers, following the prototype in `docs/design/prototype/` ("Maré Revenue Desk").
+Every `/api/*` request is proxied by Vite to the backend (port `BACKEND_PORT` in the root `.env`).
 
 ```
 src/
-├── main.tsx             Điểm khởi động (Router + FiltersProvider)
+├── main.tsx             Entry point (Router + FiltersProvider)
 ├── App.tsx              Router + layout
-├── routes.tsx           ★ Danh sách trang (thanh điều hướng tự sinh từ đây)
-├── pages/               Mỗi trang = 1 file *Page.tsx
+├── routes.tsx           ★ List of pages (the nav bar is generated from it)
+├── pages/               One page = one *Page.tsx file
 ├── components/
-│   ├── layout/          Khung trang: thanh trên (logo, menu, chọn khách sạn), footer
+│   ├── layout/          Page frame: top bar (logo, menu, hotel picker), footer
 │   ├── common/          ledger.tsx (Section, Focal, KpiStrip, Tabs, BarCell...), DataState, ErrorBox
 │   ├── charts/          LedgerLineChart (Recharts), ColumnBars
-│   └── filters/         FilterBar (ngày đến, kênh, quốc gia)
-├── context/             Bộ lọc dùng chung cho mọi trang
+│   └── filters/         FilterBar (arrival dates, channel, country)
+├── context/             Filters shared by every page
 ├── api/
-│   ├── client.ts        fetch dùng chung + chuẩn hóa lỗi (ApiError, có hint từ backend)
-│   └── endpoints.ts     ★ Mỗi endpoint backend = 1 hàm
-├── hooks/               useApi (data / error / loading, gọi lại khi deps đổi), useDebounced, useToast
-├── lib/                 format.ts (số kiểu vi-VN, EUR), theme.ts (màu hex cho SVG)
-├── types/api.ts         ★ Kiểu dữ liệu, PHẢI khớp backend/app/schemas
-└── styles/global.css    Tailwind + token thiết kế (@theme)
+│   ├── client.ts        Shared fetch + error normalisation (ApiError, with the backend's hint)
+│   └── endpoints.ts     ★ One function per backend endpoint
+├── hooks/               useApi (data / error / loading, refetches when deps change), useDebounced, useToast
+├── lib/                 format.ts (en-GB numbers and dates, EUR), theme.ts (hex colours for SVG)
+├── types/api.ts         ★ Data types, MUST match backend/app/schemas
+└── styles/global.css    Tailwind + design tokens (@theme)
 ```
 
-## Chạy
+## Run
 ```bash
 npm install
 ```
 ```bash
 npm run dev
 ```
-Mở http://localhost:5173 (cần backend đang chạy ở cổng 8000).
+Open http://localhost:5173 (the backend must be running on port 8000).
 
-## Kiểm tra trước khi push
+## Check before pushing
 ```bash
 npm run lint && npm run build
 ```
 
-## Thêm trang
-`types/api.ts` → `api/endpoints.ts` → `pages/XxxPage.tsx` → thêm 1 dòng vào `routes.tsx`.
+## Adding a page
+`types/api.ts` → `api/endpoints.ts` → `pages/XxxPage.tsx` → add one line to `routes.tsx`.
 
-## Quy ước giao diện
-- Style bằng utility class Tailwind trong TSX. Màu dùng token: `bg-rifle`, `text-oyster-ink`, `border-kangaroo`...
-  (khai báo ở `styles/global.css`). Không thêm file CSS riêng cho từng trang.
-- `rust` (đỏ gạch) **chỉ** dùng cho hủy phòng / giá trị âm; `rifle` cho City Hotel, `brass` cho Resort Hotel.
-- Mỗi trang có đúng một khối `<Focal>` (nền xanh Rifle) làm điểm nhấn; các phần ngăn bằng `<Section>` (đường kẻ trên).
-- Không tính KPI ở frontend: tỉ lệ/ADR/what-if lấy từ backend, frontend chỉ định dạng bằng `lib/format.ts`.
-- Mọi khối dữ liệu bọc trong `<DataState>` để có trạng thái tải / lỗi / rỗng thống nhất.
+## UI conventions
+- Style with Tailwind utility classes in TSX. Use colour tokens: `bg-rifle`, `text-oyster-ink`, `border-kangaroo`...
+  (declared in `styles/global.css`). Do not add per-page CSS files.
+- `rust` (brick red) is **only** for cancellations / negative values; `rifle` for City Hotel, `brass` for Resort Hotel.
+- Each page has exactly one `<Focal>` block (Rifle-green background) as its focal point; sections are separated by `<Section>` (top rule).
+- No KPI calculations in the frontend: rates/ADR/what-if come from the backend; the frontend only formats them with `lib/format.ts`.
+- Wrap every data block in `<DataState>` for consistent loading / error / empty states.

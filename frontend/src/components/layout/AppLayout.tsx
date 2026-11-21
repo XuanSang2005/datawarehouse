@@ -4,17 +4,17 @@ import { useFilters } from '../../context/filters'
 import { routes } from '../../routes'
 import { Cap, Segmented } from '../common/ledger'
 
-/** Bộ chọn khách sạn dùng chung cho mọi trang (giá trị lấy từ GET /api/filters). */
+/** Hotel picker shared by every page (values come from GET /api/filters). */
 function HotelToggle() {
   const { options, filters, setFilters } = useFilters()
   const hotels = options?.hotels ?? []
   return (
     <Segmented<number | null>
-      label="Khách sạn"
+      label="Hotel"
       value={filters.hotelKey}
       onChange={(v) => setFilters({ hotelKey: v })}
       options={[
-        { value: null, label: 'Cả hai' },
+        { value: null, label: 'Both' },
         ...hotels.map((h) => ({ value: h.hotel_key, label: h.hotel_type })),
       ]}
     />
@@ -34,7 +34,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Cap className="max-sm:hidden">Lisbon · Algarve</Cap>
           </NavLink>
           <nav
-            aria-label="Các trang"
+            aria-label="Pages"
             className="order-3 flex min-w-0 basis-full gap-5 overflow-x-auto [scrollbar-width:none] md:order-none md:flex-1 md:basis-auto md:gap-[26px]"
           >
             {routes.map((r) => (
@@ -58,7 +58,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <HotelToggle />
           </div>
         </div>
-        {/* Đường kẻ đôi dưới thanh trên */}
+        {/* Double rule under the top bar */}
         <div className="mx-5 h-1 border-y border-cedar xl:mx-auto xl:max-w-[1320px]" />
       </header>
 
@@ -68,7 +68,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <footer className="mx-auto max-w-[1360px] px-5 pt-6 pb-8">
         <div className="flex flex-wrap justify-between gap-3 border-t border-kangaroo pt-3.5">
-          <Cap>Revenue Desk · đọc từ gold & meta</Cap>
+          <Cap>Revenue Desk · reads gold & meta</Cap>
           <Cap>Hotel Booking Demand, Antonio et al. 2019</Cap>
         </div>
       </footer>

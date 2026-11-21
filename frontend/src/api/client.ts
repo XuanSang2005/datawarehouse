@@ -1,9 +1,9 @@
-// Hàm gọi HTTP dùng chung. Mọi lỗi mạng/HTTP đều được chuẩn hóa thành ApiError.
+// Shared HTTP helpers. Every network/HTTP error is normalised into an ApiError.
 
 export class ApiError extends Error {
   readonly status: number
   readonly path: string
-  /** Gợi ý cách khắc phục từ backend (vd lệnh chạy script ML khi bảng gold.ml_* chưa có) */
+  /** Fix-it hint from the backend (e.g. the command to run the ML script when gold.ml_* tables are missing) */
   readonly hint: string | null
 
   constructor(status: number, path: string, message: string, hint: string | null = null) {
@@ -17,7 +17,7 @@ export class ApiError extends Error {
 
 type QueryValue = string | number | boolean | null | undefined
 
-/** Dựng query string, bỏ qua giá trị null/undefined/chuỗi rỗng. */
+/** Build a query string, skipping null/undefined/empty-string values. */
 export function withQuery(path: string, params: Record<string, QueryValue> = {}): string {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
@@ -32,7 +32,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     resp = await fetch(path, { ...init, headers: { Accept: 'application/json', ...init.headers } })
   } catch {
-    throw new ApiError(0, path, 'Không gọi được backend. Backend đã chạy chưa? (cổng 8000)')
+    throw new ApiError(0, path, 'Could not reach the backend. Is it running? (port 8000)')
   }
 
   if (!resp.ok) {
@@ -43,7 +43,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
       hint = typeof body.hint === 'string' ? body.hint : null
     } catch {
-      /* body không phải JSON */
+      /* body is not JSON */
     }
     throw new ApiError(resp.status, path, `${resp.status} ${detail}`, hint)
   }

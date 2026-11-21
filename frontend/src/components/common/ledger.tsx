@@ -1,9 +1,9 @@
-// Các khối giao diện nhỏ theo phong cách "sổ cái" của prototype (docs/design/prototype/).
-// Toàn bộ style là utility class Tailwind; token màu/font khai báo trong styles/global.css (@theme).
+// Small UI blocks in the prototype's "ledger" style (docs/design/prototype/).
+// All styling is Tailwind utility classes; colour/font tokens are declared in styles/global.css (@theme).
 import type { CSSProperties, ReactNode } from 'react'
 import { compact, eur, eurCompact, pct } from '../../lib/format'
 
-/** Chú thích chữ hoa, font mono, giãn chữ (".cap" trong prototype). */
+/** Uppercase, letter-spaced mono caption (".cap" in the prototype). */
 export function Cap({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <span className={`font-mono text-[11.5px] tracking-[0.14em] uppercase text-oyster-ink ${className}`}>
@@ -12,7 +12,7 @@ export function Cap({ children, className = '' }: { children: ReactNode; classNa
   )
 }
 
-/** Tiêu đề trang cỡ lớn (Bodoni). */
+/** Large page title (Bodoni). */
 export function PageHead({ title, aside }: { title: ReactNode; aside?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 animate-rise">
@@ -24,7 +24,7 @@ export function PageHead({ title, aside }: { title: ReactNode; aside?: ReactNode
   )
 }
 
-/** Một phần nội dung: đường kẻ trên, tiêu đề Bodoni, phần phải (legend/tabs). */
+/** A content section: top rule, Bodoni title, right-hand aside (legend/tabs). */
 export function Section({
   title,
   aside,
@@ -47,7 +47,7 @@ export function Section({
   )
 }
 
-/** Khối xanh Rifle: điểm nhấn duy nhất của mỗi trang. */
+/** Rifle-green block: the single focal point of each page. */
 export function Focal({
   children,
   className = '',
@@ -64,7 +64,7 @@ export function Focal({
   )
 }
 
-/** Số rất lớn trên khối Focal. */
+/** Very large number on the Focal block. */
 export function BigNumber({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
@@ -75,7 +75,7 @@ export function BigNumber({ children, className = '' }: { children: ReactNode; c
   )
 }
 
-/** Ký hiệu tiền nhỏ, nâng lên như prototype (".cur"). */
+/** Small raised currency sign, as in the prototype (".cur"). */
 export function Cur({ children = '€' }: { children?: ReactNode }) {
   return (
     <span className="mr-[0.1em] align-[1.05em] font-sans text-[0.4em] font-medium tracking-normal">
@@ -84,7 +84,7 @@ export function Cur({ children = '€' }: { children?: ReactNode }) {
   )
 }
 
-/** Số tiền EUR: ký hiệu € nhỏ + giá trị (rút gọn K/M nếu compact). */
+/** EUR amount: small € sign + value (shortened to K/M when compact). */
 export function Money({
   value,
   compactForm = false,
@@ -110,7 +110,7 @@ interface SegmentedOption<T extends string | number | null> {
   label: ReactNode
 }
 
-/** Nhóm nút bật/tắt có viền (bộ chọn khách sạn ở thanh trên). */
+/** Bordered toggle-button group (the hotel picker in the top bar). */
 export function Segmented<T extends string | number | null>({
   options,
   value,
@@ -155,7 +155,7 @@ export function Segmented<T extends string | number | null>({
   )
 }
 
-/** Tabs gạch chân (đổi chiều xem trong một Section). */
+/** Underlined tabs (switch the view within a Section). */
 export function Tabs<T extends string>({
   options,
   value,
@@ -189,7 +189,7 @@ export function Tabs<T extends string>({
   )
 }
 
-/** Thanh ngang + số (cột tỉ trọng / tỉ lệ hủy trong bảng). */
+/** Horizontal bar + number (share / cancellation-rate columns in tables). */
 export function BarCell({
   value,
   max = 1,
@@ -222,7 +222,7 @@ export interface KpiItem {
   note?: ReactNode
 }
 
-/** Hàng KPI ngăn bằng đường kẻ dọc (".kpis" trong prototype). */
+/** KPI row separated by vertical rules (".kpis" in the prototype). */
 export function KpiStrip({ items }: { items: KpiItem[] }) {
   return (
     <div className="grid grid-cols-2 gap-y-6 animate-rise md:grid-cols-4">
@@ -248,7 +248,7 @@ export function KpiStrip({ items }: { items: KpiItem[] }) {
   )
 }
 
-/** Chú giải biểu đồ: vạch màu + nhãn. */
+/** Chart legend: colour swatch + label. */
 export function Legend({ items }: { items: { label: string; color: string; dashed?: boolean; box?: boolean }[] }) {
   return (
     <div className="flex flex-wrap gap-[18px] text-[13.5px]">
@@ -268,11 +268,11 @@ export function Legend({ items }: { items: { label: string; color: string; dashe
   )
 }
 
-/** Bảng kiểu sổ cái: header mono chữ hoa, dòng ngăn bằng đường kẻ mảnh. */
+/** Ledger-style table: uppercase mono header, rows separated by thin rules. */
 export const th = 'whitespace-nowrap pr-3.5 pb-2.5 text-left font-mono text-[11px] font-normal tracking-[0.12em] uppercase text-oyster-ink'
 export const td = 'whitespace-nowrap border-t border-kangaroo py-3.5 pr-3.5 align-middle'
 
-/** Giá trị rút gọn có ký hiệu € nhỏ. */
+/** Compact value with a small € sign. */
 export function MoneyCompact({ value }: { value: number | null | undefined }) {
   return <Money value={value} compactForm />
 }

@@ -1,5 +1,5 @@
-// Cột dọc đơn giản như "Cancellation by lead time" của prototype: số lớn trên đầu cột, nhãn mono dưới chân.
-// Dùng div thay cho Recharts vì chỉ có ≤ 10 cột và cần chữ Bodoni trên đầu cột.
+// Simple vertical columns like the prototype's "Cancellation by lead time": big number on top, mono label underneath.
+// Built with divs instead of Recharts because there are ≤ 10 columns and the tops need Bodoni text.
 import { pct } from '../../lib/format'
 
 export interface Column {

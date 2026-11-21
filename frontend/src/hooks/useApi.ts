@@ -8,8 +8,8 @@ export interface ApiState<T> {
 }
 
 /**
- * Gọi 1 hàm API khi component mount và mỗi khi `deps` đổi (vd bộ lọc).
- * Trả về data/error/loading + hàm reload. Khi đang tải lại, `data` cũ vẫn được giữ để giao diện không nháy.
+ * Call an API function on mount and whenever `deps` change (e.g. filters).
+ * Returns data/error/loading + a reload function. While reloading, the previous `data` is kept so the UI does not flicker.
  */
 export function useApi<T>(fetcher: () => Promise<T>, deps: readonly unknown[] = []): ApiState<T> {
   const [data, setData] = useState<T | null>(null)
@@ -32,7 +32,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: readonly unknown[] = 
     return () => {
       cancelled = true
     }
-    // fetcher thường là hàm khai báo inline -> chỉ chạy lại khi reload hoặc deps đổi.
+    // fetcher is usually an inline function -> only re-run on reload or when deps change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, ...deps])
 
@@ -40,7 +40,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: readonly unknown[] = 
   return { data, error, loading, reload }
 }
 
-/** Trả về giá trị sau khi nó ngừng thay đổi `delay` ms (dùng cho thanh trượt gọi API). */
+/** Return the value once it has stopped changing for `delay` ms (for sliders that call the API). */
 export function useDebounced<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {

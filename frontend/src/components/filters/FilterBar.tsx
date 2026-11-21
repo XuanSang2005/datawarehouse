@@ -1,5 +1,5 @@
-// Bộ lọc slice & dice: khoảng ngày đến, nhóm kênh, quốc gia. Khách sạn chọn ở thanh trên cùng.
-// Danh mục lấy từ GET /api/filters; giá trị lưu ở FiltersContext nên giữ nguyên khi chuyển trang.
+// Slice & dice filters: arrival date range, channel group, country. The hotel is picked in the top bar.
+// Options come from GET /api/filters; values live in FiltersContext so they persist across pages.
 import { useFilters } from '../../context/filters'
 import { Cap } from '../common/ledger'
 
@@ -7,7 +7,7 @@ const control =
   'w-full cursor-pointer border-0 border-b border-cedar bg-transparent py-1.5 text-[14.5px] font-medium focus:outline-none focus-visible:border-rifle'
 
 interface Props {
-  /** Ẩn bộ lọc không áp dụng cho trang (vd trang Kênh ẩn "Kênh" khi đang xếp hạng kênh) */
+  /** Hide filters that do not apply to the page (e.g. the Channels page hides "Channel" while ranking channels) */
   hide?: ('dates' | 'channel' | 'country')[]
 }
 
@@ -21,7 +21,7 @@ export default function FilterBar({ hide = [] }: Props) {
       {!hide.includes('dates') && (
         <>
           <label className="flex flex-col gap-1">
-            <Cap>Ngày đến từ</Cap>
+            <Cap>Arrivals from</Cap>
             <input
               type="date"
               className={control}
@@ -32,7 +32,7 @@ export default function FilterBar({ hide = [] }: Props) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <Cap>Đến ngày</Cap>
+            <Cap>Arrivals to</Cap>
             <input
               type="date"
               className={control}
@@ -46,13 +46,13 @@ export default function FilterBar({ hide = [] }: Props) {
       )}
       {!hide.includes('channel') && (
         <label className="flex flex-col gap-1">
-          <Cap>Kênh</Cap>
+          <Cap>Channel</Cap>
           <select
             className={control}
             value={filters.channelGroup ?? ''}
             onChange={(e) => setFilters({ channelGroup: e.target.value || null })}
           >
-            <option value="">Mọi kênh</option>
+            <option value="">All channels</option>
             {options?.channel_groups.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -63,13 +63,13 @@ export default function FilterBar({ hide = [] }: Props) {
       )}
       {!hide.includes('country') && (
         <label className="flex flex-col gap-1">
-          <Cap>Quốc gia</Cap>
+          <Cap>Country</Cap>
           <select
             className={control}
             value={filters.countryCode ?? ''}
             onChange={(e) => setFilters({ countryCode: e.target.value || null })}
           >
-            <option value="">Mọi quốc gia</option>
+            <option value="">All countries</option>
             {options?.countries.map((c) => (
               <option key={c.country_code} value={c.country_code}>
                 {c.country_name} ({c.country_code})
@@ -84,7 +84,7 @@ export default function FilterBar({ hide = [] }: Props) {
         disabled={!active}
         className="cursor-pointer justify-self-start border border-rifle px-4 py-2 text-[13.5px] font-semibold text-rifle transition-colors hover:bg-kangaroo disabled:cursor-default disabled:border-kangaroo disabled:text-oyster disabled:hover:bg-transparent"
       >
-        Xóa lọc
+        Clear filters
       </button>
     </div>
   )
