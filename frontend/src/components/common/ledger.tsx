@@ -17,13 +17,16 @@ export function Cap({ children, className = '' }: { children: ReactNode; classNa
   )
 }
 
-/** Large page title (Archivo). */
+/** Large page title (Archivo), kept on a single line. */
 export function PageHead({ title, aside }: { title: ReactNode; aside?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 animate-rise">
-      <h1 className="font-display text-[clamp(40px,5.6vw,76px)] leading-[0.98] tracking-[-0.02em]">
-        {title}
-      </h1>
+      {/* Title always on ONE line: the font scales with the width available to it (container query units). */}
+      <div className="min-w-0 flex-1 basis-[min(100%,480px)] [container-type:inline-size]">
+        <h1 className="overflow-hidden font-display text-[clamp(24px,7cqi,72px)] leading-[1.05] tracking-[-0.02em] text-ellipsis whitespace-nowrap">
+          {title}
+        </h1>
+      </div>
       {aside}
     </div>
   )

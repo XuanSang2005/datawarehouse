@@ -52,7 +52,7 @@ export default function ForecastPage() {
   return (
     <>
       <div className="grid items-stretch gap-x-12 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
-        <PageHead title={<>Room-nights,<br />next 8 weeks</>} />
+        <PageHead title="Demand, next 8 weeks" />
         <Focal className="flex flex-col justify-between gap-[18px] px-[22px] py-[22px] sm:px-7 sm:py-6">
           <Cap className="text-kangaroo">Busiest week ahead</Cap>
           <div>
