@@ -162,7 +162,39 @@ Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_S
 Bộ cột chung của 4 view đầu: `bookings`, `canceled_bookings`, `cancellation_rate`, `room_nights_sold`, `realized_revenue`,
 `lost_revenue`, `net_lost_revenue`, `adr`, `avg_lead_time`, `avg_los`. Tỉ lệ và ADR đều tính lại từ tổng.
 
-### `gold.ml_demand_forecast`: 1 dòng = 1 khách sạn × 1 tuần × 1 phiên bản model (252 dòng)
+### Bảng kết quả ML (`ml_*`)
+
+Do script trong `ml/` tạo (DDL ở `database/ml/`, idempotent, không chạy bởi `etl/run_pipeline.py`) và ghi.
+Giao kèo cột: [`STAR_SCHEMA.md`](STAR_SCHEMA.md) mục 7. Chi tiết mô hình: [`ml/README.md`](../ml/README.md).
+
+#### `gold.ml_booking_risk`: 1 dòng = 1 booking × 1 phiên bản model (119.209 dòng với `cancellation_v1`)
+Ghi bởi `python -m ml.cancellation.train` (xóa dòng cùng `model_version` rồi ghi lại).
+
+| Cột | Kiểu | Ý nghĩa |
+|---|---|---|
+| `booking_id` | BIGINT (PK) | = `gold.fact_booking.booking_id`. Không khai báo FK (gold dùng DROP CASCADE), ghép bằng `JOIN ... USING (booking_id)` |
+| `model_version` | TEXT (PK) | Phiên bản model chấm điểm, vd `cancellation_v1` (model `cancellation_gbm`) |
+| `cancel_probability` | NUMERIC(5,4) | Xác suất hủy dự đoán, 0–1 |
+| `risk_band` | TEXT | `Low` / `Medium` / `High` theo ngưỡng `threshold_medium`, `threshold_high` trong `ml_model_metrics` (v1: 0,17 và 0,31) |
+| `is_test_set` | BOOLEAN | TRUE nếu `arrival_date` ≥ 2017-01-01 (model chưa thấy khi train). FALSE: điểm in-sample, lạc quan hơn thực tế |
+| `scored_at` | TIMESTAMPTZ | Thời điểm chấm điểm |
+
+#### `gold.ml_model_metrics`: 1 dòng = 1 phiên bản × 1 model × 1 metric × 1 tập (dùng chung E3, E4)
+Mỗi script chỉ xóa/ghi dòng có `model_name` của chính nó; không DROP bảng.
+
+| Cột | Ý nghĩa |
+|---|---|
+| `model_version`, `model_name`, `metric_name`, `dataset` | PK. `dataset`: `train` / `validation` / `test` / `backtest`... |
+| `metric_value` | NUMERIC(12,6) |
+| `trained_at` | Thời điểm train |
+
+Metric của mô hình hủy (`model_name` = `cancellation_logreg`, `cancellation_gbm`, `cancellation_gbm_no_country`):
+`auc`, `pr_auc`, `brier`, `precision`, `recall`, `f1`, `accuracy`, `tn`, `fp`, `fn`, `tp` (tại ngưỡng High),
+`precision_at_medium`, `recall_at_medium`, `f1_at_medium` (tại ngưỡng Medium, chỉ tập test), `n_rows`, `positive_rate`;
+`threshold_medium`, `threshold_high` (dataset `validation`); riêng `cancellation_gbm` trên test:
+`{low,medium,high}_{bookings,share,cancel_rate}` (phân bố risk band và tỉ lệ hủy thực tế từng band).
+
+#### `gold.ml_demand_forecast`: 1 dòng = 1 khách sạn × 1 tuần × 1 phiên bản model (252 dòng)
 
 Ghi bởi `python -m ml.forecast.train` (DDL: `database/ml/03_ml_demand_forecast.sql`), không do pipeline ETL tạo.
 Chi tiết phương pháp: [`ml/README.md`](../ml/README.md#e4-dự-báo-nhu-cầu-theo-tuần).
