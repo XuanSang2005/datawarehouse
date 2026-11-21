@@ -2,816 +2,569 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: floating rail on the left (top bar on phones) + one view at a time; each view opens with a photo or a headline, then dense panels. */
+/* Layout: sổ cái khách sạn cổ điển. Một mặt phẳng, không card, không bóng đổ; các phần ngăn bằng đường kẻ.
+   Mỗi trang có đúng một khối xanh Rifle làm điểm nhấn. Theme sáng cố định (chủ ý một phong cách). */
 :root {
-  --paper: #F5F3EE;
-  --surface: #FFFFFF;
-  --surface-2: #EEF0F6;
-  --ink: #0E1630;
-  --ink-2: #4B5371;
-  --ink-3: #7A8199;
-  --line: #E2E0D9;
-  --cobalt: #1F3FBF;
-  --cobalt-ink: #16308F;
-  --resort: #00927F;
-  --signal: #D9481C;
-  --sun: #F2B705;
-  --good: #1E8E3E;
-  --warn: #B26A00;
-  --on-accent: #FFFFFF;
-  --on-photo: #FFFFFF;
-  --duo: #0C1E73;
-  --shadow: 0 1px 2px rgba(14, 22, 48, .05), 0 18px 40px -22px rgba(14, 22, 48, .28);
-  --f-display: "Gloock", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --f-ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --r-lg: 28px;
-  --r-md: 18px;
-  --r-sm: 10px;
+  --merino: #F1F1EC;   /* nền */
+  --kangaroo: #D0C7B3; /* mặt phụ, đường kẻ */
+  --oyster: #939474;   /* trang trí */
+  --oyster-ink: #6F7052; /* chữ phụ, 4.5:1 trên nền */
+  --rifle: #43442B;    /* điểm nhấn chính */
+  --cedar: #29272B;    /* chữ */
+  --rust: #A3442A;     /* chỉ dùng cho hủy phòng */
+  --brass: #9C7A3C;    /* đường Resort trên biểu đồ, cảnh báo */
+  --f-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --f-ui: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
   --ease: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #0A0F1F; --surface: #111933; --surface-2: #18213F; --ink: #EDF0F8; --ink-2: #AEB5CC; --ink-3: #7F87A3;
-    --line: #232D4D; --cobalt: #6A84F0; --cobalt-ink: #9DB0FF; --resort: #1FA893; --signal: #FF6B3D; --sun: #FFC933;
-    --good: #3DD68C; --warn: #F5B544; --on-accent: #0A0F1F; --duo: #0C1E73;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -22px rgba(0, 0, 0, .7);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --paper: #0A0F1F; --surface: #111933; --surface-2: #18213F; --ink: #EDF0F8; --ink-2: #AEB5CC; --ink-3: #7F87A3;
-  --line: #232D4D; --cobalt: #6A84F0; --cobalt-ink: #9DB0FF; --resort: #1FA893; --signal: #FF6B3D; --sun: #FFC933;
-  --good: #3DD68C; --warn: #F5B544; --on-accent: #0A0F1F; --duo: #0C1E73;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -22px rgba(0, 0, 0, .7);
-  color-scheme: dark;
-}
-
 * { box-sizing: border-box; }
-html, body { background: var(--paper); color: var(--ink); }
+html, body { background: var(--merino); color: var(--cedar); }
 body { font-family: var(--f-ui); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--paper); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--merino); }
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: .13; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .16 0 0 0 0 .15 0 0 0 0 .17 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
 h1, h2, h3 { margin: 0; font-weight: 400; text-wrap: balance; }
 p { margin: 0; }
 button { font: inherit; color: inherit; }
 a { color: inherit; }
-:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 3px; border-radius: 6px; }
-.num, .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--rifle); outline-offset: 3px; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.cur { font-family: var(--f-ui); font-weight: 500; font-size: .4em; letter-spacing: 0; vertical-align: 1.05em; margin-right: .1em; }
+.cap { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--oyster-ink); }
 
-/* ---------- Shell ---------- */
-.app {
-  display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 24px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 16px 48px;
-  max-width: 1480px; margin: 0 auto;
+.wrap {
+  max-width: 1360px; margin: 0 auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
 }
-.rail {
-  position: sticky; top: calc(16px + env(safe-area-inset-top, 0px));
-  height: calc(100dvh - 32px - env(safe-area-inset-top, 0px));
-  display: flex; flex-direction: column; gap: 28px;
-  background: var(--surface); border-radius: var(--r-lg); padding: 22px 14px 14px;
-  box-shadow: var(--shadow);
-}
-.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; padding: 0 8px; }
-.brand svg { width: 38px; height: 38px; flex: none; }
-.brand b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 26px; line-height: 1; letter-spacing: -.01em; }
-.brand small { display: block; font-size: 12px; color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase; margin-top: 4px; }
-.nav { display: flex; flex-direction: column; gap: 2px; }
-.nav a {
-  position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px;
-  text-decoration: none; color: var(--ink-2); font-weight: 500; transition: color .2s, background .2s;
-}
-.nav a svg { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.nav a:hover { color: var(--ink); background: var(--surface-2); }
-.nav a[aria-current="page"] { color: var(--on-accent); background: var(--cobalt); }
-.rail-foot {
-  margin-top: auto; position: relative; overflow: hidden; border-radius: var(--r-md);
-  background: var(--duo); color: var(--on-photo); padding: 18px 16px; min-height: 150px;
-  display: flex; flex-direction: column; justify-content: flex-end; gap: 4px;
-}
-.rail-foot .tiles { position: absolute; inset: 0; opacity: .55; }
-.rail-foot strong { position: relative; font-family: var(--f-display); font-weight: 400; font-size: 20px; line-height: 1.15; }
-.rail-foot span { position: relative; font-size: 12.5px; opacity: .85; }
 
-main { min-width: 0; }
-.view { display: flex; flex-direction: column; gap: 22px; }
-.view > * { animation: rise .7s var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms); }
-@keyframes rise { from { transform: translateY(16px); opacity: .4; } to { transform: none; opacity: 1; } }
+/* ---------- Top bar ---------- */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--merino); }
+.top .wrap { display: flex; align-items: center; gap: 36px; padding-block: 18px 14px; flex-wrap: wrap; }
+.top::after { content: ""; display: block; height: 4px; border-top: 1px solid var(--cedar); border-bottom: 1px solid var(--cedar); max-width: 1320px; margin: 0 auto; width: calc(100% - 2 * max(20px, env(safe-area-inset-left, 0px))); }
+.brand { text-decoration: none; display: flex; align-items: baseline; gap: 10px; }
+.brand b { font-family: var(--f-display); font-weight: 700; font-size: 28px; letter-spacing: .06em; line-height: 1; }
+.brand span { font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--oyster-ink); }
+.nav { display: flex; gap: 26px; flex: 1; min-width: 0; }
+.nav a { position: relative; text-decoration: none; font-weight: 500; font-size: 15px; color: var(--oyster-ink); padding: 6px 0; white-space: nowrap; transition: color .2s; }
+.nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--rifle); transform: scaleX(0); transform-origin: left; transition: transform .4s var(--ease); }
+.nav a:hover { color: var(--cedar); }
+.nav a[aria-current="page"] { color: var(--cedar); }
+.nav a[aria-current="page"]::after { transform: scaleX(1); }
 
-.viewhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; padding: 10px 4px 0; }
-.eyebrow { font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--cobalt-ink); }
-.viewhead h1 { font-family: var(--f-display); font-size: clamp(34px, 4.4vw, 54px); line-height: 1.02; letter-spacing: -.015em; margin-top: 8px; }
+.filter { display: inline-flex; border: 1px solid var(--cedar); }
+.filter button { border: 0; background: none; padding: 7px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--cedar); transition: background .25s, color .25s; }
+.filter button + button { border-left: 1px solid var(--cedar); }
+.filter button[aria-pressed="true"] { background: var(--rifle); color: var(--merino); }
+.filter button:hover:not([aria-pressed="true"]) { background: var(--kangaroo); }
 
-.panel { background: var(--surface); border-radius: var(--r-lg); padding: 24px; box-shadow: var(--shadow); min-width: 0; }
-.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; margin-bottom: 18px; }
-.panel-head h2 { font-family: var(--f-display); font-size: 26px; line-height: 1.1; letter-spacing: -.01em; }
-.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
-.legend span { display: inline-flex; align-items: center; gap: 7px; }
-.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.legend i.dash { width: 18px; height: 0; border-radius: 0; border-top: 2px dashed var(--ink-2); }
+/* ---------- Views ---------- */
+main { padding-block: 34px 40px; }
+.view { display: flex; flex-direction: column; gap: 56px; }
+.view > * { animation: rise .7s var(--ease) both; animation-delay: calc(var(--i, 0) * 80ms); }
+@keyframes rise { from { transform: translateY(18px); opacity: .35; } to { transform: none; opacity: 1; } }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px 32px; flex-wrap: wrap; }
+.head h1 { font-family: var(--f-display); font-size: clamp(40px, 5.6vw, 76px); line-height: .98; letter-spacing: -.02em; }
 
-/* ---------- Segmented control ---------- */
-.seg { position: relative; display: inline-flex; padding: 4px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); isolation: isolate; }
-.seg button { position: relative; z-index: 1; border: 0; background: none; padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--ink-2); cursor: pointer; transition: color .25s; white-space: nowrap; }
-.seg button[aria-pressed="true"] { color: var(--on-accent); }
-.seg .thumb { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 0; width: 0; border-radius: 999px; background: var(--cobalt); transition: transform .45s var(--ease), width .45s var(--ease); }
-.seg.glass { background: rgba(255, 255, 255, .16); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
-.seg.glass button { color: var(--on-photo); }
-.seg.glass button[aria-pressed="true"] { color: #0E1630; }
-.seg.glass .thumb { background: #FFFFFF; }
-.seg.small button { padding: 6px 13px; font-size: 13px; }
-.seg.flat { box-shadow: none; background: var(--surface-2); }
+.section { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.section-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px 24px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--cedar); }
+.section-h h2 { font-family: var(--f-display); font-size: 30px; line-height: 1.1; letter-spacing: -.01em; }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { width: 18px; height: 3px; display: inline-block; }
+.legend i.dash { height: 0; border-top: 2px dashed var(--cedar); background: none !important; }
 
-/* ---------- Overview hero ---------- */
-.hero { position: relative; border-radius: var(--r-lg); overflow: hidden; min-height: 400px; display: flex; isolation: isolate; background: var(--duo); }
-.hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; filter: grayscale(1) contrast(1.12) brightness(1.05); mix-blend-mode: luminosity; opacity: .92; animation: drift 2.4s var(--ease) both; z-index: -2; }
-.hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 14, 52, .78) 0%, rgba(8, 14, 52, .45) 45%, rgba(8, 14, 52, 0) 75%), linear-gradient(180deg, rgba(8, 16, 64, .5) 0%, rgba(8, 16, 64, 0) 30%, rgba(8, 14, 52, .85) 100%); }
-@keyframes drift { from { transform: scale(1.09); } to { transform: scale(1); } }
-.hero-in { display: flex; flex-direction: column; justify-content: space-between; gap: 72px; padding: 26px 30px 92px; width: 100%; color: var(--on-photo); }
-.hero-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
-.hero-top .eyebrow { color: var(--on-photo); opacity: .9; }
-.hero-h { font-family: var(--f-display); font-size: clamp(36px, 5.2vw, 70px); line-height: 1.02; letter-spacing: -.02em; max-width: 15ch; }
-.hero-h em { font-style: normal; color: var(--sun); }
-.hero-sub { margin-top: 14px; font-size: 17px; max-width: 46ch; opacity: .92; }
+.tabs { display: inline-flex; gap: 18px; }
+.tabs button { border: 0; background: none; padding: 2px 0; font-size: 14px; font-weight: 600; color: var(--oyster-ink); cursor: pointer; border-bottom: 2px solid transparent; transition: color .2s, border-color .3s; }
+.tabs button[aria-pressed="true"] { color: var(--cedar); border-color: var(--rifle); }
 
-.kpis {
-  position: relative; z-index: 2; margin: -70px 22px 0; background: var(--surface); border-radius: var(--r-md); box-shadow: var(--shadow);
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-.kpi { padding: 20px 22px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.kpi + .kpi { border-left: 1px solid var(--line); }
-.kpi label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
-.kpi .val { font-family: var(--f-display); font-size: clamp(30px, 2.8vw, 42px); line-height: 1; letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.kpi .val small { font-size: .55em; margin-left: 2px; }
-.kpi.alert .val { color: var(--signal); }
-.meter { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin-top: 6px; }
-.meter i { display: block; height: 100%; border-radius: 99px; background: var(--signal); transition: width .8s var(--ease); }
+/* ---------- Focal block (một khối mỗi trang) ---------- */
+.focal { background: var(--rifle); color: var(--merino); position: relative; overflow: hidden; }
+.focal .cap { color: var(--kangaroo); }
+.focal .big { font-family: var(--f-display); font-weight: 500; font-size: clamp(72px, 11vw, 168px); line-height: .86; letter-spacing: -.035em; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.focal .line { font-size: 17px; color: var(--kangaroo); }
+.focal .line b { color: var(--merino); font-weight: 600; }
 
-/* ---------- Hotel cards ---------- */
-.hotels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
-.hotel {
-  text-align: left; border: 0; padding: 0; cursor: pointer; background: var(--surface); border-radius: var(--r-lg); overflow: hidden;
-  box-shadow: var(--shadow); display: grid; grid-template-columns: 44% minmax(0, 1fr); min-height: 230px;
-  transition: transform .4s var(--ease), box-shadow .4s var(--ease), opacity .4s;
-  outline: 2px solid transparent; outline-offset: -2px;
-}
-.hotel:hover { transform: translateY(-4px); }
-.hotel figure { margin: 0; overflow: hidden; position: relative; }
-.hotel figure img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease); }
-.hotel:hover figure img { transform: scale(1.06); }
-.hotel.is-on { outline-color: var(--cobalt); }
-.hotel.is-off { opacity: .5; }
-.hotel-body { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.hotel-name { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.hotel-name h3 { font-family: var(--f-display); font-size: 30px; line-height: 1; }
-.place { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
-.place i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.hotel dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.hotel dt { font-size: 12.5px; color: var(--ink-2); }
-.hotel dd { margin: 2px 0 0; font-family: var(--f-display); font-size: 32px; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.hcx { margin-top: auto; }
-.hcx-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.hcx-top span { font-size: 12.5px; color: var(--ink-2); }
-.hcx-top b { font-family: var(--f-display); font-weight: 400; font-size: 26px; color: var(--signal); font-variant-numeric: tabular-nums; }
+/* ---------- Overview ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); min-height: 470px; }
+.hero .focal { container-type: inline-size; padding: 30px 34px 34px; display: flex; flex-direction: column; justify-content: space-between; gap: 40px; }
+.hero .focal .big { font-size: min(30cqi, 176px); }
+.photo { position: relative; overflow: hidden; background: var(--kangaroo); min-height: 260px; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: sepia(.3) saturate(.72) contrast(.95) brightness(.97); transition: opacity .9s var(--ease), transform 2.2s var(--ease); }
+.photo img.off { opacity: 0; transform: scale(1.06); }
+.photo .tag { position: absolute; right: 0; bottom: 0; z-index: 1; background: var(--merino); padding: 8px 14px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpi { padding: 4px 26px 2px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.kpi:first-child { padding-left: 0; }
+.kpi + .kpi { border-left: 1px solid var(--kangaroo); }
+.kpi .val { font-family: var(--f-display); font-weight: 500; font-size: clamp(38px, 4.4vw, 62px); line-height: .95; letter-spacing: -.02em; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.kpi.alert .val { color: var(--rust); }
 
 /* ---------- Charts ---------- */
 .chart { position: relative; width: 100%; min-width: 0; }
 .chart svg { display: block; width: 100%; overflow: visible; }
-.chart text { font-family: var(--f-mono); font-size: 11.5px; fill: var(--ink-3); }
-.chart .grid line { stroke: var(--line); stroke-width: 1; }
-.chart .zero { stroke: var(--ink-3); stroke-width: 1; }
-.chart .series { fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
-.chart .endlabel { font-family: var(--f-ui); font-size: 13px; font-weight: 600; fill: var(--ink); }
-.chart .ann { font-family: var(--f-ui); font-size: 12.5px; fill: var(--ink); }
-.chart .ann-b { font-family: var(--f-display); font-size: 20px; fill: var(--ink); }
-.chart .xhair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
-.chart.drawn .series { animation: draw 1.3s var(--ease) both; }
+.chart text { font-family: var(--f-mono); font-size: 11.5px; fill: var(--oyster-ink); }
+.chart .grid line { stroke: var(--kangaroo); stroke-width: 1; }
+.chart .zero { stroke: var(--cedar); stroke-width: 1; }
+.chart .series { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.chart .endlabel { font-family: var(--f-ui); font-size: 13.5px; font-weight: 600; fill: var(--cedar); }
+.chart .ann { font-family: var(--f-ui); font-size: 13px; fill: var(--cedar); }
+.chart .ann-b { font-family: var(--f-ui); font-size: 17px; font-weight: 600; fill: var(--cedar); }
+.chart .xhair { stroke: var(--cedar); stroke-width: 1; stroke-dasharray: 2 3; }
+.chart.drawn .series { animation: draw 1.4s var(--ease) both; }
 @keyframes draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
-.tip {
-  position: absolute; z-index: 5; pointer-events: none; min-width: 150px; padding: 10px 12px; border-radius: 12px;
-  background: var(--ink); color: var(--paper); font-size: 13px; line-height: 1.45; box-shadow: var(--shadow);
-  opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s;
-}
+.tip { position: absolute; z-index: 5; pointer-events: none; min-width: 150px; padding: 10px 12px; background: var(--cedar); color: var(--merino); font-size: 13px; line-height: 1.45; opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; }
 .tip.on { opacity: 1; transform: none; }
 .tip b { font-weight: 600; }
 .tip .row { display: flex; justify-content: space-between; gap: 14px; }
-.tip .row span { display: inline-flex; align-items: center; gap: 6px; }
-.tip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
 /* ---------- Tables ---------- */
-.tablewrap { overflow-x: auto; margin: 0 -8px; padding: 0 8px; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th { text-align: left; font-weight: 500; font-size: 12.5px; color: var(--ink-2); padding: 0 12px 10px; white-space: nowrap; }
-td { padding: 13px 12px; border-top: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+th { text-align: left; font-family: var(--f-mono); font-weight: 400; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--oyster-ink); padding: 0 14px 10px 0; white-space: nowrap; }
+td { padding: 14px 14px 14px 0; border-top: 1px solid var(--kangaroo); white-space: nowrap; vertical-align: middle; }
 th.r, td.r { text-align: right; }
 td .name { font-weight: 600; }
-.bar { display: flex; align-items: center; gap: 10px; min-width: 150px; }
-.bar .track { flex: 1; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
-.bar .track i { display: block; height: 100%; border-radius: 99px; background: var(--cobalt); transition: width .8s var(--ease); }
-.bar.risk .track i { background: var(--signal); }
-.bar .num { width: 46px; text-align: right; font-size: 13px; }
+.bar { display: flex; align-items: center; gap: 12px; min-width: 160px; }
+.bar .track { flex: 1; height: 6px; background: var(--kangaroo); overflow: hidden; }
+.bar .track i { display: block; height: 100%; background: var(--rifle); transition: width .8s var(--ease); }
+.bar.risk .track i { background: var(--rust); }
+.bar .num { width: 48px; text-align: right; font-size: 13px; }
 
-/* ---------- Risk view ---------- */
-.riskbar { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; background: var(--surface); border-radius: var(--r-md); box-shadow: var(--shadow); }
-.riskbar > div { padding: 18px 22px; display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; min-width: 0; }
-.riskbar > div + div { border-left: 1px solid var(--line); }
-.riskbar label { font-size: 13px; color: var(--ink-2); font-weight: 500; }
-.riskbar .val { font-family: var(--f-display); font-size: 34px; line-height: 1.05; font-variant-numeric: tabular-nums; }
-.riskbar .val.alert { color: var(--signal); }
-.riskbar .slider { flex: 1.4 1 260px; }
-.slider-row { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
-.slider-row output { font-family: var(--f-display); font-size: 30px; line-height: 1; min-width: 64px; text-align: right; }
+/* ---------- Risk ---------- */
+.riskband { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 20px 48px; padding: 28px 34px; }
+.riskband .big { font-size: clamp(72px, 9vw, 132px); }
+.riskband .side { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; }
+.riskband .side b { font-family: var(--f-display); font-weight: 500; font-size: 40px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.thr { display: flex; flex-direction: column; gap: 8px; min-width: 260px; padding-bottom: 8px; }
+.thr-row { display: flex; align-items: center; gap: 14px; }
+.thr output { font-family: var(--f-display); font-size: 34px; line-height: 1; min-width: 74px; text-align: right; color: var(--merino); }
 
-.risk-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.risk-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 0; align-items: start; }
+.risk-grid > .section:first-child { padding-right: 40px; }
+.detail { position: sticky; top: calc(96px + env(safe-area-inset-top, 0px)); border-left: 1px solid var(--cedar); padding-left: 40px; display: flex; flex-direction: column; gap: 26px; }
 .risk-list tbody tr { cursor: pointer; transition: background .2s, opacity .3s; }
-.risk-list tbody tr:hover { background: var(--surface-2); }
-.risk-list tbody tr.sel { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--cobalt); }
-.risk-list tbody tr.below { opacity: .5; }
-.risk-list tr.divider td { padding: 18px 12px 8px; border-top: 0; font-size: 12.5px; color: var(--ink-2); cursor: default; }
+.risk-list tbody tr:hover { background: rgba(208, 199, 179, .45); }
+.risk-list tbody tr.sel { background: var(--kangaroo); }
+.risk-list tbody tr.below { opacity: .45; }
+.risk-list td:first-child { padding-left: 10px; }
+.risk-list tr.divider td { padding: 22px 10px 8px; border-top: 0; cursor: default; }
 .risk-list tr.divider:hover { background: none; }
-.risk-list .id { font-weight: 600; }
-.risk-list .cc { font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); margin-left: 8px; }
-.risk-list .queued { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); margin-left: 8px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
-.dot.hollow { background: none !important; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
-
-.detail { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); padding: 0; overflow: hidden; }
-.detail figure { margin: 0; height: 150px; position: relative; overflow: hidden; background: var(--duo); }
-.detail figure img { width: 100%; height: 100%; object-fit: cover; transition: opacity .5s; }
-.detail figure figcaption { position: absolute; left: 20px; bottom: 14px; color: var(--on-photo); font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
-.detail figure::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(8, 14, 52, .7)); }
-.detail figure figcaption { z-index: 1; }
-.detail-in { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 22px; }
-.prob { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.prob .big { font-family: var(--f-display); font-size: 76px; line-height: .9; color: var(--signal); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.risk-list .id { font-weight: 600; font-family: var(--f-mono); font-size: 13.5px; }
+.risk-list .flag { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--rifle); margin-left: 10px; }
+.hdot { width: 8px; height: 8px; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+.prob { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.prob .p { font-family: var(--f-display); font-weight: 500; font-size: 104px; line-height: .82; letter-spacing: -.03em; color: var(--rust); font-variant-numeric: lining-nums tabular-nums; }
 .prob .who { text-align: right; }
-.prob .who b { display: block; font-size: 17px; }
-.prob .who span { font-size: 13px; color: var(--ink-2); }
-.pmeter { position: relative; height: 10px; border-radius: 99px; background: var(--surface-2); }
-.pmeter i { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: var(--signal); transition: width .7s var(--ease); }
-.pmeter b { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--ink); border-radius: 2px; transition: left .4s var(--ease); }
-.h4 { font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; }
-.drivers { display: flex; flex-direction: column; gap: 9px; }
-.drv { display: grid; grid-template-columns: minmax(0, 1fr) 120px 44px; align-items: center; gap: 10px; font-size: 14px; }
-.drv .axis { position: relative; height: 10px; }
-.drv .axis::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); }
-.drv .axis i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
-.drv .axis i.up { left: 50%; background: var(--signal); }
-.drv .axis i.down { right: 50%; background: var(--cobalt); }
-.drv .num { font-size: 12.5px; text-align: right; color: var(--ink-2); }
-.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; margin: 0; }
-.facts dt { font-size: 12.5px; color: var(--ink-2); }
-.facts dd { margin: 1px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.prob .who b { display: block; font-family: var(--f-mono); font-size: 16px; font-weight: 500; }
+.pmeter { position: relative; height: 6px; background: var(--kangaroo); }
+.pmeter i { position: absolute; inset: 0 auto 0 0; background: var(--rust); transition: width .7s var(--ease); }
+.pmeter b { position: absolute; top: -7px; bottom: -7px; width: 2px; background: var(--cedar); transition: left .4s var(--ease); }
+.drivers { display: flex; flex-direction: column; gap: 10px; }
+.drv { display: grid; grid-template-columns: minmax(0, 1fr) 110px; align-items: center; gap: 14px; font-size: 14.5px; }
+.drv .axis { position: relative; height: 8px; }
+.drv .axis::before { content: ""; position: absolute; left: 50%; top: -4px; bottom: -4px; width: 1px; background: var(--cedar); }
+.drv .axis i { position: absolute; top: 0; bottom: 0; }
+.drv .axis i.up { left: 50%; background: var(--rust); }
+.drv .axis i.down { right: 50%; background: var(--rifle); }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; margin: 0; padding-top: 18px; border-top: 1px solid var(--kangaroo); }
+.facts dd { margin: 3px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.btn { border: 0; cursor: pointer; padding: 12px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; transition: transform .2s var(--ease), background .2s, box-shadow .2s; }
+.btn { border: 1px solid var(--rifle); cursor: pointer; padding: 12px 20px; font-weight: 600; font-size: 14px; transition: transform .2s var(--ease), background .2s, color .2s; }
 .btn:active { transform: scale(.97); }
-.btn.primary { background: var(--cobalt); color: var(--on-accent); }
-.btn.primary:hover { box-shadow: 0 10px 24px -10px var(--cobalt); }
-.btn.ghost { background: var(--surface-2); color: var(--ink); }
-.btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-
-.why { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; align-items: end; }
-.bars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; align-items: end; height: 220px; }
-.bars .b { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; height: 100%; cursor: default; }
-.bars .b i { width: 100%; max-width: 56px; border-radius: 6px 6px 2px 2px; background: var(--signal); transform-origin: bottom; transition: transform .9s var(--ease), opacity .2s; }
-.bars .b:hover i { opacity: .8; }
-.bars .b span { font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-.bars .b b { font-family: var(--f-display); font-weight: 400; font-size: 19px; }
-.model { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.model div { display: flex; flex-direction: column; gap: 2px; }
-.model b { font-family: var(--f-display); font-weight: 400; font-size: 36px; line-height: 1; }
-.model span { font-size: 13px; color: var(--ink-2); }
-.model-foot { grid-column: 1 / -1; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 12px; }
+.btn.primary { background: var(--rifle); color: var(--merino); }
+.btn.primary:hover { background: var(--cedar); border-color: var(--cedar); }
+.btn.ghost { background: none; color: var(--rifle); }
+.btn.ghost:hover { background: var(--kangaroo); }
+.leadrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 56px; align-items: end; }
+.bars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; align-items: end; height: 190px; }
+.bars .b { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; height: 100%; }
+.bars .b i { width: 100%; max-width: 64px; background: var(--rust); transform-origin: bottom; transition: transform .9s var(--ease); }
+.bars .b span { font-family: var(--f-mono); font-size: 11.5px; color: var(--oyster-ink); white-space: nowrap; }
+.bars .b b { font-family: var(--f-display); font-weight: 500; font-size: 22px; }
+.auc { display: flex; flex-direction: column; gap: 6px; padding-bottom: 26px; }
+.auc b { font-family: var(--f-display); font-weight: 500; font-size: 64px; line-height: .9; }
 
 /* ---------- Forecast ---------- */
-.fc-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 22px; align-items: stretch; }
-.fc-photo { position: relative; border-radius: var(--r-lg); overflow: hidden; min-height: 170px; background: var(--duo); }
-.fc-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .7s var(--ease), transform 1.4s var(--ease); }
-.fc-photo img.off { opacity: 0; transform: scale(1.05); }
-.fc-photo span { position: absolute; left: 18px; bottom: 14px; z-index: 1; color: var(--on-photo); font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0, 0, 0, .55); }
-.fc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 22px; align-items: stretch; }
-.stats { display: flex; flex-direction: column; gap: 0; }
-.stat { padding: 16px 0; display: flex; flex-direction: column; gap: 3px; }
-.stat + .stat { border-top: 1px solid var(--line); }
-.stat label { font-size: 13px; color: var(--ink-2); font-weight: 500; }
-.stat .val { font-family: var(--f-display); font-size: 34px; line-height: 1.05; font-variant-numeric: tabular-nums; }
-.stat .sub { font-size: 13px; color: var(--ink-2); }
-.weeks { display: grid; grid-template-columns: repeat(8, minmax(92px, 1fr)); gap: 10px; }
-.wk { border-radius: var(--r-sm); background: var(--surface-2); padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 3px; transition: transform .3s var(--ease), background .3s; }
-.wk:hover { transform: translateY(-3px); }
-.wk.peak { background: var(--cobalt); color: var(--on-accent); }
-.wk.peak small { color: inherit; opacity: .8; }
-.wk small { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2); }
-.wk b { font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fc-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 24px 48px; align-items: stretch; }
+.fc-top .head { align-items: flex-start; flex-direction: column; justify-content: flex-end; }
+.fc-top .focal { padding: 24px 28px; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+.fc-top .focal .big { font-size: clamp(64px, 7vw, 108px); }
+.weeks { display: grid; grid-template-columns: repeat(8, minmax(96px, 1fr)); }
+.wk { padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 4px; border-left: 1px solid var(--kangaroo); transition: background .3s; }
+.wk:first-child { border-left: 0; padding-left: 0; }
+.wk.peak { background: var(--kangaroo); border-left-color: var(--kangaroo); padding-left: 14px; }
+.wk b { font-family: var(--f-display); font-weight: 500; font-size: 30px; line-height: 1.05; font-variant-numeric: lining-nums tabular-nums; }
+.wk small { font-family: var(--f-mono); font-size: 11.5px; color: var(--oyster-ink); }
 
 /* ---------- What-if ---------- */
-.wi-grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 22px; align-items: start; }
-.controls { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 22px; }
-.ctl { display: flex; flex-direction: column; gap: 10px; }
+.wi-grid { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 48px; align-items: start; }
+.controls { display: flex; flex-direction: column; gap: 24px; position: sticky; top: calc(96px + env(safe-area-inset-top, 0px)); }
+.ctl { display: flex; flex-direction: column; gap: 8px; }
 .ctl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.ctl-top label { font-weight: 600; font-size: 14px; }
+.ctl-top label { font-weight: 600; font-size: 14.5px; }
 .ctl-top output { font-family: var(--f-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
-.ctl-help { font-size: 12.5px; color: var(--ink-2); margin-top: -4px; }
-input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; cursor: pointer; --p: 50%; }
-input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 99px; background: linear-gradient(90deg, var(--cobalt) var(--p), var(--surface-2) var(--p)); }
-input[type="range"]::-moz-range-track { height: 6px; border-radius: 99px; background: linear-gradient(90deg, var(--cobalt) var(--p), var(--surface-2) var(--p)); }
-input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--surface); border: 2px solid var(--cobalt); box-shadow: 0 2px 8px rgba(14, 22, 48, .25); transition: transform .2s var(--ease); }
-input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--cobalt); box-shadow: 0 2px 8px rgba(14, 22, 48, .25); }
-input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.18); }
-.switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer; }
-.switch span { font-weight: 600; font-size: 14px; }
-.switch small { display: block; font-weight: 400; font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; --p: 50%; --fill: var(--rifle); --rest: var(--kangaroo); --knob: var(--merino); }
+input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: linear-gradient(90deg, var(--fill) var(--p), var(--rest) var(--p)); }
+input[type="range"]::-moz-range-track { height: 3px; background: linear-gradient(90deg, var(--fill) var(--p), var(--rest) var(--p)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7.5px; border-radius: 50%; background: var(--knob); border: 2px solid var(--fill); transition: transform .2s var(--ease); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--knob); border: 2px solid var(--fill); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
+.focal input[type="range"] { --fill: var(--merino); --rest: rgba(241, 241, 236, .28); --knob: var(--rifle); }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer; font-weight: 600; font-size: 14.5px; }
 .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.switch .knob { flex: none; width: 46px; height: 28px; border-radius: 99px; background: var(--surface-2); position: relative; transition: background .25s; box-shadow: inset 0 0 0 1px var(--line); }
-.switch .knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 4px rgba(14, 22, 48, .3); transition: transform .3s var(--ease); }
-.switch input:checked + .knob { background: var(--cobalt); }
-.switch input:checked + .knob::after { transform: translateX(18px); }
-.switch input:focus-visible + .knob { outline: 2px solid var(--cobalt); outline-offset: 3px; }
-.result { position: relative; overflow: hidden; border-radius: var(--r-lg); background: var(--duo); color: var(--on-photo); padding: 28px 30px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; isolation: isolate; }
-.result img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; filter: grayscale(1) contrast(1.1); mix-blend-mode: luminosity; opacity: .55; }
-.result::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(10, 20, 80, .95) 0%, rgba(10, 20, 80, .75) 55%, rgba(10, 20, 80, .45) 100%); }
-.result .label { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
-.result .huge { font-family: var(--f-display); font-size: clamp(54px, 7vw, 96px); line-height: .95; letter-spacing: -.02em; margin-top: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.result .huge.neg { color: #FF9A7A; }
-.result .year { margin-top: 10px; font-size: 16px; opacity: .9; }
-.result .minis { display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; }
-.mini { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, .2); }
-.mini:last-child { border-bottom: 0; padding-bottom: 0; }
-.mini span { font-size: 14px; opacity: .88; }
-.mini b { font-family: var(--f-display); font-weight: 400; font-size: 28px; font-variant-numeric: tabular-nums; }
-.mini b.hot { color: var(--sun); }
+.switch .knob { flex: none; width: 44px; height: 24px; border: 1px solid var(--cedar); position: relative; transition: background .25s; }
+.switch .knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--cedar); transition: transform .3s var(--ease), background .25s; }
+.switch input:checked + .knob { background: var(--rifle); border-color: var(--rifle); }
+.switch input:checked + .knob::after { transform: translateX(20px); background: var(--merino); }
+.switch input:focus-visible + .knob { outline: 2px solid var(--rifle); outline-offset: 3px; }
+.result { padding: 30px 34px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 260px); gap: 28px; align-items: end; }
+.result .big { font-size: clamp(64px, 8.5vw, 132px); }
+.minis { display: flex; flex-direction: column; }
+.mini { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(241, 241, 236, .25); }
+.mini span { font-size: 14px; color: var(--kangaroo); }
+.mini b { font-family: var(--f-display); font-weight: 500; font-size: 30px; font-variant-numeric: lining-nums tabular-nums; }
 
 /* ---------- Pipeline ---------- */
-.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 30px; position: relative; }
-.stage { position: relative; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.stage-h { display: flex; align-items: center; gap: 10px; padding: 0 4px; }
-.stage-h b { font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1; }
-.stage-h small { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; }
-.chip { width: 12px; height: 12px; border-radius: 4px; flex: none; }
-.tbl { background: var(--surface); border-radius: var(--r-sm); padding: 12px 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 3px; min-width: 0; transition: transform .3s var(--ease); }
-.tbl:hover { transform: translateY(-3px); }
-.tbl code { font-family: var(--f-mono); font-size: 12.5px; font-weight: 500; overflow-wrap: anywhere; }
-.tbl span { font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
-.stage + .stage::before {
-  content: ""; position: absolute; left: -26px; top: 76px; width: 22px; height: 2px; border-radius: 2px;
-  background: repeating-linear-gradient(90deg, var(--cobalt) 0 6px, transparent 6px 10px); background-size: 20px 2px;
-  animation: march 1s linear infinite;
-}
-.stage + .stage::after { content: ""; position: absolute; left: -8px; top: 72px; border: 5px solid transparent; border-left-color: var(--cobalt); }
-@keyframes march { to { background-position: 20px 0; } }
-.pl-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
-.checks { display: flex; flex-direction: column; }
-.check { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; padding: 13px 0; }
-.check + .check { border-top: 1px solid var(--line); }
-.check .t { font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.check .n { font-family: var(--f-mono); font-size: 13px; text-align: right; }
-.check .s { grid-column: 1 / -1; font-size: 13px; color: var(--ink-2); padding-left: 18px; }
-.status { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; }
+.flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.stage { position: relative; padding: 0 22px 0 26px; display: flex; flex-direction: column; gap: 14px; min-width: 0; border-left: 1px solid var(--kangaroo); }
+.stage:first-child { padding-left: 0; border-left: 0; }
+.stage h3 { font-family: var(--f-display); font-size: 34px; line-height: 1; }
+.stage ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.stage li { display: flex; flex-direction: column; gap: 1px; }
+.stage code { font-family: var(--f-mono); font-size: 13px; overflow-wrap: anywhere; }
+.stage li span { font-size: 13px; color: var(--oyster-ink); }
+.stage.hl { background: var(--rifle); color: var(--merino); padding: 22px 22px 24px 26px; border-left-color: var(--rifle); }
+.stage.hl li span, .stage.hl .cap { color: var(--kangaroo); }
+.stage + .stage::before { content: ""; position: absolute; left: -7px; top: 14px; width: 13px; height: 13px; background: var(--merino); border: 1px solid var(--cedar); transform: rotate(45deg); z-index: 1; }
+.stage .pulse { position: absolute; left: -1px; top: 0; width: 1px; height: 40px; background: var(--rifle); animation: flow 2.6s var(--ease) infinite; animation-delay: var(--d, 0s); }
+@keyframes flow { 0% { transform: translateY(-40px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(220px); opacity: 0; } }
+.checks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.check { padding: 4px 24px 0; display: flex; flex-direction: column; gap: 6px; border-left: 1px solid var(--kangaroo); }
+.check:first-child { padding-left: 0; border-left: 0; }
+.check b { font-family: var(--f-display); font-weight: 500; font-size: 48px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.check .t { font-weight: 600; }
+.status { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.sq { width: 9px; height: 9px; display: inline-block; flex: none; }
 
-/* ---------- Toast ---------- */
-.toast {
-  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 40; transform: translate(-50%, 20px);
-  background: var(--ink); color: var(--paper); padding: 12px 18px; border-radius: 999px; font-weight: 500; font-size: 14px;
-  box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .25s, transform .35s var(--ease); display: flex; gap: 10px; align-items: center;
-}
+.foot { padding-block: 26px 34px; }
+.foot .wrap > div { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--kangaroo); padding-top: 14px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 60; transform: translate(-50%, 20px); background: var(--cedar); color: var(--merino); padding: 12px 18px; font-weight: 500; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .35s var(--ease); }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
-
-::view-transition-old(root) { animation: vt-out .22s ease both; }
-::view-transition-new(root) { animation: vt-in .38s var(--ease) both; }
+::view-transition-old(root) { animation: vt-out .2s ease both; }
+::view-transition-new(root) { animation: vt-in .4s var(--ease) both; }
 @keyframes vt-out { to { opacity: 0; } }
 @keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 1180px) {
-  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .kpi:nth-child(4) { border-left: 0; }
-  .kpi:nth-child(n + 4) { border-top: 1px solid var(--line); }
-  .risk-grid, .wi-grid, .why { grid-template-columns: minmax(0, 1fr); }
-  .detail, .controls { position: static; }
-  .flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .stage:nth-child(4)::before, .stage:nth-child(4)::after { display: none; }
+@media (max-width: 1100px) {
+  .risk-grid, .wi-grid, .fc-top { grid-template-columns: minmax(0, 1fr); }
+  .risk-grid > .section:first-child { padding-right: 0; }
+  .detail { position: static; border-left: 0; padding-left: 0; border-top: 1px solid var(--cedar); padding-top: 26px; margin-top: 30px; }
+  .controls { position: static; order: 2; }
+  .riskband { grid-template-columns: auto minmax(0, 1fr); }
+  .riskband .thr { grid-column: 1 / -1; }
+  .flow { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 34px; }
+  .stage:nth-child(4) { padding-left: 26px; border-left: 0; }
+  .stage:nth-child(4)::before, .stage:nth-child(4) .pulse { display: none; }
 }
-@media (max-width: 900px) {
-  .app { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-block: 10px 40px; }
-  .rail { position: static; height: auto; flex-direction: column; gap: 14px; padding: 14px; }
-  .rail-foot { display: none; }
-  .nav { flex-direction: row; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; }
-  .nav a { white-space: nowrap; padding: 9px 12px; }
-  .hotels, .fc-grid, .fc-head, .pl-grid { grid-template-columns: minmax(0, 1fr); }
-  .hotel { grid-template-columns: minmax(0, 1fr); }
-  .hotel figure { height: 170px; }
-  .fc-photo { min-height: 150px; }
-  .flow { grid-template-columns: minmax(0, 1fr); gap: 34px; }
-  .stage + .stage::before { left: 50%; top: -26px; width: 2px; height: 20px; background: repeating-linear-gradient(180deg, var(--cobalt) 0 6px, transparent 6px 10px); background-size: 2px 20px; animation-name: march-v; }
-  .stage + .stage::after, .stage:nth-child(4)::before { display: block; }
-  .stage + .stage::after { left: calc(50% - 4px); top: -8px; border: 5px solid transparent; border-top-color: var(--cobalt); }
-  @keyframes march-v { to { background-position: 0 20px; } }
+@media (max-width: 820px) {
+  .top .wrap { gap: 12px 20px; }
+  .nav { order: 3; flex-basis: 100%; overflow-x: auto; scrollbar-width: none; gap: 20px; }
+  .filter { margin-left: auto; }
+  .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .photo { min-height: 240px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 26px; }
+  .kpi:nth-child(3) { padding-left: 0; border-left: 0; }
+  .leadrow { grid-template-columns: minmax(0, 1fr); }
+  .result { grid-template-columns: minmax(0, 1fr); }
+  .checks { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 24px; }
+  .check:nth-child(3) { padding-left: 0; border-left: 0; }
+  .flow { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+  .stage, .stage:nth-child(4) { padding: 18px 0; border-left: 0; border-top: 1px solid var(--kangaroo); }
+  .stage:first-child { border-top: 0; padding-top: 0; }
+  .stage.hl, .stage.hl:nth-child(4) { padding: 22px; }
+  .stage + .stage::before, .stage .pulse { display: none; }
+  .view { gap: 44px; }
 }
-@media (max-width: 620px) {
-  .hero { min-height: 0; }
-  .hero-in { padding: 20px 20px 96px; gap: 48px; }
-  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: -76px 10px 0; }
-  .kpi { padding: 16px; }
-  .kpi:nth-child(n) { border-left: 0; border-top: 1px solid var(--line); }
-  .kpi:nth-child(1), .kpi:nth-child(2) { border-top: 0; }
-  .kpi:nth-child(even) { border-left: 1px solid var(--line); }
-  .kpi:last-child { grid-column: 1 / -1; border-left: 0; }
-  .panel { padding: 18px; border-radius: 22px; }
-  .riskbar > div + div { border-left: 0; border-top: 1px solid var(--line); }
-  .result { grid-template-columns: minmax(0, 1fr); padding: 24px; }
-  .prob .big { font-size: 64px; }
-  .model b { font-size: 30px; }
-  .drv { grid-template-columns: minmax(0, 1fr) 90px 40px; }
+@media (max-width: 560px) {
+  .brand span { display: none; }
+  .filter button { padding: 6px 10px; font-size: 13px; }
+  .hero .focal, .riskband, .result, .fc-top .focal { padding: 22px; }
+  .riskband { grid-template-columns: minmax(0, 1fr); }
+  .thr { min-width: 0; }
+  .kpi { padding: 2px 14px; }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prob .p { font-size: 84px; }
+  .section-h h2 { font-size: 26px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
 
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <!-- Họa tiết gạch azulejo: vẽ một ô 40x40, lặp lại -->
-    <pattern id="azulejo" width="40" height="40" patternUnits="userSpaceOnUse">
-      <g fill="none" stroke="#FFFFFF" stroke-width="1.1" opacity=".55">
-        <rect x=".5" y=".5" width="39" height="39"/>
-        <path d="M20 4 C26 12 28 14 36 20 C28 26 26 28 20 36 C14 28 12 26 4 20 C12 14 14 12 20 4Z"/>
-        <circle cx="20" cy="20" r="4"/>
-        <path d="M0 0 Q8 2 10 10 Q2 8 0 0Z M40 0 Q32 2 30 10 Q38 8 40 0Z M0 40 Q8 38 10 30 Q2 32 0 40Z M40 40 Q32 38 30 30 Q38 32 40 40Z"/>
-      </g>
-    </pattern>
-  </defs>
-</svg>
-
-<div class="app">
-  <aside class="rail">
-    <a class="brand" href="#overview" aria-label="Maré Revenue Desk, overview">
-      <svg viewBox="0 0 40 40" aria-hidden="true">
-        <rect width="40" height="40" rx="11" fill="var(--cobalt)"/>
-        <path d="M20 6 C25 13 27 15 34 20 C27 25 25 27 20 34 C15 27 13 25 6 20 C13 15 15 13 20 6Z" fill="none" stroke="var(--on-accent)" stroke-width="2"/>
-        <circle cx="20" cy="20" r="3.6" fill="var(--sun)"/>
-      </svg>
-      <span><b>Maré</b><small>Revenue Desk</small></span>
-    </a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#overview"><b>MARÉ</b><span>Lisbon · Algarve</span></a>
     <nav class="nav" aria-label="Sections">
-      <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Overview</a>
-      <a href="#risk" data-view="risk"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.2v.3"/></svg>Cancellation risk</a>
-      <a href="#forecast" data-view="forecast"><svg viewBox="0 0 24 24"><path d="M3 17c3-1 4-6 7-6s3 4 6 4 3-6 5-8"/><path d="M3 21h18"/></svg>Demand forecast</a>
-      <a href="#what-if" data-view="what-if"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>What-if</a>
-      <a href="#pipeline" data-view="pipeline"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Data pipeline</a>
+      <a href="#overview" data-view="overview">Overview</a>
+      <a href="#risk" data-view="risk">Cancellations</a>
+      <a href="#forecast" data-view="forecast">Forecast</a>
+      <a href="#what-if" data-view="what-if">What-if</a>
+      <a href="#pipeline" data-view="pipeline">Pipeline</a>
     </nav>
-    <div class="rail-foot">
-      <svg class="tiles" width="100%" height="100%" aria-hidden="true"><rect width="100%" height="100%" fill="url(#azulejo)"/></svg>
-      <strong>Lisbon &amp; Algarve</strong>
-      <span>Bookings Jul 2015 – Aug 2017</span>
-      <span>Prototype · sample figures</span>
+    <div class="filter" id="filter" role="group" aria-label="Hotel">
+      <button data-v="both" aria-pressed="true">Both</button>
+      <button data-v="city" aria-pressed="false">City</button>
+      <button data-v="resort" aria-pressed="false">Resort</button>
     </div>
-  </aside>
+  </div>
+</header>
 
-  <main>
-    <!-- ============ OVERVIEW ============ -->
-    <section class="view" id="view-overview" data-view="overview">
-      <div class="hero" style="--i:0">
-        <img src="img/lisbon-tram.jpg" alt="Yellow tram on a Lisbon street">
-        <div class="hero-in">
-          <div class="hero-top">
-            <span class="eyebrow" id="ov-eyebrow">Jul 2015 – Aug 2017 · 119,390 bookings</span>
-            <div class="seg glass" id="seg-ov" role="group" aria-label="Hotel">
-              <span class="thumb"></span>
-              <button data-v="both" aria-pressed="true">Both hotels</button>
-              <button data-v="city" aria-pressed="false">City</button>
-              <button data-v="resort" aria-pressed="false">Resort</button>
-            </div>
-          </div>
-          <div>
-            <h1 class="hero-h"><span id="ov-lost">€14.7M</span> of room revenue <em>cancelled</em> before arrival.</h1>
-            <p class="hero-sub" id="ov-sub">That is 36% of everything guests booked at both hotels.</p>
-          </div>
+<main class="wrap">
+  <!-- ============ OVERVIEW ============ -->
+  <section class="view" id="view-overview" data-view="overview">
+    <div class="hero" style="--i:0">
+      <div class="focal">
+        <span class="cap">Cancelled before arrival</span>
+        <div>
+          <div class="big" id="ov-lost"><span class="cur">€</span>14.7M</div>
+          <p class="line" style="margin-top:22px"><b id="ov-share">35%</b> of all booked room revenue</p>
         </div>
       </div>
-
-      <div class="kpis" style="--i:1">
-        <div class="kpi"><label>Realized revenue</label><div class="val" id="k-rev">€26.6M</div></div>
-        <div class="kpi"><label>Room-nights sold</label><div class="val" id="k-rn">262K</div></div>
-        <div class="kpi"><label>ADR</label><div class="val" id="k-adr">€101</div></div>
-        <div class="kpi alert"><label>Cancellation rate</label><div class="val" id="k-cx">37.0%</div><div class="meter"><i id="k-cx-m" style="width:37%"></i></div></div>
-        <div class="kpi"><label>Avg lead time</label><div class="val"><span id="k-lt">104</span><small>days</small></div></div>
+      <div class="photo">
+        <img data-h="both" src="img/lisbon-tram.jpg" alt="Tram on a Lisbon street">
+        <img data-h="city" class="off" src="img/lisbon-aerial.jpg" alt="Lisbon rooftops by the river" loading="lazy">
+        <img data-h="resort" class="off" src="img/coast-cliffs.jpg" alt="Algarve cliffs over the sea" loading="lazy">
+        <span class="tag cap" id="ov-place">Lisbon &amp; Algarve</span>
       </div>
+    </div>
 
-      <div class="hotels" style="--i:2">
-        <div class="hotel" data-hotel="city" role="button" tabindex="0" aria-pressed="false">
-          <figure><img src="img/lisbon-aerial.jpg" alt="Lisbon rooftops above Praça do Comércio" loading="lazy"></figure>
-          <div class="hotel-body">
-            <div class="hotel-name"><h3>City Hotel</h3><span class="place"><i style="background:var(--cobalt)"></i>Lisbon</span></div>
-            <dl>
-              <div><dt>Revenue</dt><dd id="h-city-rev">€14.4M</dd></div>
-              <div><dt>ADR</dt><dd id="h-city-adr">€105</dd></div>
-            </dl>
-            <div class="hcx">
-              <div class="hcx-top"><span>Cancelled before arrival</span><b id="h-city-cx">41.7%</b></div>
-              <div class="meter"><i id="h-city-m" style="width:41.7%"></i></div>
-            </div>
-          </div>
-        </div>
-        <div class="hotel" data-hotel="resort" role="button" tabindex="0" aria-pressed="false">
-          <figure><img src="img/coast-cliffs.jpg" alt="Rocky Atlantic coastline with turquoise water" loading="lazy"></figure>
-          <div class="hotel-body">
-            <div class="hotel-name"><h3>Resort Hotel</h3><span class="place"><i style="background:var(--resort)"></i>Algarve</span></div>
-            <dl>
-              <div><dt>Revenue</dt><dd id="h-resort-rev">€12.3M</dd></div>
-              <div><dt>ADR</dt><dd id="h-resort-adr">€98</dd></div>
-            </dl>
-            <div class="hcx">
-              <div class="hcx-top"><span>Cancelled before arrival</span><b id="h-resort-cx">27.8%</b></div>
-              <div class="meter"><i id="h-resort-m" style="width:27.8%"></i></div>
-            </div>
-          </div>
+    <div class="kpis" style="--i:1">
+      <div class="kpi"><span class="cap">Revenue</span><span class="val" id="k-rev"><span class="cur">€</span>26.9M</span></div>
+      <div class="kpi"><span class="cap">Room-nights</span><span class="val" id="k-rn">262K</span></div>
+      <div class="kpi"><span class="cap">ADR</span><span class="val" id="k-adr"><span class="cur">€</span>102</span></div>
+      <div class="kpi alert"><span class="cap">Cancellation rate</span><span class="val" id="k-cx">37.0%</span></div>
+    </div>
+
+    <div class="section" style="--i:2">
+      <div class="section-h"><h2>ADR by month</h2><div class="legend" id="lg-season"></div></div>
+      <div class="chart" id="ch-season"></div>
+    </div>
+
+    <div class="section" style="--i:3">
+      <div class="section-h">
+        <h2>Channels</h2>
+        <div class="tabs" id="tabs-mix" role="group" aria-label="Group by">
+          <button data-v="segment" aria-pressed="true">Segment</button>
+          <button data-v="market" aria-pressed="false">Market</button>
         </div>
       </div>
-
-      <div class="panel" style="--i:3">
-        <div class="panel-head">
-          <h2>ADR by arrival month</h2>
-          <div class="legend" id="lg-season"></div>
-        </div>
-        <div class="chart" id="ch-season"></div>
+      <div class="tablewrap">
+        <table id="tb-mix">
+          <thead><tr><th id="mix-col">Segment</th><th>Share</th><th class="r">ADR</th><th>Cancelled</th><th class="r">Revenue</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
+    </div>
+  </section>
 
-      <div class="panel" style="--i:4">
-        <div class="panel-head">
-          <h2>Where bookings come from</h2>
-          <div class="seg flat small" id="seg-mix" role="group" aria-label="Group by">
-            <span class="thumb"></span>
-            <button data-v="segment" aria-pressed="true">Segment</button>
-            <button data-v="market" aria-pressed="false">Market</button>
-          </div>
-        </div>
+  <!-- ============ RISK ============ -->
+  <section class="view" id="view-risk" data-view="risk" hidden>
+    <div class="head" style="--i:0"><h1>Arrivals 21–27 Aug 2017</h1></div>
+
+    <div class="focal riskband" style="--i:1">
+      <div>
+        <span class="cap">Likely to cancel</span>
+        <div class="big" id="r-n">10</div>
+      </div>
+      <div class="side">
+        <span class="cap">Room revenue at risk</span>
+        <b id="r-exp"><span class="cur">€</span>4,913</b>
+      </div>
+      <div class="thr">
+        <label class="cap" for="thr">Flag above</label>
+        <div class="thr-row"><input type="range" id="thr" min="30" max="90" step="5" value="50"><output id="thr-o" for="thr">50%</output></div>
+      </div>
+    </div>
+
+    <div class="risk-grid" style="--i:2">
+      <div class="section">
         <div class="tablewrap">
-          <table id="tb-mix">
-            <thead><tr><th id="mix-col">Segment</th><th>Share of bookings</th><th class="r">ADR</th><th>Cancelled</th><th class="r">Realized revenue</th></tr></thead>
+          <table class="risk-list" id="tb-risk">
+            <thead><tr><th style="padding-left:10px">Booking</th><th>Arrival</th><th class="r">Nights</th><th>Channel</th><th class="r">Lead</th><th>Risk</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
       </div>
-    </section>
+      <aside class="detail" id="detail" aria-live="polite">
+        <div class="prob">
+          <div class="p" id="d-p">93%</div>
+          <div class="who"><b id="d-id">#84213</b><span class="cap" id="d-sub">City · PRT</span></div>
+        </div>
+        <div class="pmeter"><i id="d-pm" style="width:93%"></i><b id="d-thr" style="left:50%"></b></div>
+        <div class="drivers" id="d-drv"></div>
+        <dl class="facts" id="d-facts"></dl>
+        <div class="actions">
+          <button class="btn primary" id="act-call" type="button">Call to reconfirm</button>
+          <button class="btn ghost" id="act-dep" type="button">Ask for deposit</button>
+        </div>
+      </aside>
+    </div>
 
-    <!-- ============ RISK ============ -->
-    <section class="view" id="view-risk" data-view="risk" hidden>
-      <header class="viewhead" style="--i:0">
+    <div class="section" style="--i:3">
+      <div class="section-h"><h2>Cancellation by lead time</h2></div>
+      <div class="leadrow">
+        <div class="bars" id="ch-lead"></div>
+        <div class="auc"><span class="cap">Model AUC, 2017 test</span><b>0.87</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FORECAST ============ -->
+  <section class="view" id="view-forecast" data-view="forecast" hidden>
+    <div class="fc-top" style="--i:0">
+      <div class="head"><h1>Room-nights,<br>next 8 weeks</h1></div>
+      <div class="focal">
+        <span class="cap">Busiest week ahead</span>
         <div>
-          <p class="eyebrow">Reservations · call list</p>
-          <h1>Arrivals 21–27 Aug 2017</h1>
-        </div>
-        <div class="seg" id="seg-risk" role="group" aria-label="Hotel">
-          <span class="thumb"></span>
-          <button data-v="both" aria-pressed="true">Both hotels</button>
-          <button data-v="city" aria-pressed="false">City</button>
-          <button data-v="resort" aria-pressed="false">Resort</button>
-        </div>
-      </header>
-
-      <div class="riskbar" style="--i:1">
-        <div><label>Bookings flagged</label><div class="val alert" id="r-n">9</div></div>
-        <div><label>Room revenue exposed</label><div class="val" id="r-exp">€9,880</div></div>
-        <div><label>Expected cancellations</label><div class="val" id="r-exc">6.2</div></div>
-        <div class="slider">
-          <label for="thr">Flag bookings above</label>
-          <div class="slider-row"><input type="range" id="thr" min="30" max="90" step="5" value="50"><output id="thr-o" for="thr">50%</output></div>
+          <div class="big" id="fc-peak">2,350</div>
+          <p class="line" style="margin-top:14px" id="fc-peak-s"><b>Week 40</b> · from 2 Oct</p>
         </div>
       </div>
+    </div>
 
-      <div class="risk-grid" style="--i:2">
-        <div class="panel">
-          <div class="tablewrap">
-            <table class="risk-list" id="tb-risk">
-              <thead><tr><th>Booking</th><th>Hotel</th><th>Arrival</th><th class="r">Nights</th><th>Channel</th><th class="r">Lead</th><th>Cancel risk</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+    <div class="section" style="--i:1">
+      <div class="section-h"><h2>Weekly room-nights, 2017</h2><div class="legend" id="lg-fc"></div></div>
+      <div class="chart" id="ch-fc"></div>
+    </div>
+
+    <div class="section" style="--i:2">
+      <div class="section-h"><h2>Week by week</h2><span class="cap" id="fc-mape">Backtest MAPE 7.8%</span></div>
+      <div class="tablewrap"><div class="weeks" id="fc-weeks"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ WHAT-IF ============ -->
+  <section class="view" id="view-what-if" data-view="what-if" hidden>
+    <div class="head" style="--i:0"><h1>How far can you overbook?</h1></div>
+
+    <div class="wi-grid" style="--i:1">
+      <div class="controls">
+        <div class="ctl">
+          <div class="ctl-top"><label for="wi-cap">Rooms per night</label><output id="wi-cap-o" for="wi-cap">380</output></div>
+          <input type="range" id="wi-cap" min="80" max="800" step="10" value="380">
+          <span class="cap">Your input · not in dataset</span>
         </div>
-        <aside class="panel detail" id="detail" aria-live="polite">
-          <figure><img id="d-img" src="img/city-room.jpg" alt="" loading="lazy"><figcaption id="d-cap">City Hotel · Lisbon</figcaption></figure>
-          <div class="detail-in">
-            <div class="prob">
-              <div class="big" id="d-p">93%</div>
-              <div class="who"><b id="d-id">#84213</b><span id="d-sub">Groups · PRT · 2 adults</span></div>
-            </div>
-            <div class="pmeter" title="Bar: probability of cancelling. Mark: your flag threshold"><i id="d-pm" style="width:93%"></i><b id="d-thr" style="left:50%"></b></div>
-            <div>
-              <div class="h4">Why the model thinks so</div>
-              <div class="drivers" id="d-drv"></div>
-            </div>
-            <dl class="facts" id="d-facts"></dl>
-            <div class="actions">
-              <button class="btn primary" id="act-call" type="button"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Call to reconfirm</button>
-              <button class="btn ghost" id="act-dep" type="button"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg>Ask for deposit</button>
-            </div>
-          </div>
-        </aside>
+        <div class="ctl">
+          <div class="ctl-top"><label for="wi-ob">Overbooking</label><output id="wi-ob-o" for="wi-ob">6.0%</output></div>
+          <input type="range" id="wi-ob" min="0" max="25" step="0.5" value="6">
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><label for="wi-p">Late cancels &amp; no-shows</label><output id="wi-p-o" for="wi-p">12%</output></div>
+          <input type="range" id="wi-p" min="2" max="30" step="1" value="12">
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><label for="wi-w">Cost per walked guest</label><output id="wi-w-o" for="wi-w">€300</output></div>
+          <input type="range" id="wi-w" min="100" max="800" step="25" value="300">
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><label for="wi-adr">ADR</label><output id="wi-adr-o" for="wi-adr">€105</output></div>
+          <input type="range" id="wi-adr" min="40" max="220" step="1" value="105">
+        </div>
+        <label class="switch" for="wi-dep">Deposit when risk ≥ 70%<input type="checkbox" id="wi-dep"><i class="knob" aria-hidden="true"></i></label>
+        <button class="btn primary" id="wi-best" type="button">Use the best level</button>
       </div>
 
-      <div class="panel" style="--i:3">
-        <div class="panel-head"><h2>Cancellation rate by lead time</h2></div>
-        <div class="why">
-          <div class="bars" id="ch-lead"></div>
-          <div class="model">
-            <div><b>0.87</b><span>AUC</span></div>
-            <div><b>0.79</b><span>Precision at 50%</span></div>
-            <div><b>0.71</b><span>Recall at 50%</span></div>
-            <p class="model-foot">Gradient boosting trained on 2015–2016 arrivals and tested on 2017. Status fields that are only known after the stay are left out.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ FORECAST ============ -->
-    <section class="view" id="view-forecast" data-view="forecast" hidden>
-      <div class="fc-head" style="--i:0">
-        <header class="viewhead" style="align-items:flex-start;flex-direction:column;justify-content:flex-end">
+      <div style="display:flex;flex-direction:column;gap:44px;min-width:0">
+        <div class="focal result">
           <div>
-            <p class="eyebrow">Revenue Manager · weekly planning</p>
-            <h1>Room-nights for the next 8 weeks</h1>
+            <span class="cap">Net gain per night</span>
+            <div class="big" id="wi-gain" style="margin-top:14px"><span class="cur">+€</span>2,099</div>
+            <p class="line" style="margin-top:18px" id="wi-year"><b>€766K</b> a year</p>
           </div>
-          <div class="seg" id="seg-fc" role="group" aria-label="Hotel">
-            <span class="thumb"></span>
-            <button data-v="city" aria-pressed="true">City Hotel</button>
-            <button data-v="resort" aria-pressed="false">Resort Hotel</button>
+          <div class="minis">
+            <div class="mini"><span>Rooms filled</span><b id="wi-fill">93.3%</b></div>
+            <div class="mini"><span>Walked per night</span><b id="wi-walk">0.1</b></div>
+            <div class="mini"><span>Chance of a walk</span><b id="wi-pw">1%</b></div>
           </div>
-        </header>
-        <div class="fc-photo">
-          <img id="fc-img-city" src="img/lisbon-aerial.jpg" alt="Lisbon rooftops" loading="lazy">
-          <img id="fc-img-resort" class="off" src="img/resort-pool.jpg" alt="Resort pool with palm trees at sunset" loading="lazy">
-          <span id="fc-cap">Lisbon</span>
+        </div>
+        <div class="section">
+          <div class="section-h"><h2>Gain by overbooking level</h2></div>
+          <div class="chart" id="ch-wi"></div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <div class="fc-grid" style="--i:1">
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Weekly room-nights, 2017</h2>
-            <div class="legend" id="lg-fc"></div>
-          </div>
-          <div class="chart" id="ch-fc"></div>
-        </div>
-        <div class="panel stats">
-          <div class="stat"><label>Next week</label><div class="val" id="fc-next">2,146</div><div class="sub" id="fc-next-s">28 Aug – 3 Sep</div></div>
-          <div class="stat"><label>Busiest week ahead</label><div class="val" id="fc-peak">2,212</div><div class="sub" id="fc-peak-s">Week 40</div></div>
-          <div class="stat"><label>Backtest error (MAPE)</label><div class="val" id="fc-mape">7.8%</div><div class="sub">2017 weeks 1–34</div></div>
-          <div class="stat"><label>Vs same weeks 2016</label><div class="val" id="fc-yoy">+3.9%</div></div>
-        </div>
+  <!-- ============ PIPELINE ============ -->
+  <section class="view" id="view-pipeline" data-view="pipeline" hidden>
+    <div class="head" style="--i:0">
+      <h1>From CSV to decisions</h1>
+      <span class="status"><i class="sq" style="background:var(--rifle)"></i>Last run 21 Nov, 08:14 · 41 s</span>
+    </div>
+
+    <div class="flow" style="--i:1">
+      <div class="stage">
+        <span class="cap">Sources</span><h3>Raw</h3>
+        <ul>
+          <li><code>hotel_bookings.csv</code><span>119,390 rows</span></li>
+          <li><code>holidays · PT</code><span>2013–2018</span></li>
+          <li><code>weather</code><span>Planned</span></li>
+        </ul>
       </div>
-
-      <div class="panel" style="--i:2">
-        <div class="panel-head"><h2>Week by week</h2></div>
-        <div class="tablewrap"><div class="weeks" id="fc-weeks"></div></div>
+      <div class="stage"><i class="pulse"></i>
+        <span class="cap">As is, text</span><h3>Bronze</h3>
+        <ul>
+          <li><code>hotel_bookings</code><span>119,390 rows</span></li>
+          <li><code>pt_holidays</code><span>1 row per holiday</span></li>
+        </ul>
       </div>
-    </section>
-
-    <!-- ============ WHAT-IF ============ -->
-    <section class="view" id="view-what-if" data-view="what-if" hidden>
-      <header class="viewhead" style="--i:0">
-        <div>
-          <p class="eyebrow">Revenue Manager · overbooking policy</p>
-          <h1>How far can you overbook?</h1>
-        </div>
-        <div class="seg" id="seg-wi" role="group" aria-label="Hotel">
-          <span class="thumb"></span>
-          <button data-v="city" aria-pressed="true">City Hotel</button>
-          <button data-v="resort" aria-pressed="false">Resort Hotel</button>
-        </div>
-      </header>
-
-      <div class="wi-grid" style="--i:1">
-        <div class="panel controls">
-          <div class="ctl">
-            <div class="ctl-top"><label for="wi-cap">Rooms you can sell per night</label><output id="wi-cap-o" for="wi-cap">380</output></div>
-            <input type="range" id="wi-cap" min="80" max="600" step="10" value="380">
-            <p class="ctl-help">Not in the dataset. Enter your own capacity.</p>
-          </div>
-          <div class="ctl">
-            <div class="ctl-top"><label for="wi-ob">Overbooking</label><output id="wi-ob-o" for="wi-ob">6.0%</output></div>
-            <input type="range" id="wi-ob" min="0" max="25" step="0.5" value="6">
-          </div>
-          <div class="ctl">
-            <div class="ctl-top"><label for="wi-p">Late cancellations and no-shows</label><output id="wi-p-o" for="wi-p">12%</output></div>
-            <input type="range" id="wi-p" min="2" max="30" step="1" value="12">
-          </div>
-          <div class="ctl">
-            <div class="ctl-top"><label for="wi-w">Cost of walking one guest</label><output id="wi-w-o" for="wi-w">€300</output></div>
-            <input type="range" id="wi-w" min="100" max="800" step="25" value="300">
-          </div>
-          <div class="ctl">
-            <div class="ctl-top"><label for="wi-adr">ADR</label><output id="wi-adr-o" for="wi-adr">€105</output></div>
-            <input type="range" id="wi-adr" min="40" max="220" step="1" value="105">
-          </div>
-          <label class="switch" for="wi-dep">
-            <span>Deposit for high-risk bookings<small>Required when the model scores 70% or more</small></span>
-            <input type="checkbox" id="wi-dep">
-            <i class="knob" aria-hidden="true"></i>
-          </label>
-          <button class="btn primary" id="wi-best" type="button"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="4"/></svg>Use the best level</button>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:22px;min-width:0">
-          <div class="result">
-            <img src="img/room-ocean.jpg" alt="" loading="lazy">
-            <div>
-              <div class="label">Net gain per night vs no overbooking</div>
-              <div class="huge" id="wi-gain">+€1,920</div>
-              <div class="year" id="wi-year">About €701K over a year</div>
-            </div>
-            <div class="minis">
-              <div class="mini"><span>Rooms filled</span><b id="wi-fill">98.7%</b></div>
-              <div class="mini"><span>Guests walked per night</span><b id="wi-walk">0.6</b></div>
-              <div class="mini"><span>Chance of walking anyone</span><b class="hot" id="wi-pw">21%</b></div>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-head">
-              <h2>Net gain by overbooking level</h2>
-              <div class="legend"><span><i style="background:var(--cobalt)"></i>Your setting</span><span><i style="background:var(--sun)"></i>Best level</span></div>
-            </div>
-            <div class="chart" id="ch-wi"></div>
-          </div>
-        </div>
+      <div class="stage"><i class="pulse" style="--d:.6s"></i>
+        <span class="cap">Typed, checked</span><h3>Silver</h3>
+        <ul>
+          <li><code>hotel_bookings</code><span>119,390 rows</span></li>
+          <li><code>pt_holidays</code><span>1 row per date</span></li>
+        </ul>
       </div>
-    </section>
-
-    <!-- ============ PIPELINE ============ -->
-    <section class="view" id="view-pipeline" data-view="pipeline" hidden>
-      <header class="viewhead" style="--i:0">
-        <div>
-          <p class="eyebrow">System · lakehouse on PostgreSQL</p>
-          <h1>From CSV to decisions</h1>
-        </div>
-        <span class="status"><i class="dot" style="background:var(--good)"></i>Last run 21 Nov 2026, 08:14 · 41 s</span>
-      </header>
-
-      <div class="panel" style="--i:1">
-        <div class="flow">
-          <div class="stage">
-            <div class="stage-h"><span class="chip" style="background:var(--ink-3)"></span><div><b>Sources</b><br><small>files &amp; libraries</small></div></div>
-            <div class="tbl"><code>hotel_bookings.csv</code><span>119,390 rows · 32 columns</span></div>
-            <div class="tbl"><code>holidays (PT)</code><span>2013–2018</span></div>
-            <div class="tbl"><code>weather</code><span><i class="dot hollow"></i>Planned</span></div>
-          </div>
-          <div class="stage">
-            <div class="stage-h"><span class="chip" style="background:#B0743C"></span><div><b>Bronze</b><br><small>raw, all text</small></div></div>
-            <div class="tbl"><code>bronze.hotel_bookings</code><span>119,390 rows</span></div>
-            <div class="tbl"><code>bronze.pt_holidays</code><span>Loaded as is</span></div>
-          </div>
-          <div class="stage">
-            <div class="stage-h"><span class="chip" style="background:#9AA3B5"></span><div><b>Silver</b><br><small>typed &amp; cleaned</small></div></div>
-            <div class="tbl"><code>silver.hotel_bookings</code><span>119,390 rows</span></div>
-            <div class="tbl"><code>silver.pt_holidays</code><span>One row per date</span></div>
-            <div class="tbl"><code>checks/*</code><span><i class="dot" style="background:var(--warn)"></i>3 of 4 found rows</span></div>
-          </div>
-          <div class="stage">
-            <div class="stage-h"><span class="chip" style="background:var(--sun)"></span><div><b>Gold</b><br><small>star schema</small></div></div>
-            <div class="tbl"><code>fact_booking</code><span>119,209 rows</span></div>
-            <div class="tbl"><code>fact_daily_occupancy</code><span>1,586 hotel-nights</span></div>
-            <div class="tbl"><code>dim_date · dim_hotel · dim_channel · dim_country</code><span>4 dimensions</span></div>
-            <div class="tbl"><code>ml_booking_risk · ml_demand_forecast</code><span>Written by ml/</span></div>
-          </div>
-          <div class="stage">
-            <div class="stage-h"><span class="chip" style="background:var(--cobalt)"></span><div><b>Apps</b><br><small>read only</small></div></div>
-            <div class="tbl"><code>FastAPI</code><span>Reads gold &amp; meta</span></div>
-            <div class="tbl"><code>Revenue Desk</code><span>This interface</span></div>
-          </div>
-        </div>
+      <div class="stage hl">
+        <span class="cap">Star schema</span><h3>Gold</h3>
+        <ul>
+          <li><code>fact_booking</code><span>119,209 rows</span></li>
+          <li><code>fact_daily_occupancy</code><span>1,586 hotel-nights</span></li>
+          <li><code>dim_date · hotel · channel · country</code><span>4 dimensions</span></li>
+          <li><code>ml_booking_risk · ml_demand_forecast</code><span>From ml/</span></li>
+        </ul>
       </div>
-
-      <div class="pl-grid" style="--i:2">
-        <div class="panel">
-          <div class="panel-head"><h2>Data quality checks</h2></div>
-          <div class="checks">
-            <div class="check"><span class="t"><i class="dot" style="background:var(--good)"></i>Arrival date present</span><span class="n">0 rows</span></div>
-            <div class="check"><span class="t"><i class="dot" style="background:var(--warn)"></i>Bookings with no guests</span><span class="n">180 rows</span><span class="s">Dropped in gold</span></div>
-            <div class="check"><span class="t"><i class="dot" style="background:var(--warn)"></i>Negative ADR</span><span class="n">1 row</span><span class="s">Dropped in gold</span></div>
-            <div class="check"><span class="t"><i class="dot" style="background:var(--warn)"></i>Zero-night stays</span><span class="n">715 rows</span><span class="s">Kept, left out of ADR</span></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-head"><h2>Recent runs</h2></div>
-          <div class="tablewrap">
-            <table>
-              <thead><tr><th>Run</th><th>Started</th><th class="r">Steps</th><th class="r">Time</th><th>Status</th></tr></thead>
-              <tbody>
-                <tr><td class="mono">7f3a…c21</td><td>21 Nov, 08:14</td><td class="r num">11</td><td class="r num">41 s</td><td><span class="status"><i class="dot" style="background:var(--warn)"></i>Passed, 3 warnings</span></td></tr>
-                <tr><td class="mono">a90e…4b7</td><td>20 Nov, 17:52</td><td class="r num">11</td><td class="r num">44 s</td><td><span class="status"><i class="dot" style="background:var(--warn)"></i>Passed, 3 warnings</span></td></tr>
-                <tr><td class="mono">33d1…e08</td><td>20 Nov, 17:31</td><td class="r num">6</td><td class="r num">12 s</td><td><span class="status"><i class="dot" style="background:var(--signal)"></i>Failed at silver/01</span></td></tr>
-                <tr><td class="mono">c5b2…91f</td><td>19 Nov, 09:05</td><td class="r num">9</td><td class="r num">38 s</td><td><span class="status"><i class="dot" style="background:var(--good)"></i>Passed</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div class="stage"><i class="pulse" style="--d:1.2s"></i>
+        <span class="cap">Read only</span><h3>App</h3>
+        <ul>
+          <li><code>FastAPI</code><span>gold &amp; meta</span></li>
+          <li><code>Revenue Desk</code><span>This screen</span></li>
+        </ul>
       </div>
-    </section>
-  </main>
-</div>
+    </div>
 
+    <div class="section" style="--i:2">
+      <div class="section-h"><h2>Data quality</h2></div>
+      <div class="checks">
+        <div class="check"><b>0</b><span class="t">Missing arrival dates</span><span class="status"><i class="sq" style="background:var(--rifle)"></i>Passed</span></div>
+        <div class="check"><b>180</b><span class="t">Bookings with no guests</span><span class="status"><i class="sq" style="background:var(--brass)"></i>Dropped in gold</span></div>
+        <div class="check"><b>1</b><span class="t">Negative ADR</span><span class="status"><i class="sq" style="background:var(--brass)"></i>Dropped in gold</span></div>
+        <div class="check"><b>715</b><span class="t">Zero-night stays</span><span class="status"><i class="sq" style="background:var(--brass)"></i>Kept, not in ADR</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot"><div class="wrap"><div><span class="cap">Prototype · sample figures</span><span class="cap">Hotel Booking Demand, Antonio et al. 2019</span></div></div></footer>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -826,597 +579,426 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.18); }
   const eur = v => '€' + nf0.format(v);
   const pct = v => nf1.format(v * 100) + '%';
   const kfmt = v => nf0.format(v / 1000) + 'K';
+  const curH = s => s.replace(/^([+−]?€)/, '<span class="cur">$1</span>');
 
   /* ---------- Số liệu mẫu (xấp xỉ theo dataset Hotel Booking Demand) ---------- */
   // b = số booking, c = tỉ lệ hủy, a = ADR (€), n = số đêm trung bình
   const SEG = {
     city: {
-      'Online TA':     { b: 38748, c: .380, a: 116, n: 2.98 },
-      'Offline TA/TO': { b: 16747, c: .432, a: 88,  n: 2.98 },
-      'Groups':        { b: 13975, c: .660, a: 85,  n: 2.98 },
-      'Direct':        { b: 6093,  c: .174, a: 127, n: 2.98 },
-      'Corporate':     { b: 2986,  c: .218, a: 82,  n: 2.98 },
-      'Other':         { b: 781,   c: .200, a: 70,  n: 2.98 },
+      'Online TA': { b: 38748, c: .380, a: 116, n: 2.98 }, 'Offline TA/TO': { b: 16747, c: .432, a: 88, n: 2.98 },
+      'Groups': { b: 13975, c: .660, a: 85, n: 2.98 }, 'Direct': { b: 6093, c: .174, a: 127, n: 2.98 },
+      'Corporate': { b: 2986, c: .218, a: 82, n: 2.98 }, 'Other': { b: 781, c: .200, a: 70, n: 2.98 },
     },
     resort: {
-      'Online TA':     { b: 17729, c: .350, a: 120, n: 4.30 },
-      'Offline TA/TO': { b: 7472,  c: .160, a: 86,  n: 4.30 },
-      'Groups':        { b: 5836,  c: .430, a: 64,  n: 4.30 },
-      'Direct':        { b: 6513,  c: .133, a: 106, n: 4.30 },
-      'Corporate':     { b: 2309,  c: .146, a: 53,  n: 4.30 },
-      'Other':         { b: 201,   c: .100, a: 60,  n: 4.30 },
+      'Online TA': { b: 17729, c: .350, a: 120, n: 4.30 }, 'Offline TA/TO': { b: 7472, c: .160, a: 86, n: 4.30 },
+      'Groups': { b: 5836, c: .430, a: 64, n: 4.30 }, 'Direct': { b: 6513, c: .133, a: 106, n: 4.30 },
+      'Corporate': { b: 2309, c: .146, a: 53, n: 4.30 }, 'Other': { b: 201, c: .100, a: 60, n: 4.30 },
     },
   };
-  // Thị trường: tổng booking, tỉ trọng ở City, tỉ lệ hủy, ADR
+  // Thị trường: tên, mã, tổng booking, tỉ trọng ở City, tỉ lệ hủy, ADR
   const MKT = [
-    ['Portugal', 'PRT', 48590, .62, .566, 93],
-    ['United Kingdom', 'GBR', 12129, .47, .202, 97],
-    ['France', 'FRA', 10415, .80, .186, 112],
-    ['Spain', 'ESP', 8568, .52, .254, 107],
-    ['Germany', 'DEU', 7287, .83, .167, 105],
-    ['Italy', 'ITA', 3766, .87, .354, 112],
+    ['Portugal', 'PRT', 48590, .62, .566, 93], ['United Kingdom', 'GBR', 12129, .47, .202, 97],
+    ['France', 'FRA', 10415, .80, .186, 112], ['Spain', 'ESP', 8568, .52, .254, 107],
+    ['Germany', 'DEU', 7287, .83, .167, 105], ['Italy', 'ITA', 3766, .87, .354, 112],
   ];
-  const LEAD = { city: 110, resort: 93 };
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const ADR_M = {
-    city:   [82, 86, 92, 111, 121, 118, 116, 119, 112, 102, 86, 88],
-    resort: [49, 54, 57, 76, 77, 108, 151, 174, 97, 62, 48, 69],
-  };
-  const COLOR = { city: 'var(--cobalt)', resort: 'var(--resort)' };
-  const NAME = { city: 'City Hotel', resort: 'Resort Hotel' };
+  const ADR_M = { city: [82, 86, 92, 111, 121, 118, 116, 119, 112, 102, 86, 88], resort: [49, 54, 57, 76, 77, 108, 151, 174, 97, 62, 48, 69] };
+  const COLOR = { city: 'var(--rifle)', resort: 'var(--brass)', both: 'var(--cedar)' };
+  const NAME = { city: 'City', resort: 'Resort', both: 'Both hotels' };
+  const PLACE = { both: 'Lisbon & Algarve', city: 'Lisbon', resort: 'Algarve' };
 
-  // Tổng hợp: measure non-additive (ADR, tỉ lệ hủy) tính lại từ tổng, không lấy trung bình của trung bình
+  // Measure non-additive (ADR, tỉ lệ hủy) tính lại từ tổng, không lấy trung bình của trung bình
   function agg(rows) {
     let b = 0, cx = 0, rn = 0, rev = 0, lost = 0;
-    rows.forEach(r => {
-      b += r.b; cx += r.b * r.c;
-      const nights = r.b * (1 - r.c) * r.n;
-      rn += nights; rev += nights * r.a; lost += r.b * r.c * r.n * r.a;
-    });
+    rows.forEach(r => { b += r.b; cx += r.b * r.c; const nights = r.b * (1 - r.c) * r.n; rn += nights; rev += nights * r.a; lost += r.b * r.c * r.n * r.a; });
     return { b, cx: cx / b, rn, rev, adr: rev / rn, lost };
   }
   const hotelsOf = f => f === 'both' ? ['city', 'resort'] : [f];
-  const segRows = (f, seg) => hotelsOf(f).map(h => SEG[h][seg]);
   const allRows = f => hotelsOf(f).flatMap(h => Object.values(SEG[h]));
+  const segRows = (f, k) => hotelsOf(f).map(h => SEG[h][k]);
 
   /* ---------- Tween số ---------- */
   const shown = new Map();
-  function tween(el, to, fmt, dur = 750) {
+  function tween(el, to, fmt, dur = 750, html = false) {
     const from = shown.has(el) ? shown.get(el) : to;
     shown.set(el, to);
-    if (reduce || from === to) { el.textContent = fmt(to); return; }
+    const put = v => { if (html) el.innerHTML = fmt(v); else el.textContent = fmt(v); };
+    if (reduce || from === to) { put(to); return; }
     const t0 = performance.now();
     const step = now => {
       const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-      el.textContent = fmt(from + (to - from) * e);
+      put(from + (to - from) * e);
       if (k < 1 && shown.get(el) === to) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
   }
-
-  /* ---------- Segmented control ---------- */
-  function seg(el, onChange) {
-    const thumb = $('.thumb', el);
-    const place = () => {
-      const on = $('button[aria-pressed="true"]', el);
-      if (!on || !on.offsetWidth) return;
-      thumb.style.width = on.offsetWidth + 'px';
-      thumb.style.transform = `translateX(${on.offsetLeft}px)`;
-    };
+  function toggleGroup(el, onChange) {
     el.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       $$('button', el).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
-      place(); onChange(b.dataset.v);
+      onChange(b.dataset.v);
     });
-    el._place = place;
-    el._set = v => { const b = $(`button[data-v="${v}"]`, el); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); };
-    return el;
   }
-  const allSegs = [];
+  const setRange = el => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
 
-  /* ---------- Chart helpers ---------- */
+  /* ---------- Chart ---------- */
   const NS = 'http://www.w3.org/2000/svg';
-  const svgEl = (tag, attrs = {}, parent) => {
-    const e = document.createElementNS(NS, tag);
-    for (const k in attrs) e.setAttribute(k, attrs[k]);
-    if (parent) parent.appendChild(e);
-    return e;
-  };
+  const svgEl = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
   function niceTicks(min, max, count = 4) {
-    const span = max - min || 1;
-    const raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const span = max - min || 1, raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
     const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => span / s <= count + .5) || mag * 10;
-    const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
-    const out = []; for (let v = lo; v <= hi + step / 2; v += step) out.push(+v.toFixed(6));
+    const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, out = [];
+    for (let v = lo; v <= hi + step / 2; v += step) out.push(+v.toFixed(6));
     return out;
-  }
-  function tipFor(chart) {
-    let t = $('.tip', chart);
-    if (!t) { t = document.createElement('div'); t.className = 'tip'; chart.appendChild(t); }
-    return t;
-  }
-  function placeTip(tip, chart, x, y) {
-    const w = tip.offsetWidth, cw = chart.clientWidth;
-    let left = x + 14; if (left + w > cw) left = x - w - 14; if (left < 0) left = 0;
-    tip.style.left = left + 'px'; tip.style.top = Math.max(0, y - 20) + 'px';
   }
   function animateDraw(chart, svg) {
     if (reduce) return;
-    $$('.series', svg).forEach(p => {
-      const len = p.getTotalLength ? p.getTotalLength() : 0;
-      if (p.getAttribute('stroke-dasharray')) return;
-      p.style.setProperty('--len', len);
-      p.style.strokeDasharray = len;
-    });
+    $$('.series', svg).forEach(p => { if (p.dataset.dash) return; const len = p.getTotalLength(); p.style.setProperty('--len', len); p.style.strokeDasharray = len; });
     chart.classList.remove('drawn'); void chart.offsetWidth; chart.classList.add('drawn');
-    setTimeout(() => $$('.series', svg).forEach(p => { if (!p.dataset.dash) p.style.strokeDasharray = ''; }), 1400);
+    setTimeout(() => $$('.series', svg).forEach(p => { if (!p.dataset.dash) p.style.strokeDasharray = ''; }), 1500);
   }
-
-  /* Biểu đồ đường dùng chung: trục y duy nhất, nhãn trực tiếp ở cuối đường, crosshair + tooltip */
+  // Biểu đồ đường: một trục y, nhãn trực tiếp ở cuối đường, crosshair + tooltip
   function lineChart(chart, cfg) {
     const W = Math.max(300, chart.clientWidth), H = cfg.height || 300;
-    const m = { t: 18, r: cfg.endLabels ? 104 : 18, b: 30, l: 50 };
-    const iw = W - m.l - m.r, ih = H - m.t - m.b;
-    const n = cfg.x.length;
-    const all = cfg.series.flatMap(s => [...s.values, ...(s.band ? s.band.flat() : [])]).filter(v => v != null);
-    const ticks = niceTicks(cfg.yMin ?? Math.min(...all), cfg.yMax ?? Math.max(...all), 4);
+    const m = { t: 20, r: cfg.endLabels ? 74 : 12, b: 30, l: 52 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b, n = cfg.x.length;
+    const all = cfg.series.flatMap(s => [...s.values, ...(s.band ? s.band.filter(Boolean).flat() : [])]).filter(v => v != null);
+    const ticks = niceTicks(cfg.yMin ?? Math.min(...all), Math.max(...all), 4);
     const y0 = ticks[0], y1 = ticks[ticks.length - 1];
-    const X = i => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
+    const X = i => m.l + (i / (n - 1)) * iw;
     const Y = v => m.t + ih - ((v - y0) / (y1 - y0)) * ih;
     chart.innerHTML = '';
     const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': cfg.label });
     chart.appendChild(svg);
+    (cfg.vbands || []).forEach(vb => {
+      svgEl('rect', { x: X(vb.from), y: m.t, width: X(vb.to) - X(vb.from), height: ih, fill: 'var(--kangaroo)', opacity: .45 }, svg);
+      const tx = svgEl('text', { x: X(vb.from) + 10, y: m.t + 16 }, svg); tx.textContent = vb.label;
+    });
     const g = svgEl('g', { class: 'grid' }, svg);
     ticks.forEach(t => {
       svgEl('line', { x1: m.l, x2: m.l + iw, y1: Y(t), y2: Y(t) }, g);
       const tx = svgEl('text', { x: m.l - 10, y: Y(t) + 4, 'text-anchor': 'end' }, svg); tx.textContent = cfg.yFmt(t);
     });
-    const every = Math.max(cfg.xEvery || 1, Math.ceil(44 / (iw / Math.max(1, n - 1))));
-    cfg.x.forEach((lab, i) => {
-      if (i % every) return;
-      const tx = svgEl('text', { x: X(i), y: H - 8, 'text-anchor': 'middle' }, svg); tx.textContent = lab;
-    });
-    (cfg.vbands || []).forEach(vb => {
-      svgEl('rect', { x: X(vb.from), y: m.t, width: X(vb.to) - X(vb.from), height: ih, fill: 'var(--surface-2)', opacity: .8 }, svg).parentNode.insertBefore(svg.lastChild, g);
-      const tx = svgEl('text', { x: X(vb.from) + 8, y: m.t + 14 }, svg); tx.textContent = vb.label;
-    });
-    (cfg.ticksBottom || []).forEach(tk => {
-      svgEl('line', { x1: X(tk.i), x2: X(tk.i), y1: m.t + ih - 7, y2: m.t + ih, stroke: 'var(--sun)', 'stroke-width': 3, 'stroke-linecap': 'round' }, svg);
-    });
+    const every = Math.max(cfg.xEvery || 1, Math.ceil(46 / (iw / (n - 1))));
+    cfg.x.forEach((lab, i) => { if (i % every) return; const tx = svgEl('text', { x: X(i), y: H - 8, 'text-anchor': 'middle' }, svg); tx.textContent = lab; });
+    (cfg.ticksBottom || []).forEach(i => svgEl('rect', { x: X(i) - 1.5, y: m.t + ih - 9, width: 3, height: 9, fill: 'var(--brass)' }, svg));
     cfg.series.forEach(s => {
       if (s.band) {
         const idx = s.band.map((b, i) => b ? i : -1).filter(i => i >= 0);
-        if (idx.length) {
-          const top = idx.map(i => `${X(i)},${Y(s.band[i][1])}`).join(' L');
-          const bot = idx.slice().reverse().map(i => `${X(i)},${Y(s.band[i][0])}`).join(' L');
-          svgEl('path', { d: `M${top} L${bot} Z`, fill: s.color, opacity: .13 }, svg);
-        }
+        const top = idx.map(i => `${X(i)},${Y(s.band[i][1])}`).join(' L'), bot = idx.slice().reverse().map(i => `${X(i)},${Y(s.band[i][0])}`).join(' L');
+        if (idx.length) svgEl('path', { d: `M${top} L${bot} Z`, fill: s.color, opacity: .16 }, svg);
       }
-      const segs = s.dashFrom != null
-        ? [{ from: 0, to: s.dashFrom, dash: false }, { from: s.dashFrom, to: s.values.length - 1, dash: true }]
-        : [{ from: 0, to: s.values.length - 1, dash: false }];
-      segs.forEach(sg => {
-        const pts = [];
-        for (let i = sg.from; i <= sg.to; i++) if (s.values[i] != null) pts.push(`${X(i)},${Y(s.values[i])}`);
-        if (pts.length < 2) return;
+      const pts = []; s.values.forEach((v, i) => { if (v != null) pts.push(`${X(i)},${Y(v)}`); });
+      if (pts.length > 1) {
         const p = svgEl('path', { class: 'series', d: 'M' + pts.join(' L'), stroke: s.color }, svg);
-        if (sg.dash) { p.setAttribute('stroke-dasharray', '6 6'); p.dataset.dash = '1'; }
-      });
+        if (s.dash) { p.setAttribute('stroke-dasharray', '6 6'); p.dataset.dash = '1'; }
+      }
       if (cfg.endLabels) {
         let li = s.values.length - 1; while (li > 0 && s.values[li] == null) li--;
-        svgEl('circle', { cx: X(li), cy: Y(s.values[li]), r: 4.5, fill: s.color, stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
-        const tx = svgEl('text', { class: 'endlabel', x: X(li) + 12, y: Y(s.values[li]) + 4 + (s.labelDy || 0) }, svg); tx.textContent = s.name;
+        svgEl('rect', { x: X(li) - 4, y: Y(s.values[li]) - 4, width: 8, height: 8, fill: s.color }, svg);
+        const tx = svgEl('text', { class: 'endlabel', x: X(li) + 12, y: Y(s.values[li]) + 5 + (s.labelDy || 0) }, svg); tx.textContent = s.name;
       }
     });
     (cfg.annotations || []).forEach(a => {
-      const cx = X(a.i), cy = Y(a.v);
-      svgEl('circle', { cx, cy, r: 6, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5 }, svg);
-      const ax = cx + a.dx, ay = cy + a.dy, anc = a.dx < 0 ? 'end' : 'start';
-      svgEl('line', { x1: cx + Math.sign(a.dx) * 7, y1: cy, x2: ax - Math.sign(a.dx) * 4, y2: ay, stroke: 'var(--ink-3)', 'stroke-width': 1 }, svg);
-      const b = svgEl('text', { class: 'ann-b', x: ax, y: ay + 7, 'text-anchor': anc }, svg); b.textContent = a.big;
-      const t = svgEl('text', { class: 'ann', x: ax, y: ay + 25, 'text-anchor': anc }, svg); t.textContent = a.text;
+      const cx = X(a.i), cy = Y(a.v), flip = cx + a.dx + 150 > W, dx = flip ? -a.dx : a.dx, ax = cx + dx, ay = cy + a.dy, sg = Math.sign(dx);
+      svgEl('circle', { cx, cy, r: 7, fill: 'none', stroke: 'var(--cedar)', 'stroke-width': 1.25 }, svg);
+      svgEl('line', { x1: cx + sg * 8, y1: cy, x2: ax - sg * 6, y2: ay, stroke: 'var(--cedar)', 'stroke-width': 1 }, svg);
+      const anc = flip ? 'end' : 'start';
+      const b = svgEl('text', { class: 'ann-b', x: ax, y: ay + 6, 'text-anchor': anc }, svg); b.textContent = a.big;
+      const t = svgEl('text', { class: 'ann', x: ax, y: ay + 24, 'text-anchor': anc }, svg); t.textContent = a.text;
     });
-    // Lớp hover
     const xh = svgEl('line', { class: 'xhair', y1: m.t, y2: m.t + ih, opacity: 0 }, svg);
-    const dots = cfg.series.map(s => svgEl('circle', { r: 5, fill: s.color, stroke: 'var(--surface)', 'stroke-width': 2, opacity: 0 }, svg));
+    const dots = cfg.series.map(s => svgEl('circle', { r: 5, fill: s.color, stroke: 'var(--merino)', 'stroke-width': 2, opacity: 0 }, svg));
     const hit = svgEl('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' }, svg);
-    const tip = tipFor(chart);
+    let tip = $('.tip', chart); if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; chart.appendChild(tip); }
     const move = ev => {
-      const r = svg.getBoundingClientRect();
+      const r = svg.getBoundingClientRect(), k = r.width / W;
       const px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
-      const i = Math.max(0, Math.min(n - 1, Math.round(((px * (W / r.width)) - m.l) / iw * (n - 1))));
+      const i = Math.max(0, Math.min(n - 1, Math.round((px / k - m.l) / iw * (n - 1))));
       xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i)); xh.setAttribute('opacity', 1);
-      cfg.series.forEach((s, k) => {
-        const v = s.values[i];
-        if (v == null) { dots[k].setAttribute('opacity', 0); return; }
-        dots[k].setAttribute('cx', X(i)); dots[k].setAttribute('cy', Y(v)); dots[k].setAttribute('opacity', 1);
-      });
-      tip.innerHTML = cfg.tip(i);
-      tip.classList.add('on');
-      placeTip(tip, chart, X(i) * (r.width / W), Math.min(...cfg.series.map(s => s.values[i] == null ? ih : Y(s.values[i]))) * (r.width / W));
+      cfg.series.forEach((s, j) => { const v = s.values[i]; dots[j].setAttribute('opacity', v == null ? 0 : 1); if (v != null) { dots[j].setAttribute('cx', X(i)); dots[j].setAttribute('cy', Y(v)); } });
+      tip.innerHTML = cfg.tip(i); tip.classList.add('on');
+      const w = tip.offsetWidth; let left = X(i) * k + 14; if (left + w > chart.clientWidth) left = X(i) * k - w - 14;
+      tip.style.left = Math.max(0, left) + 'px'; tip.style.top = (m.t * k) + 'px';
     };
     const leave = () => { tip.classList.remove('on'); xh.setAttribute('opacity', 0); dots.forEach(d => d.setAttribute('opacity', 0)); };
     hit.addEventListener('mousemove', move); hit.addEventListener('touchmove', move, { passive: true });
     hit.addEventListener('mouseleave', leave); hit.addEventListener('touchend', leave);
-    return { svg, X, Y, m, iw, ih, W, H };
+    return { svg, X, Y, m, iw, ih };
   }
 
+  /* ---------- Bộ lọc khách sạn dùng chung ---------- */
+  let F = 'both';
+
   /* ---------- OVERVIEW ---------- */
-  let ovF = 'both', mixBy = 'segment';
-  function renderOverview(first) {
-    const t = agg(allRows(ovF));
-    const lostEl = $('#ov-lost');
-    tween(lostEl, t.lost, eurM);
-    const share = t.lost / (t.lost + t.rev);
-    $('#ov-sub').textContent = `That is ${Math.round(share * 100)}% of everything guests booked ${ovF === 'both' ? 'at both hotels' : 'at the ' + NAME[ovF]}.`;
-    $('#ov-eyebrow').textContent = `Jul 2015 – Aug 2017 · ${nf0.format(t.b)} bookings`;
-    tween($('#k-rev'), t.rev, eurM);
+  let mixBy = 'segment';
+  function renderOverview(animate) {
+    const t = agg(allRows(F));
+    tween($('#ov-lost'), t.lost, v => curH(eurM(v)), 750, true);
+    tween($('#ov-share'), t.lost / (t.lost + t.rev), v => Math.round(v * 100) + '%');
+    tween($('#k-rev'), t.rev, v => curH(eurM(v)), 750, true);
     tween($('#k-rn'), t.rn, kfmt);
-    tween($('#k-adr'), t.adr, v => '€' + nf0.format(v));
+    tween($('#k-adr'), t.adr, v => curH('€' + nf0.format(v)), 750, true);
     tween($('#k-cx'), t.cx, pct);
-    $('#k-cx-m').style.width = (t.cx * 100) + '%';
-    const lt = ovF === 'both' ? (LEAD.city * agg(allRows('city')).b + LEAD.resort * agg(allRows('resort')).b) / t.b : LEAD[ovF];
-    tween($('#k-lt'), lt, v => nf0.format(v));
-    ['city', 'resort'].forEach(h => {
-      const a = agg(allRows(h));
-      tween($(`#h-${h}-rev`), a.rev, eurM);
-      tween($(`#h-${h}-adr`), a.adr, v => '€' + nf0.format(v));
-      tween($(`#h-${h}-cx`), a.cx, pct);
-      $(`#h-${h}-m`).style.width = (a.cx * 100) + '%';
-      const card = $(`.hotel[data-hotel="${h}"]`);
-      card.classList.toggle('is-on', ovF === h);
-      card.classList.toggle('is-off', ovF !== 'both' && ovF !== h);
-      card.setAttribute('aria-pressed', ovF === h ? 'true' : 'false');
-    });
-    renderSeason(!first);
+    $$('.photo img').forEach(img => img.classList.toggle('off', img.dataset.h !== F));
+    $('#ov-place').textContent = PLACE[F];
+    renderSeason(animate);
     renderMix();
   }
-  function renderSeason(animate = true) {
-    const hs = hotelsOf(ovF);
+  function renderSeason(animate) {
+    const hs = hotelsOf(F);
     $('#lg-season').innerHTML = hs.map(h => `<span><i style="background:${COLOR[h]}"></i>${NAME[h]}</span>`).join('');
     const chart = $('#ch-season');
     const res = lineChart(chart, {
-      label: 'Average daily rate by arrival month',
-      x: MONTHS, height: 300, yMin: 0, endLabels: true,
-      yFmt: v => '€' + v,
-      series: hs.map(h => ({ name: h === 'city' ? 'City' : 'Resort', color: COLOR[h], values: ADR_M[h], labelDy: h === 'resort' && hs.length > 1 ? 10 : (h === 'city' && hs.length > 1 ? -6 : 0) })),
-      annotations: hs.includes('resort') ? [{ i: 7, v: 174, big: '€174 in August', text: '3.5× the January rate', dx: 26, dy: 4 }] : [],
-      tip: i => `<b>${MONTHS[i]}</b>` + hs.map(h => `<div class="row"><span><i style="background:${COLOR[h]}"></i>${NAME[h]}</span><b class="num">€${ADR_M[h][i]}</b></div>`).join(''),
+      label: 'Average daily rate by arrival month', x: MONTHS, height: 300, yMin: 0, endLabels: true, yFmt: v => '€' + v,
+      series: hs.map(h => ({ name: NAME[h], color: COLOR[h], values: ADR_M[h], labelDy: hs.length > 1 ? (h === 'resort' ? 10 : -6) : 0 })),
+      annotations: hs.includes('resort') ? [{ i: 7, v: 174, big: '€174 in August', text: '3.5× January', dx: 28, dy: 2 }] : [],
+      tip: i => `<b>${MONTHS[i]}</b>` + hs.map(h => `<div class="row"><span>${NAME[h]}</span><b class="num">€${ADR_M[h][i]}</b></div>`).join(''),
     });
     if (animate) animateDraw(chart, res.svg);
   }
   function renderMix() {
-    const tb = $('#tb-mix tbody');
     $('#mix-col').textContent = mixBy === 'segment' ? 'Segment' : 'Market';
+    const total = agg(allRows(F)).b;
     let rows;
     if (mixBy === 'segment') {
-      const total = agg(allRows(ovF)).b;
-      rows = Object.keys(SEG.city).filter(k => k !== 'Other').map(k => {
-        const a = agg(segRows(ovF, k));
-        return { name: k, share: a.b / total, adr: a.adr, cx: a.cx, rev: a.rev };
-      });
+      rows = Object.keys(SEG.city).filter(k => k !== 'Other').map(k => { const a = agg(segRows(F, k)); return { name: k, share: a.b / total, adr: a.adr, cx: a.cx, rev: a.rev }; });
     } else {
-      const total = agg(allRows(ovF)).b;
-      rows = MKT.map(([name, cc, b, cityShare, c, a]) => {
-        const hb = ovF === 'both' ? b : ovF === 'city' ? b * cityShare : b * (1 - cityShare);
-        const n = ovF === 'resort' ? 4.3 : ovF === 'city' ? 2.98 : 2.98 * cityShare + 4.3 * (1 - cityShare);
-        return { name, cc, share: hb / total, adr: a, cx: c, rev: hb * (1 - c) * n * a };
+      rows = MKT.map(([name, , b, cs, c, a]) => {
+        const hb = F === 'both' ? b : F === 'city' ? b * cs : b * (1 - cs);
+        const n = F === 'resort' ? 4.3 : F === 'city' ? 2.98 : 2.98 * cs + 4.3 * (1 - cs);
+        return { name, share: hb / total, adr: a, cx: c, rev: hb * (1 - c) * n * a };
       });
     }
     rows.sort((p, q) => q.rev - p.rev);
-    const maxShare = Math.max(...rows.map(r => r.share));
-    tb.innerHTML = rows.map(r => `<tr>
-      <td><span class="name">${r.name}</span>${r.cc ? ` <span class="mono" style="color:var(--ink-2);font-size:12px;margin-left:6px">${r.cc}</span>` : ''}</td>
-      <td><div class="bar"><span class="track"><i style="width:${(r.share / maxShare) * 100}%"></i></span><span class="num">${pct(r.share)}</span></div></td>
+    const mx = Math.max(...rows.map(r => r.share));
+    $('#tb-mix tbody').innerHTML = rows.map(r => `<tr><td><span class="name">${r.name}</span></td>
+      <td><div class="bar"><span class="track"><i style="width:${r.share / mx * 100}%"></i></span><span class="num">${pct(r.share)}</span></div></td>
       <td class="r num">€${nf0.format(r.adr)}</td>
       <td><div class="bar risk"><span class="track"><i style="width:${r.cx * 100}%"></i></span><span class="num">${pct(r.cx)}</span></div></td>
       <td class="r num">${eurM(r.rev)}</td></tr>`).join('');
   }
-  allSegs.push(seg($('#seg-ov'), v => { ovF = v; renderOverview(); }));
-  allSegs.push(seg($('#seg-mix'), v => { mixBy = v; renderMix(); }));
-  $$('.hotel').forEach(c => {
-    const pick = () => { const h = c.dataset.hotel; $('#seg-ov')._set(ovF === h ? 'both' : h); };
-    c.addEventListener('click', pick);
-    c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
-  });
+  toggleGroup($('#tabs-mix'), v => { mixBy = v; renderMix(); });
 
   /* ---------- RISK ---------- */
-  // Booking mẫu trong tuần 21–27/08/2017. Không dùng reservation_status làm feature.
+  // Booking mẫu tuần 21–27/08/2017. Không dùng reservation_status làm feature.
   const BK = [
-    { id: 84213, h: 'city', cc: 'PRT', d: '2017-08-22', n: 2, seg: 'Groups', lead: 287, dep: 'No deposit', adr: 96, g: '2 adults', sr: 0, park: 0, prev: 0, rep: 0, p: .93 },
-    { id: 83977, h: 'city', cc: 'PRT', d: '2017-08-21', n: 3, seg: 'Offline TA/TO', lead: 196, dep: 'Non refund', adr: 88, g: '2 adults', sr: 0, park: 0, prev: 0, rep: 0, p: .91 },
-    { id: 85120, h: 'city', cc: 'ESP', d: '2017-08-24', n: 2, seg: 'Online TA', lead: 143, dep: 'No deposit', adr: 134, g: '2 adults', sr: 0, park: 0, prev: 1, rep: 0, p: .78 },
-    { id: 31554, h: 'resort', cc: 'PRT', d: '2017-08-23', n: 7, seg: 'Online TA', lead: 121, dep: 'No deposit', adr: 212, g: '2 adults, 1 child', sr: 0, park: 0, prev: 0, rep: 0, p: .74 },
-    { id: 84690, h: 'city', cc: 'ITA', d: '2017-08-25', n: 1, seg: 'Online TA', lead: 98, dep: 'No deposit', adr: 152, g: '2 adults', sr: 0, park: 0, prev: 0, rep: 0, p: .69 },
-    { id: 32008, h: 'resort', cc: 'GBR', d: '2017-08-26', n: 5, seg: 'Offline TA/TO', lead: 233, dep: 'No deposit', adr: 168, g: '2 adults', sr: 0, park: 0, prev: 0, rep: 0, p: .64 },
-    { id: 85402, h: 'city', cc: 'BRA', d: '2017-08-26', n: 3, seg: 'Online TA', lead: 61, dep: 'No deposit', adr: 141, g: '3 adults', sr: 0, park: 0, prev: 0, rep: 0, p: .61 },
-    { id: 84455, h: 'city', cc: 'PRT', d: '2017-08-27', n: 2, seg: 'Direct', lead: 12, dep: 'No deposit', adr: 119, g: '1 adult', sr: 0, park: 0, prev: 2, rep: 0, p: .58 },
-    { id: 31870, h: 'resort', cc: 'ESP', d: '2017-08-25', n: 4, seg: 'Online TA', lead: 74, dep: 'No deposit', adr: 199, g: '2 adults, 2 children', sr: 1, park: 0, prev: 0, rep: 0, p: .55 },
-    { id: 85019, h: 'city', cc: 'FRA', d: '2017-08-23', n: 2, seg: 'Online TA', lead: 57, dep: 'No deposit', adr: 128, g: '2 adults', sr: 1, park: 0, prev: 0, rep: 0, p: .52 },
-    { id: 31702, h: 'resort', cc: 'DEU', d: '2017-08-22', n: 6, seg: 'Direct', lead: 160, dep: 'No deposit', adr: 187, g: '2 adults', sr: 1, park: 0, prev: 0, rep: 0, p: .47 },
-    { id: 84801, h: 'city', cc: 'USA', d: '2017-08-24', n: 3, seg: 'Online TA', lead: 39, dep: 'No deposit', adr: 145, g: '2 adults', sr: 2, park: 0, prev: 0, rep: 0, p: .41 },
-    { id: 32115, h: 'resort', cc: 'GBR', d: '2017-08-21', n: 7, seg: 'Offline TA/TO', lead: 201, dep: 'No deposit', adr: 154, g: '2 adults', sr: 1, park: 0, prev: 0, rep: 1, p: .36 },
-    { id: 85266, h: 'city', cc: 'NLD', d: '2017-08-27', n: 2, seg: 'Online TA', lead: 18, dep: 'No deposit', adr: 138, g: '2 adults', sr: 2, park: 0, prev: 0, rep: 0, p: .22 },
-    { id: 84377, h: 'city', cc: 'DEU', d: '2017-08-21', n: 2, seg: 'Corporate', lead: 9, dep: 'No deposit', adr: 97, g: '1 adult', sr: 1, park: 0, prev: 0, rep: 1, p: .12 },
-    { id: 31990, h: 'resort', cc: 'PRT', d: '2017-08-24', n: 3, seg: 'Direct', lead: 4, dep: 'No deposit', adr: 176, g: '2 adults, 1 child', sr: 2, park: 1, prev: 0, rep: 0, p: .09 },
+    { id: 84213, h: 'city', cc: 'PRT', d: '2017-08-22', n: 2, seg: 'Groups', lead: 287, dep: 'None', adr: 96, sr: 0, park: 0, prev: 0, rep: 0, p: .93 },
+    { id: 83977, h: 'city', cc: 'PRT', d: '2017-08-21', n: 3, seg: 'Offline TA/TO', lead: 196, dep: 'Non-refund', adr: 88, sr: 0, park: 0, prev: 0, rep: 0, p: .91 },
+    { id: 85120, h: 'city', cc: 'ESP', d: '2017-08-24', n: 2, seg: 'Online TA', lead: 143, dep: 'None', adr: 134, sr: 0, park: 0, prev: 1, rep: 0, p: .78 },
+    { id: 31554, h: 'resort', cc: 'PRT', d: '2017-08-23', n: 7, seg: 'Online TA', lead: 121, dep: 'None', adr: 212, sr: 0, park: 0, prev: 0, rep: 0, p: .74 },
+    { id: 84690, h: 'city', cc: 'ITA', d: '2017-08-25', n: 1, seg: 'Online TA', lead: 98, dep: 'None', adr: 152, sr: 0, park: 0, prev: 0, rep: 0, p: .69 },
+    { id: 32008, h: 'resort', cc: 'GBR', d: '2017-08-26', n: 5, seg: 'Offline TA/TO', lead: 233, dep: 'None', adr: 168, sr: 0, park: 0, prev: 0, rep: 0, p: .64 },
+    { id: 85402, h: 'city', cc: 'BRA', d: '2017-08-26', n: 3, seg: 'Online TA', lead: 61, dep: 'None', adr: 141, sr: 0, park: 0, prev: 0, rep: 0, p: .61 },
+    { id: 84455, h: 'city', cc: 'PRT', d: '2017-08-27', n: 2, seg: 'Direct', lead: 12, dep: 'None', adr: 119, sr: 0, park: 0, prev: 2, rep: 0, p: .58 },
+    { id: 31870, h: 'resort', cc: 'ESP', d: '2017-08-25', n: 4, seg: 'Online TA', lead: 74, dep: 'None', adr: 199, sr: 1, park: 0, prev: 0, rep: 0, p: .55 },
+    { id: 85019, h: 'city', cc: 'FRA', d: '2017-08-23', n: 2, seg: 'Online TA', lead: 57, dep: 'None', adr: 128, sr: 1, park: 0, prev: 0, rep: 0, p: .52 },
+    { id: 31702, h: 'resort', cc: 'DEU', d: '2017-08-22', n: 6, seg: 'Direct', lead: 160, dep: 'None', adr: 187, sr: 1, park: 0, prev: 0, rep: 0, p: .47 },
+    { id: 84801, h: 'city', cc: 'USA', d: '2017-08-24', n: 3, seg: 'Online TA', lead: 39, dep: 'None', adr: 145, sr: 2, park: 0, prev: 0, rep: 0, p: .41 },
+    { id: 32115, h: 'resort', cc: 'GBR', d: '2017-08-21', n: 7, seg: 'Offline TA/TO', lead: 201, dep: 'None', adr: 154, sr: 1, park: 0, prev: 0, rep: 1, p: .36 },
+    { id: 85266, h: 'city', cc: 'NLD', d: '2017-08-27', n: 2, seg: 'Online TA', lead: 18, dep: 'None', adr: 138, sr: 2, park: 0, prev: 0, rep: 0, p: .22 },
+    { id: 84377, h: 'city', cc: 'DEU', d: '2017-08-21', n: 2, seg: 'Corporate', lead: 9, dep: 'None', adr: 97, sr: 1, park: 0, prev: 0, rep: 1, p: .12 },
+    { id: 31990, h: 'resort', cc: 'PRT', d: '2017-08-24', n: 3, seg: 'Direct', lead: 4, dep: 'None', adr: 176, sr: 2, park: 1, prev: 0, rep: 0, p: .09 },
   ];
   const day = iso => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   function drivers(b) {
-    const d = [];
-    const lw = b.lead >= 180 ? .28 : b.lead >= 90 ? .17 : b.lead >= 30 ? .06 : -.12;
-    d.push([`Lead time ${b.lead} days`, lw]);
-    if (b.dep === 'Non refund') d.push(['Non-refundable deposit', .36]);
-    const sw = { 'Groups': ['Group booking', .2], 'Online TA': ['Booked via online agency', .07], 'Offline TA/TO': ['Booked via tour operator', .04], 'Direct': ['Booked direct', -.11], 'Corporate': ['Corporate account', -.13] }[b.seg];
+    const d = [[`Booked ${b.lead} days ahead`, b.lead >= 180 ? .28 : b.lead >= 90 ? .17 : b.lead >= 30 ? .06 : -.12]];
+    if (b.dep === 'Non-refund') d.push(['Non-refundable rate', .36]);
+    const sw = { 'Groups': ['Group booking', .2], 'Online TA': ['Online agency', .07], 'Offline TA/TO': ['Tour operator', .04], 'Direct': ['Booked direct', -.11], 'Corporate': ['Corporate account', -.13] }[b.seg];
     if (sw) d.push(sw);
-    if (b.cc === 'PRT') d.push(['Domestic guest (PRT)', .13]);
-    else if (['GBR', 'DEU', 'FRA', 'NLD'].includes(b.cc)) d.push([`Guest from ${b.cc}`, -.05]);
-    if (b.prev) d.push([`${b.prev} earlier cancellation${b.prev > 1 ? 's' : ''}`, .12 * b.prev]);
+    if (b.cc === 'PRT') d.push(['Domestic guest', .13]); else if (['GBR', 'DEU', 'FRA', 'NLD'].includes(b.cc)) d.push([`Guest from ${b.cc}`, -.05]);
+    if (b.prev) d.push([`${b.prev} past cancellation${b.prev > 1 ? 's' : ''}`, .12 * b.prev]);
     d.push(b.sr ? [`${b.sr} special request${b.sr > 1 ? 's' : ''}`, -.06 * b.sr] : ['No special requests', .06]);
     if (b.park) d.push(['Asked for parking', -.24]);
     if (b.rep) d.push(['Returning guest', -.09]);
     return d.sort((p, q) => Math.abs(q[1]) - Math.abs(p[1])).slice(0, 4);
   }
-  let rF = 'both', thr = .5, selId = 84213;
+  let thr = .5, selId = 84213;
   const queued = new Map();
   function renderRisk() {
-    const list = BK.filter(b => rF === 'both' || b.h === rF).sort((p, q) => q.p - p.p);
+    const list = BK.filter(b => F === 'both' || b.h === F).sort((p, q) => q.p - p.p);
     const flagged = list.filter(b => b.p >= thr - 1e-9);
     tween($('#r-n'), flagged.length, v => nf0.format(v), 500);
-    tween($('#r-exp'), flagged.reduce((s, b) => s + b.adr * b.n, 0), eur, 600);
-    tween($('#r-exc'), flagged.reduce((s, b) => s + b.p, 0), v => nf1.format(v), 600);
-    if (!list.some(b => b.id === selId)) selId = list[0] && list[0].id;
-    const tb = $('#tb-risk tbody');
-    let html = '', dividerDone = false;
+    tween($('#r-exp'), flagged.reduce((s, b) => s + b.adr * b.n, 0), v => curH(eur(v)), 600, true);
+    if (!list.some(b => b.id === selId)) selId = list[0].id;
+    let html = '', div = false;
     list.forEach(b => {
       const below = b.p < thr - 1e-9;
-      if (below && !dividerDone) { html += `<tr class="divider"><td colspan="7">Below ${Math.round(thr * 100)}%</td></tr>`; dividerDone = true; }
-      const q = queued.get(b.id);
+      if (below && !div) { html += `<tr class="divider"><td colspan="6" class="cap">Below ${Math.round(thr * 100)}%</td></tr>`; div = true; }
       html += `<tr data-id="${b.id}" tabindex="0" class="${below ? 'below' : ''} ${b.id === selId ? 'sel' : ''}">
-        <td><span class="id">#${b.id}</span><span class="cc">${b.cc}</span>${q ? `<span class="queued"><i class="dot" style="background:var(--cobalt)"></i>${q}</span>` : ''}</td>
-        <td><span class="place" style="letter-spacing:.04em"><i style="background:${COLOR[b.h]}"></i>${b.h === 'city' ? 'City' : 'Resort'}</span></td>
-        <td>${day(b.d)}</td>
-        <td class="r num">${b.n}</td>
-        <td>${b.seg}</td>
-        <td class="r num">${b.lead} d</td>
-        <td><div class="bar risk"><span class="track"><i style="width:${b.p * 100}%"></i></span><span class="num">${Math.round(b.p * 100)}%</span></div></td>
-      </tr>`;
+        <td><i class="hdot" style="background:${COLOR[b.h]}" title="${NAME[b.h]}"></i><span class="id">${b.id}</span>${queued.has(b.id) ? `<span class="flag">${queued.get(b.id)}</span>` : ''}</td>
+        <td>${day(b.d)}</td><td class="r num">${b.n}</td><td>${b.seg}</td><td class="r num">${b.lead}d</td>
+        <td><div class="bar risk"><span class="track"><i style="width:${b.p * 100}%"></i></span><span class="num">${Math.round(b.p * 100)}%</span></div></td></tr>`;
     });
-    tb.innerHTML = html;
+    $('#tb-risk tbody').innerHTML = html;
     renderDetail();
   }
   function renderDetail() {
     const b = BK.find(x => x.id === selId); if (!b) return;
-    const img = $('#d-img'), src = b.h === 'city' ? 'img/city-room.jpg' : 'img/room-ocean.jpg';
-    if (!img.src.endsWith(src)) { img.style.opacity = 0; setTimeout(() => { img.src = src; img.style.opacity = 1; }, reduce ? 0 : 200); }
-    $('#d-cap').textContent = b.h === 'city' ? 'City Hotel · Lisbon' : 'Resort Hotel · Algarve';
     tween($('#d-p'), b.p * 100, v => Math.round(v) + '%', 500);
     $('#d-pm').style.width = (b.p * 100) + '%';
     $('#d-thr').style.left = `calc(${thr * 100}% - 1px)`;
     $('#d-id').textContent = '#' + b.id;
-    $('#d-sub').textContent = `${b.seg} · ${b.cc} · ${b.g}`;
-    const ds = drivers(b), mx = .4;
-    $('#d-drv').innerHTML = ds.map(([lab, w]) => `<div class="drv"><span>${lab}</span><span class="axis"><i class="${w > 0 ? 'up' : 'down'}" style="width:${Math.min(50, Math.abs(w) / mx * 50)}%"></i></span><span class="num">${w > 0 ? '+' : '−'}${Math.abs(w).toFixed(2)}</span></div>`).join('');
-    $('#d-facts').innerHTML = [
-      ['Arrival', day(b.d)], ['Nights', b.n], ['Booked', `${b.lead} days ahead`], ['Deposit', b.dep],
-      ['ADR', '€' + b.adr], ['Room revenue', eur(b.adr * b.n)],
-    ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+    $('#d-sub').textContent = `${NAME[b.h]} · ${b.cc}`;
+    $('#d-drv').innerHTML = drivers(b).map(([lab, w]) => `<div class="drv"><span>${lab}</span><span class="axis" title="${w > 0 ? 'raises' : 'lowers'} risk"><i class="${w > 0 ? 'up' : 'down'}" style="width:${Math.min(50, Math.abs(w) / .4 * 50)}%"></i></span></div>`).join('');
+    $('#d-facts').innerHTML = [['Arrival', day(b.d)], ['Nights', b.n], ['Deposit', b.dep], ['Channel', b.seg], ['ADR', '€' + b.adr], ['Revenue', eur(b.adr * b.n)]]
+      .map(([k, v]) => `<div><dt class="cap">${k}</dt><dd>${v}</dd></div>`).join('');
   }
   $('#tb-risk').addEventListener('click', e => {
     const tr = e.target.closest('tr[data-id]'); if (!tr) return;
     selId = +tr.dataset.id;
     $$('#tb-risk tr.sel').forEach(r => r.classList.remove('sel')); tr.classList.add('sel');
     renderDetail();
-    if (matchMedia('(max-width: 1180px)').matches) $('#detail').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    if (matchMedia('(max-width: 1100px)').matches) $('#detail').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   });
-  $('#tb-risk').addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const tr = e.target.closest('tr[data-id]'); if (!tr) return;
-    e.preventDefault(); tr.click();
-  });
+  $('#tb-risk').addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const tr = e.target.closest('tr[data-id]'); if (tr) { e.preventDefault(); tr.click(); } });
   const thrEl = $('#thr');
-  const setRange = el => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
   thrEl.addEventListener('input', () => { thr = thrEl.value / 100; $('#thr-o').textContent = thrEl.value + '%'; setRange(thrEl); renderRisk(); });
   setRange(thrEl);
-  allSegs.push(seg($('#seg-risk'), v => { rF = v; renderRisk(); }));
   let toastT;
-  function toast(msg) {
-    const t = $('#toast'); t.textContent = msg; t.classList.add('on');
-    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400);
-  }
-  $('#act-call').addEventListener('click', () => { queued.set(selId, 'Call queued'); renderRisk(); toast(`#${selId} added to today's call list`); });
-  $('#act-dep').addEventListener('click', () => { queued.set(selId, 'Deposit requested'); renderRisk(); toast(`Deposit request drafted for #${selId}`); });
-
-  const LEADB = [['0–7 d', .096], ['8–30 d', .278], ['31–90 d', .372], ['91–180 d', .446], ['181–365 d', .554], ['365+ d', .679]];
+  const toast = msg => { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400); };
+  $('#act-call').addEventListener('click', () => { queued.set(selId, 'Call'); renderRisk(); toast(`#${selId} added to today's calls`); });
+  $('#act-dep').addEventListener('click', () => { queued.set(selId, 'Deposit'); renderRisk(); toast(`Deposit request drafted for #${selId}`); });
+  const LEADB = [['0–7d', .096], ['8–30d', .278], ['31–90d', .372], ['91–180d', .446], ['181–365d', .554], ['365d+', .679]];
   function renderLead(animate) {
     const el = $('#ch-lead');
-    el.innerHTML = LEADB.map(([lab, v]) => `<div class="b" tabindex="0" aria-label="Lead time ${lab}: ${pct(v)} cancelled"><b>${Math.round(v * 100)}%</b><i style="height:${v / .7 * 160}px;${animate && !reduce ? 'transform:scaleY(0)' : ''}"></i><span>${lab}</span></div>`).join('');
-    if (animate && !reduce) requestAnimationFrame(() => requestAnimationFrame(() => $$('i', el).forEach((i, k) => { i.style.transitionDelay = (k * 60) + 'ms'; i.style.transform = 'scaleY(1)'; })));
+    el.innerHTML = LEADB.map(([lab, v]) => `<div class="b" aria-label="${lab}: ${pct(v)} cancelled"><b>${Math.round(v * 100)}%</b><i style="height:${v / .7 * 130}px;${animate && !reduce ? 'transform:scaleY(0)' : ''}"></i><span>${lab}</span></div>`).join('');
+    if (animate && !reduce) requestAnimationFrame(() => requestAnimationFrame(() => $$('i', el).forEach((i, k) => { i.style.transitionDelay = (k * 70) + 'ms'; i.style.transform = 'scaleY(1)'; })));
   }
 
   /* ---------- FORECAST ---------- */
   function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-  const HOL = [[15, 'Good Friday & Easter'], [17, 'Freedom Day, 25 Apr'], [18, 'Labour Day, 1 May'], [23, 'Portugal Day, 10 Jun'], [24, 'Corpus Christi, 15 Jun'], [33, 'Assumption, 15 Aug'], [40, 'Republic Day, 5 Oct']];
+  const HOL = [[15, 'Easter'], [17, 'Freedom Day'], [18, 'Labour Day'], [23, 'Portugal Day'], [24, 'Corpus Christi'], [33, 'Assumption'], [40, 'Republic Day']];
   const W0 = 9, WLAST = 34, WEND = 42;
   const weekStart = w => new Date(Date.UTC(2017, 0, 2 + 7 * (w - 1)));
   const dm = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-  function fcData(h) {
+  function fcHotel(h) {
     const r = rng(h === 'city' ? 7 : 11);
     const base = w => h === 'city'
       ? 1990 + 240 * Math.sin(2 * Math.PI * (w - 10) / 52) + 70 * Math.sin(2 * Math.PI * w / 8.5) + 360 * Math.exp(-Math.pow((w - 40.5) / 3.2, 2))
       : 1240 + 1520 * Math.exp(-Math.pow((w - 32.4) / 5.6, 2)) + 260 * Math.exp(-Math.pow((w - 15) / 2.4, 2));
-    const holBump = w => HOL.some(([hw]) => hw === w) ? 1.06 : 1;
-    const weeks = [], act = [], fc = [], band = [];
+    const out = { act: [], fc: [], band: [] };
     for (let w = W0; w <= WEND; w++) {
-      weeks.push(w);
-      const m = base(w) * holBump(w);
-      if (w <= WLAST) { act.push(Math.round(m * (1 + (r() - .5) * .09))); fc.push(w === WLAST ? act[act.length - 1] : null); band.push(null); }
-      else { act.push(null); const hzn = w - WLAST; fc.push(Math.round(m)); band.push([Math.round(m * (1 - .05 - .012 * hzn)), Math.round(m * (1 + .05 + .012 * hzn))]); }
+      const m = base(w) * (HOL.some(([hw]) => hw === w) ? 1.06 : 1);
+      if (w <= WLAST) { const a = Math.round(m * (1 + (r() - .5) * .09)); out.act.push(a); out.fc.push(w === WLAST ? a : null); out.band.push(null); }
+      else { const z = w - WLAST; out.act.push(null); out.fc.push(Math.round(m)); out.band.push([Math.round(m * (.95 - .012 * z)), Math.round(m * (1.05 + .012 * z))]); }
     }
-    return { weeks, act, fc, band };
+    return out;
   }
-  const FC_META = { city: { mape: .078, yoy: .039, cap: 'Lisbon' }, resort: { mape: .096, yoy: .062, cap: 'Algarve' } };
-  let fcF = 'city';
-  function renderForecast(animate = true) {
-    const d = fcData(fcF), col = COLOR[fcF];
-    $('#lg-fc').innerHTML = `<span><i style="background:${col}"></i>Actual</span><span><i class="dash"></i>Forecast, 80% range</span><span><i style="background:var(--sun);border-radius:2px;height:4px"></i>Public holiday</span>`;
+  function fcData(f) {
+    if (f !== 'both') return fcHotel(f);
+    const a = fcHotel('city'), b = fcHotel('resort'), add = (x, y) => x == null ? null : x + y;
+    return { act: a.act.map((v, i) => add(v, b.act[i])), fc: a.fc.map((v, i) => add(v, b.fc[i])), band: a.band.map((v, i) => v ? [v[0] + b.band[i][0], v[1] + b.band[i][1]] : null) };
+  }
+  const MAPE = { city: .078, resort: .096, both: .069 };
+  function renderForecast(animate) {
+    const d = fcData(F), col = COLOR[F], weeks = [];
+    for (let w = W0; w <= WEND; w++) weeks.push(w);
+    $('#lg-fc').innerHTML = `<span><i style="background:${col}"></i>Actual</span><span><i class="dash"></i>Forecast</span><span><i style="background:var(--brass);width:3px;height:10px"></i>Holiday</span>`;
     const chart = $('#ch-fc');
-    const idx = w => w - W0;
     const res = lineChart(chart, {
-      label: 'Weekly room-nights with forecast',
-      x: d.weeks.map(w => 'W' + w), xEvery: 4, height: 350,
-      yFmt: v => nf0.format(v),
-      vbands: [{ from: idx(WLAST), to: idx(WEND), label: 'Forecast' }],
-      ticksBottom: HOL.map(([w]) => ({ i: idx(w) })),
-      series: [
-        { name: 'Actual', color: col, values: d.act },
-        { name: 'Forecast', color: col, values: d.fc, band: d.band, dashFrom: 0 },
-      ],
+      label: 'Weekly room-nights with forecast', x: weeks.map(w => 'W' + w), xEvery: 4, height: 340, yFmt: v => nf0.format(v),
+      vbands: [{ from: WLAST - W0, to: WEND - W0, label: 'Forecast' }],
+      ticksBottom: HOL.map(([w]) => w - W0),
+      series: [{ name: 'Actual', color: col, values: d.act }, { name: 'Forecast', color: col, values: d.fc, band: d.band, dash: true }],
       tip: i => {
-        const w = d.weeks[i], ws = weekStart(w), we = new Date(ws.getTime() + 6 * 864e5);
-        const hol = HOL.find(([hw]) => hw === w);
-        const v = d.act[i] != null && w <= WLAST ? `<div class="row"><span><i style="background:${col}"></i>Actual</span><b class="num">${nf0.format(d.act[i])}</b></div>` : '';
+        const w = weeks[i], ws = weekStart(w), hol = HOL.find(([hw]) => hw === w);
+        const a = w <= WLAST ? `<div class="row"><span>Actual</span><b class="num">${nf0.format(d.act[i])}</b></div>` : '';
         const f = d.band[i] ? `<div class="row"><span>Forecast</span><b class="num">${nf0.format(d.fc[i])}</b></div><div class="row"><span>Range</span><span class="num">${nf0.format(d.band[i][0])}–${nf0.format(d.band[i][1])}</span></div>` : '';
-        return `<b>Week ${w}</b> · ${dm(ws)}–${dm(we)}${v}${f}${hol ? `<div style="margin-top:4px;color:var(--sun)">${hol[1]}</div>` : ''}`;
+        return `<b>Week ${w}</b> · ${dm(ws)}${a}${f}${hol ? `<div>${hol[1]}</div>` : ''}`;
       },
     });
     if (animate) animateDraw(chart, res.svg);
-    const fut = d.weeks.map((w, i) => ({ w, v: d.fc[i], b: d.band[i] })).filter(x => x.b);
+    const fut = weeks.map((w, i) => ({ w, v: d.fc[i], b: d.band[i] })).filter(x => x.b);
     const peak = fut.reduce((p, q) => q.v > p.v ? q : p, fut[0]);
-    tween($('#fc-next'), fut[0].v, v => nf0.format(v));
-    const ns = weekStart(fut[0].w);
-    $('#fc-next-s').textContent = `${dm(ns)} – ${dm(new Date(ns.getTime() + 6 * 864e5))}`;
     tween($('#fc-peak'), peak.v, v => nf0.format(v));
-    $('#fc-peak-s').textContent = `Week ${peak.w}, from ${dm(weekStart(peak.w))}`;
-    tween($('#fc-mape'), FC_META[fcF].mape, pct);
-    tween($('#fc-yoy'), FC_META[fcF].yoy, v => '+' + pct(v));
+    $('#fc-peak-s').innerHTML = `<b>Week ${peak.w}</b> · from ${dm(weekStart(peak.w))}`;
+    $('#fc-mape').textContent = `Backtest MAPE ${pct(MAPE[F])}`;
     $('#fc-weeks').innerHTML = fut.map(x => `<div class="wk ${x === peak ? 'peak' : ''}"><small>W${x.w} · ${dm(weekStart(x.w))}</small><b>${nf0.format(x.v)}</b><small>${nf0.format(x.b[0])}–${nf0.format(x.b[1])}</small></div>`).join('');
-    $('#fc-img-city').classList.toggle('off', fcF !== 'city');
-    $('#fc-img-resort').classList.toggle('off', fcF !== 'resort');
-    $('#fc-cap').textContent = FC_META[fcF].cap;
   }
-  allSegs.push(seg($('#seg-fc'), v => { fcF = v; renderForecast(); }));
 
   /* ---------- WHAT-IF ---------- */
-  // Mô phỏng 1 đêm: số khách đến ~ Normal (xấp xỉ nhị thức, có hệ số phân tán cho hủy theo nhóm)
-  const erf = x => { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + .3275911 * x); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - .284496736) * t + .254829592) * t * Math.exp(-x * x); return s * y; };
+  // Mô phỏng 1 đêm: số khách đến ~ Normal (xấp xỉ nhị thức, nhân hệ số phân tán cho hủy theo nhóm)
+  const erf = x => { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + .3275911 * x); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - .284496736) * t + .254829592) * t * Math.exp(-x * x)); };
   const Phi = z => .5 * (1 + erf(z / Math.SQRT2));
   const phi = z => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
   function sim(C, ob, p, W, adr, dep) {
-    const pe = dep ? p * .72 : p;
-    const B = Math.round(C * (1 + ob));
-    const mu = B * (1 - pe), sd = Math.max(1e-6, Math.sqrt(B * pe * (1 - pe)) * 1.8);
-    const z = (C - mu) / sd;
+    const pe = dep ? p * .72 : p, B = Math.round(C * (1 + ob));
+    const mu = B * (1 - pe), sd = Math.max(1e-6, Math.sqrt(B * pe * (1 - pe)) * 1.8), z = (C - mu) / sd;
     const walks = sd * phi(z) + (mu - C) * (1 - Phi(z));
-    const sold = mu - walks;
-    const pWalk = 1 - Phi((C + .5 - mu) / sd);
-    return { net: adr * sold - W * walks, sold, walks, pWalk };
+    return { net: adr * (mu - walks) - W * walks, sold: mu - walks, walks, pWalk: 1 - Phi((C + .5 - mu) / sd) };
   }
-  const WI_DEF = { city: { cap: 380, p: 12, adr: 105 }, resort: { cap: 200, p: 7, adr: 98 } };
-  let wiF = 'city';
+  const WI_DEF = { city: { cap: 380, p: 12, adr: 105 }, resort: { cap: 200, p: 7, adr: 98 }, both: { cap: 580, p: 10, adr: 102 } };
   const ids = ['wi-cap', 'wi-ob', 'wi-p', 'wi-w', 'wi-adr'];
   const val = id => +$('#' + id).value;
-  function renderWhatIf(animate = false) {
+  let wiBest = 0;
+  const money = v => `<span class="cur">${v < 0 ? '−' : '+'}€</span>${nf0.format(Math.abs(v))}`;
+  function renderWhatIf(animate) {
     ids.forEach(id => setRange($('#' + id)));
     const C = val('wi-cap'), ob = val('wi-ob') / 100, p = val('wi-p') / 100, W = val('wi-w'), adr = val('wi-adr'), dep = $('#wi-dep').checked;
     $('#wi-cap-o').textContent = C; $('#wi-ob-o').textContent = nf1.format(ob * 100) + '%';
     $('#wi-p-o').textContent = Math.round(p * 100) + '%'; $('#wi-w-o').textContent = eur(W); $('#wi-adr-o').textContent = eur(adr);
-    const base = sim(C, 0, p, W, adr, dep).net;
-    const cur = sim(C, ob, p, W, adr, dep);
-    const gain = cur.net - base;
-    const gEl = $('#wi-gain');
-    tween(gEl, gain, v => (v >= 0 ? '+\u2009€' : '−\u2009€') + nf0.format(Math.abs(v)), 400);
-    gEl.classList.toggle('neg', gain < 0);
-    $('#wi-year').textContent = `About ${gain >= 0 ? '' : 'minus '}€${nf0.format(Math.abs(gain * 365) / 1000)}K over a year`;
+    const base = sim(C, 0, p, W, adr, dep).net, cur = sim(C, ob, p, W, adr, dep), gain = cur.net - base;
+    tween($('#wi-gain'), gain, money, 400, true);
+    $('#wi-year').innerHTML = `<b>${gain < 0 ? '−' : ''}€${nf0.format(Math.abs(gain) * 365 / 1000)}K</b> a year`;
     tween($('#wi-fill'), cur.sold / C, pct, 400);
     tween($('#wi-walk'), cur.walks, v => nf1.format(v), 400);
     tween($('#wi-pw'), cur.pWalk, v => Math.round(v * 100) + '%', 400);
-    // Đường cong lợi nhuận theo mức overbooking
     const xs = []; for (let x = 0; x <= 25.0001; x += .5) xs.push(+x.toFixed(1));
     const ys = xs.map(x => sim(C, x / 100, p, W, adr, dep).net - base);
     let bi = 0; ys.forEach((y, i) => { if (y > ys[bi]) bi = i; });
     wiBest = xs[bi];
     const chart = $('#ch-wi');
-    const ci = xs.indexOf(+(ob * 100).toFixed(1));
     const res = lineChart(chart, {
-      label: 'Net gain per night by overbooking level',
-      x: xs.map(x => x + '%'), xEvery: 10, height: 280,
+      label: 'Net gain per night by overbooking level', x: xs.map(x => x + '%'), xEvery: 10, height: 280,
       yFmt: v => (v < 0 ? '−€' : '€') + nf0.format(Math.abs(v)),
-      series: [{ name: 'Net gain', color: 'var(--cobalt)', values: ys }],
-      tip: i => `<b>Overbook ${nf1.format(xs[i])}%</b><div class="row"><span>Net gain / night</span><b class="num">${(ys[i] < 0 ? '−€' : '€') + nf0.format(Math.abs(ys[i]))}</b></div>`,
+      series: [{ name: 'Net gain', color: 'var(--rifle)', values: ys }],
+      tip: i => `<b>${nf1.format(xs[i])}% overbooked</b><div class="row"><span>Gain / night</span><b class="num">${(ys[i] < 0 ? '−€' : '€') + nf0.format(Math.abs(ys[i]))}</b></div>`,
     });
-    const { svg, X, Y, m, iw } = res;
-    const zy = Y(0);
+    const { svg, X, Y, m, iw } = res, zy = Y(0), first = $('.series', svg);
     svgEl('line', { class: 'zero', x1: m.l, x2: m.l + iw, y1: zy, y2: zy }, svg);
-    const area = 'M' + xs.map((x, i) => `${X(i)},${Y(Math.max(0, ys[i]))}`).join(' L') + ` L${X(xs.length - 1)},${zy} L${X(0)},${zy} Z`;
-    const ap = svgEl('path', { d: area, fill: 'var(--cobalt)', opacity: .1 }, svg);
-    svg.insertBefore(ap, $('.series', svg));
+    svg.insertBefore(svgEl('path', { d: 'M' + xs.map((x, i) => `${X(i)},${Y(Math.max(0, ys[i]))}`).join(' L') + ` L${X(xs.length - 1)},${zy} L${X(0)},${zy} Z`, fill: 'var(--rifle)', opacity: .12 }, svg), first);
     const neg = ys.map((y, i) => y < 0 ? i : -1).filter(i => i >= 0);
-    if (neg.length) {
-      const np = 'M' + neg.map(i => `${X(i)},${Y(ys[i])}`).join(' L') + ` L${X(neg[neg.length - 1])},${zy} L${X(neg[0])},${zy} Z`;
-      svg.insertBefore(svgEl('path', { d: np, fill: 'var(--signal)', opacity: .14 }, svg), $('.series', svg));
-    }
-    svgEl('circle', { cx: X(bi), cy: Y(ys[bi]), r: 9, fill: 'none', stroke: 'var(--sun)', 'stroke-width': 3 }, svg);
-    const bt = svgEl('text', { class: 'endlabel', x: X(bi), y: Y(ys[bi]) - 16, 'text-anchor': 'middle' }, svg);
-    bt.textContent = `Best ${nf1.format(xs[bi])}%`;
-    if (ci >= 0) svgEl('circle', { cx: X(ci), cy: Y(ys[ci]), r: 6, fill: 'var(--cobalt)', stroke: 'var(--surface)', 'stroke-width': 2.5 }, svg);
+    if (neg.length) svg.insertBefore(svgEl('path', { d: 'M' + neg.map(i => `${X(i)},${Y(ys[i])}`).join(' L') + ` L${X(neg[neg.length - 1])},${zy} L${X(neg[0])},${zy} Z`, fill: 'var(--rust)', opacity: .16 }, svg), first);
+    svgEl('rect', { x: X(bi) - 7, y: Y(ys[bi]) - 7, width: 14, height: 14, fill: 'var(--merino)', stroke: 'var(--rifle)', 'stroke-width': 2, transform: `rotate(45 ${X(bi)} ${Y(ys[bi])})` }, svg);
+    const bt = svgEl('text', { class: 'endlabel', x: X(bi), y: Y(ys[bi]) - 18, 'text-anchor': 'middle' }, svg); bt.textContent = `Best ${nf1.format(xs[bi])}%`;
+    const ci = xs.indexOf(+(ob * 100).toFixed(1));
+    if (ci >= 0 && ci !== bi) svgEl('circle', { cx: X(ci), cy: Y(ys[ci]), r: 6, fill: 'var(--rifle)', stroke: 'var(--merino)', 'stroke-width': 2.5 }, svg);
     if (animate) animateDraw(chart, svg);
   }
-  let wiBest = 0;
-  ids.forEach(id => $('#' + id).addEventListener('input', () => renderWhatIf()));
-  $('#wi-dep').addEventListener('change', () => renderWhatIf());
-  allSegs.push(seg($('#seg-wi'), v => {
-    wiF = v; const d = WI_DEF[v];
-    $('#wi-cap').value = d.cap; $('#wi-p').value = d.p; $('#wi-adr').value = d.adr;
-    renderWhatIf(true);
-  }));
+  ids.forEach(id => $('#' + id).addEventListener('input', () => renderWhatIf(false)));
+  $('#wi-dep').addEventListener('change', () => renderWhatIf(false));
+  function applyWiDefaults() { const d = WI_DEF[F]; $('#wi-cap').value = d.cap; $('#wi-p').value = d.p; $('#wi-adr').value = d.adr; }
   $('#wi-best').addEventListener('click', () => {
     const el = $('#wi-ob'), from = +el.value, to = wiBest;
-    if (reduce || from === to) { el.value = to; renderWhatIf(); toast(`Overbooking set to ${nf1.format(to)}%`); return; }
+    if (reduce || from === to) { el.value = to; renderWhatIf(false); toast(`Overbooking set to ${nf1.format(to)}%`); return; }
     const t0 = performance.now();
-    const step = now => {
-      const k = Math.min(1, (now - t0) / 600), e = 1 - Math.pow(1 - k, 3);
-      el.value = Math.round((from + (to - from) * e) * 2) / 2; renderWhatIf();
-      if (k < 1) requestAnimationFrame(step); else toast(`Overbooking set to ${nf1.format(to)}%`);
-    };
+    const step = now => { const k = Math.min(1, (now - t0) / 650), e = 1 - Math.pow(1 - k, 3); el.value = Math.round((from + (to - from) * e) * 2) / 2; renderWhatIf(false); if (k < 1) requestAnimationFrame(step); else toast(`Overbooking set to ${nf1.format(to)}%`); };
     requestAnimationFrame(step);
   });
 
-  /* ---------- Router (hash) ---------- */
+  /* ---------- Router + bộ lọc ---------- */
   const VIEWS = ['overview', 'risk', 'forecast', 'what-if', 'pipeline'];
-  const rendered = new Set();
+  const current = () => { const v = (location.hash || '#overview').slice(1); return VIEWS.includes(v) ? v : 'overview'; };
+  function renderView(v, animate) {
+    if (v === 'overview') renderOverview(animate);
+    if (v === 'risk') { renderRisk(); renderLead(animate); }
+    if (v === 'forecast') renderForecast(animate);
+    if (v === 'what-if') renderWhatIf(animate);
+  }
   function show(v, first) {
-    if (!VIEWS.includes(v)) v = 'overview';
     $$('.view').forEach(s => { s.hidden = s.dataset.view !== v; });
     $$('.nav a').forEach(a => { if (a.dataset.view === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-    const sec = $('#view-' + v);
-    if (!first) $$(':scope > *', sec).forEach(c => { c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; });
-    allSegs.forEach(s => s._place());
-    const anim = !first;
-    if (v === 'overview') { if (!rendered.has(v)) renderOverview(true); else renderSeason(anim); }
-    if (v === 'risk') { if (!rendered.has(v)) renderRisk(); renderLead(true); }
-    if (v === 'forecast') renderForecast(anim || !rendered.has(v));
-    if (v === 'what-if') renderWhatIf(anim || !rendered.has(v));
-    rendered.add(v);
+    $('#filter').style.visibility = v === 'pipeline' ? 'hidden' : '';
+    if (!first) $$(':scope > *', $('#view-' + v)).forEach(c => { c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; });
+    renderView(v, !first);
     if (!first) window.scrollTo({ top: 0, behavior: 'auto' });
   }
-  const go = first => {
-    const v = (location.hash || '#overview').slice(1);
-    if (!first && document.startViewTransition && !reduce) document.startViewTransition(() => show(v));
-    else show(v, first);
-  };
-  addEventListener('hashchange', () => go(false));
+  toggleGroup($('#filter'), v => { F = v; applyWiDefaults(); renderView(current(), true); });
+  addEventListener('hashchange', () => { const v = current(); if (document.startViewTransition && !reduce) document.startViewTransition(() => show(v)); else show(v); });
   let rz;
-  addEventListener('resize', () => {
-    clearTimeout(rz);
-    rz = setTimeout(() => {
-      allSegs.forEach(s => s._place());
-      const v = (location.hash || '#overview').slice(1);
-      if (v === 'overview' || !VIEWS.includes(v)) renderSeason(false);
-      if (v === 'forecast') renderForecast(false);
-      if (v === 'what-if') renderWhatIf(false);
-    }, 120);
-  });
-  go(true);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => allSegs.forEach(s => s._place()));
+  addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const v = current(); if (v === 'overview') renderSeason(false); if (v === 'forecast') renderForecast(false); if (v === 'what-if') renderWhatIf(false); }, 120); });
+  applyWiDefaults();
+  show(current(), true);
 })();
 </script>
