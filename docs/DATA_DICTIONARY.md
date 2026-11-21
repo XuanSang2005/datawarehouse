@@ -54,9 +54,12 @@ Grain: **1 dòng = 1 booking**. Khóa chính: `booking_id`.
 | `arrival_week_number` | INT | |
 | `weekend_nights`, `week_nights` | INT | |
 | `total_nights` | INT | `weekend_nights + week_nights` |
+| `departure_date` | DATE | `arrival_date + total_nights` |
 | `adults`, `children`, `babies` | INT | `children`: `NA` → 0 |
+| `total_guests` | INT | `adults + children + babies` |
+| `party_type` | TEXT | `Other` (0 người lớn) / `Family` (có trẻ em, em bé) / `Solo` (1 người lớn) / `Couple` (2) / `Group` (≥ 3) |
 | `meal` | TEXT | `Undefined` → `SC` |
-| `country_code` | TEXT | `NULL`/`NA` → NULL |
+| `country_code` | TEXT | `NULL`/`NA` → NULL; `CN` → `CAN` (Canada), `TMP` → `TLS` (Đông Timor) |
 | `market_segment`, `distribution_channel` | TEXT | `Undefined` → NULL |
 | `is_repeated_guest` | BOOLEAN | |
 | `previous_cancellations`, `previous_bookings_not_canceled` | INT | |
@@ -71,12 +74,12 @@ Grain: **1 dòng = 1 booking**. Khóa chính: `booking_id`.
 
 **Vấn đề chất lượng đã phát hiện** (`database/checks/`, chưa lọc ở silver):
 
-| Check | Số dòng | Hướng xử lý ở gold (cần chốt) |
+| Check | Số dòng | Xử lý ở gold (đã chốt) |
 |---|---|---|
-| Không có khách (0 người lớn, 0 trẻ em, 0 em bé) | 180 | Loại bỏ |
-| ADR âm | 1 | Loại bỏ |
-| 0 đêm lưu trú | 715 | Giữ, nhưng không tính vào ADR |
-| `country_code` NULL | 488 | Gán thành viên "Unknown" trong `dim_country` |
+| Không có khách (0 người lớn, 0 trẻ em, 0 em bé) | 180 | Loại khỏi `fact_booking` |
+| ADR âm | 1 | Loại khỏi `fact_booking` |
+| 0 đêm lưu trú | 715 | Giữ; ADR tính từ tổng nên không bị ảnh hưởng |
+| `country_code` NULL | 488 | Gán `country_key = -1` (Unknown) trong `dim_country` |
 
 ## 3. `bronze.pt_holidays` → `silver.pt_holidays`
 
@@ -85,13 +88,81 @@ Grain: **1 dòng = 1 ngày lễ** (gộp tên nếu trùng ngày). Năm 2013–2
 | Cột | Kiểu (silver) | Ý nghĩa |
 |---|---|---|
 | `holiday_date` | DATE (PK) | Ngày lễ |
-| `holiday_name` | TEXT | Tên ngày lễ (tiếng Anh) |
+| `holiday_name` | TEXT | Tên ngày lễ (tiếng Bồ Đào Nha) |
 
-## 4. Gold
+## 4. `bronze.countries` → `silver.countries`
 
-_Chưa có. Cập nhật sau khi chốt star schema (xem `ARCHITECTURE.md` mục 4)._
+Nguồn: [lukes/ISO-3166-Countries-with-Regional-Codes](https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes) (`all/all.csv`, CC BY-SA 4.0).
+Grain: **1 dòng = 1 quốc gia/vùng lãnh thổ** (249 dòng). Bronze giữ nguyên tên cột CSV (có dấu gạch ngang).
 
-## 5. `meta.etl_run_log`
+| Cột (silver) | Kiểu | Lấy từ |
+|---|---|---|
+| `country_code` | TEXT (PK) | `alpha-3` |
+| `country_code_alpha2` | TEXT | `alpha-2` |
+| `country_name` | TEXT | `name` |
+| `region` | TEXT | `region` (châu lục UN M49); bổ sung TWN → Asia, ATA → Antarctica |
+| `sub_region` | TEXT | `sub-region` |
+
+## 5. Gold
+
+Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). Quy ước: `-1` = Unknown, `0` = không áp dụng; FK trong fact không bao giờ NULL.
+
+### `gold.business_assumptions`: tham số giả định (1 dòng = 1 tham số)
+| Cột | Ý nghĩa |
+|---|---|
+| `param_name` (PK) | Tên tham số. Hiện có `non_refund_deposit_rate` = 0.20 |
+| `param_value`, `unit`, `description` | Giá trị, đơn vị, mô tả |
+
+### Dimension
+
+| Bảng | Grain (số dòng) | Cột |
+|---|---|---|
+| `dim_date` | 1 ngày, 2013–2018 (2.191) | `date_key` (PK, YYYYMMDD), `full_date`, `day_of_month`, `day_of_week` (ISO 1–7), `day_name`, `is_weekend`, `iso_week`, `iso_year`, `week_start_date`, `month`, `month_name`, `quarter`, `year`, `year_month`, `season` (High/Shoulder/Low), `is_holiday`, `holiday_name` |
+| `dim_hotel` | 1 khách sạn (2) | `hotel_key` (PK), `hotel_name`, `hotel_type`, `city`, `country_code`, `latitude`, `longitude` |
+| `dim_country` | 1 mã quốc gia + Unknown (178) | `country_key` (PK, -1 = Unknown), `country_code`, `country_name`, `region`, `sub_region`, `is_domestic`, `market_group` (Domestic / Core Europe / Other Europe / Rest of World / Unknown) |
+| `dim_channel` | 1 tổ hợp segment × channel (26) | `channel_key` (PK), `market_segment`, `distribution_channel`, `channel_group` (OTA / Offline TA/TO / Direct / Corporate / Groups / Other), `is_intermediated` |
+| `dim_room_type` | 1 mã phòng (12) | `room_type_key` (PK), `room_type_code`, `room_type_label` |
+| `dim_agent` | 1 đại lý + "No agent" (334) | `agent_key` (PK, 0 = không qua đại lý), `agent_id`, `agent_label`, `has_agent`, `valid_from`, `valid_to`, `is_current` |
+| `dim_booking_profile` | 1 tổ hợp junk (154) | `booking_profile_key` (PK), `meal`, `meal_name`, `deposit_type`, `customer_type`, `is_repeated_guest`, `party_type` |
+
+### `gold.fact_booking`: 1 dòng = 1 booking (119.209 dòng)
+
+| Nhóm | Cột |
+|---|---|
+| Khóa | `booking_id` (PK, degenerate), `hotel_key`, `booking_date_key`, `arrival_date_key`, `departure_date_key`, `status_date_key` ⛔, `country_key`, `channel_key`, `agent_key`, `reserved_room_type_key`, `assigned_room_type_key` ⚠, `booking_profile_key` |
+| Degenerate | `company_id`, `reservation_status` ⛔ |
+| Đếm | `booking_count` (=1), `is_canceled` (0/1), `lead_time`, `weekend_nights`, `week_nights`, `total_nights`, `room_nights_sold` ⛔, `adults`, `children`, `babies`, `guests` |
+| Tiền (EUR) | `adr` (non-additive), `booked_revenue` = adr × total_nights, `realized_revenue` ⛔ (không hủy), `lost_revenue` ⛔ (hủy, gộp), `deposit_retained` ⛔ (hủy + Non Refund × tỉ lệ cọc), `net_lost_revenue` ⛔ = lost − deposit |
+| Hành vi | `days_in_waiting_list`, `previous_cancellations`, `previous_bookings_not_canceled`, `total_of_special_requests`, `required_car_parking_spaces`, `booking_changes` ⚠, `is_room_changed` ⚠, `cancel_lead_days` ⛔ |
+
+⛔ = suy ra từ kết quả hủy, cấm dùng làm feature ML. ⚠ = cân nhắc (chỉ biết sau khi đặt).
+
+### `gold.fact_daily_occupancy`: 1 dòng = 1 khách sạn × 1 đêm (1.586 dòng, 2015-07-01 → 2017-08-31)
+
+| Cột | Ý nghĩa |
+|---|---|
+| `hotel_key`, `stay_date_key` | PK, FK |
+| `rooms_occupied` | Số booking không hủy có đêm này |
+| `rooms_canceled` | Số booking đã hủy lẽ ra có đêm này |
+| `rooms_booked` | `rooms_occupied + rooms_canceled` |
+| `guests_in_house` | Số khách lưu trú đêm này |
+| `arrivals`, `departures` | Lượt đến / trả phòng (booking không hủy) |
+| `realized_revenue`, `lost_revenue` | Tổng `adr` của booking không hủy / đã hủy ở đêm này |
+
+### View KPI
+
+| View | Grain | Cột riêng (ngoài bộ cột chung) |
+|---|---|---|
+| `kpi_monthly_hotel` | khách sạn × tháng đến | `year`, `quarter`, `month`, `year_month` |
+| `kpi_channel` | khách sạn × `channel_group` × tháng đến | `channel_group`, `year`, `month`, `year_month` |
+| `kpi_country` | khách sạn × quốc gia × năm đến | `country_code`, `country_name`, `region`, `market_group`, `year` |
+| `kpi_cancellation_profile` | khách sạn × nhóm lead time × `deposit_type` × `channel_group` | `lead_time_band`, `lead_time_band_order`, `deposit_type`, `channel_group` |
+| `kpi_weekly_occupancy` | khách sạn × tuần ISO | `iso_year`, `iso_week`, `week_start_date`, `days_in_week`, `is_complete_week`, `room_nights_sold`, `room_nights_canceled`, `room_nights_booked`, `guest_nights`, `arrivals`, `realized_revenue`, `lost_revenue`, `adr`, `night_cancellation_rate` |
+
+Bộ cột chung của 4 view đầu: `bookings`, `canceled_bookings`, `cancellation_rate`, `room_nights_sold`, `realized_revenue`,
+`lost_revenue`, `net_lost_revenue`, `adr`, `avg_lead_time`, `avg_los`. Tỉ lệ và ADR đều tính lại từ tổng.
+
+## 6. `meta.etl_run_log`
 
 | Cột | Ý nghĩa |
 |---|---|

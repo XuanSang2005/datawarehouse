@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                                   NGUỒN DỮ LIỆU                                         │
-│   hotel_bookings.csv (Kaggle)    pt_holidays (thư viện holidays)    weather (dự kiến)   │
+│   hotel_bookings.csv  pt_holidays (holidays)  countries (ISO 3166)  weather (dự kiến)   │
 └───────────────┬─────────────────────────────────────────────────────────────────────────┘
                 │  etl/extract/*.py  ->  data/raw/
                 ▼
@@ -65,32 +65,36 @@ init → extract → bronze → silver → gold → checks
 ```
 Mỗi bước, và mỗi file SQL, được ghi một dòng vào `meta.etl_run_log` (trạng thái, số dòng, lỗi).
 
-## 4. Mô hình dữ liệu Gold: star schema (DỰ THẢO)
+## 4. Mô hình dữ liệu Gold: star schema
 
-> Sẽ chốt ở bước thiết kế chi tiết. Khi chốt xong, cập nhật mục này và `docs/DATA_DICTIONARY.md`.
+> Thiết kế chi tiết (từng cột, grain, công thức measure, quyết định đã chốt): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). SQL: `database/gold/`.
 
 ```
                          ┌──────────────┐
-                         │  dim_date    │ (role-playing: arrival / booking)
+                         │  dim_date    │ (role-playing: booking / arrival / departure / status)
                          └──────┬───────┘
      ┌──────────────┐           │           ┌──────────────┐
-     │ dim_country  ├───┐       │       ┌───┤  dim_hotel   │
+     │ dim_country  ├───┐       │       ┌───┤  dim_hotel   │ (conformed)
      └──────────────┘   │ ┌─────▼─────┐ │   └──────────────┘
      ┌──────────────┐   ├─┤fact_booking├─┤   ┌──────────────┐
-     │ dim_channel  ├───┤ └─────┬─────┘ ├───┤dim_room_type │
+     │ dim_channel  ├───┤ └─────┬─────┘ ├───┤dim_room_type │ (reserved / assigned)
      └──────────────┘   │       │       │   └──────────────┘
      ┌──────────────┐   │       │       │   ┌──────────────┐
-     │dim_booking_  ├───┘       │       └───┤  dim_agent   │
+     │dim_booking_  ├───┘       │       └───┤  dim_agent   │ (SCD2-ready)
      │profile (junk)│           │           └──────────────┘
      └──────────────┘   ┌───────▼──────────────┐
-                        │ fact_daily_occupancy │ (periodic snapshot: 1 dòng = 1 khách sạn × 1 ngày)
+                        │ fact_daily_occupancy │ (periodic snapshot: 1 dòng = 1 khách sạn × 1 đêm)
                         └──────────────────────┘
 ```
 
-- **`fact_booking`**: grain = 1 booking. Measures: `lead_time`, `total_nights`, `adults`, `children`, `adr`, `revenue`, `is_canceled`.
-- **`fact_daily_occupancy`**: grain = 1 khách sạn × 1 đêm. Measures: `room_nights_sold`, `revenue`, `bookings_arriving`. Dùng cho dự báo nhu cầu.
-- **`ml_booking_risk`**: xác suất hủy của từng booking (do `ml/` ghi).
-- **`ml_demand_forecast`**: dự báo room-nights theo tuần (do `ml/` ghi).
+- **`fact_booking`**: grain = 1 booking (~119.209 dòng sau khi loại 181 dòng bất thường).
+  Measures: `booking_count`, `is_canceled`, `lead_time`, `total_nights`, `room_nights_sold`, `guests`, `adr` (non-additive),
+  `booked_revenue`, `realized_revenue`, `lost_revenue`, `deposit_retained`, `net_lost_revenue`, `cancel_lead_days`.
+- **`fact_daily_occupancy`**: grain = 1 khách sạn × 1 đêm (1.586 dòng, 2015-07-01 → 2017-08-31).
+  Measures: `rooms_occupied`, `rooms_canceled`, `rooms_booked`, `guests_in_house`, `arrivals`, `departures`, `realized_revenue`, `lost_revenue`. Dùng cho dự báo nhu cầu và what-if overbooking.
+- **`kpi_*`** (view): tổng hợp sẵn cho từng trang dashboard.
+- **`business_assumptions`**: tham số giả định mà dataset không có (tỉ lệ cọc Non Refund giữ lại, mặc định 20%).
+- **`ml_booking_risk`**, **`ml_demand_forecast`**, **`ml_model_metrics`**: do `ml/` ghi.
 
 ## 5. Backend: phân tầng
 
@@ -148,3 +152,5 @@ pages/*.tsx ──dùng──▶ hooks/useApi.ts ──gọi──▶ api/endpoi
 | 2026-11-21 | Chọn bài toán quản lý doanh thu và hủy phòng, dataset Hotel Booking Demand |
 | 2026-11-21 | Stack: PostgreSQL + Python/SQL + FastAPI + React |
 | 2026-11-21 | Bronze lưu TEXT; silver không lọc dòng; quyết định lọc dữ liệu bất thường đặt ở gold |
+| 2026-11-21 | Chốt star schema (`STAR_SCHEMA.md`): 7 dimension, 2 fact, 5 view KPI |
+| 2026-11-21 | Loại 181 dòng bất thường khỏi fact; `CN` → `CAN`; giả định giữ 20% cọc khi booking Non Refund bị hủy; thêm nguồn mã ISO 3166 |
