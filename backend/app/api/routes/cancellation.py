@@ -8,7 +8,7 @@ from app.schemas.cancellation import (
     CancellationBreakdown,
     HighRiskPage,
     HighRiskSort,
-    RiskBand,
+    RiskBandFilter,
 )
 from app.schemas.ml import ModelMetricsResponse
 from app.services import cancellation_service
@@ -37,8 +37,12 @@ def get_high_risk(
     conn: DbConn,
     flt: Filters,
     risk_band: Annotated[
-        RiskBand | None, Query(description="Lọc theo nhóm rủi ro; bỏ trống = mọi nhóm")
+        RiskBandFilter, Query(description="Nhóm rủi ro cần lấy; All = mọi nhóm")
     ] = "High",
+    min_probability: Annotated[
+        float | None,
+        Query(ge=0, le=1, description="Chỉ booking có xác suất hủy >= ngưỡng (0–1)"),
+    ] = None,
     test_set_only: Annotated[
         bool, Query(description="Chỉ booking năm 2017 (điểm ngoài mẫu, model chưa thấy khi train)")
     ] = True,
@@ -62,7 +66,8 @@ def get_high_risk(
         conn,
         flt,
         model_version=model_version,
-        risk_band=risk_band,
+        risk_band=None if risk_band == "All" else risk_band,
+        min_probability=min_probability,
         test_set_only=test_set_only,
         sort=sort,
         page=page,

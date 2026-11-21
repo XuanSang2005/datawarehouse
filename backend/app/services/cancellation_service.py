@@ -91,24 +91,34 @@ def get_high_risk(
     *,
     model_version: str | None,
     risk_band: RiskBand | None,
+    min_probability: float | None,
     test_set_only: bool,
     sort: HighRiskSort,
     page: int,
     page_size: int,
 ) -> HighRiskPage:
     version = resolve_risk_version(conn, model_version)
-    total = cancellation_repo.count_high_risk(conn, flt, version, risk_band, test_set_only)
+    sel = cancellation_repo.RiskSelection(
+        model_version=version,
+        risk_band=risk_band,
+        min_probability=min_probability,
+        test_set_only=test_set_only,
+    )
+    summary = cancellation_repo.summarize_high_risk(conn, flt, sel)
     rows = cancellation_repo.fetch_high_risk(
-        conn, flt, version, risk_band, test_set_only, sort, page_size, (page - 1) * page_size
+        conn, flt, sel, sort, page_size, (page - 1) * page_size
     )
     return HighRiskPage(
         model_version=version,
         filters=flt,
         risk_band=risk_band,
+        min_probability=min_probability,
         sort=sort,
         page=page,
         page_size=page_size,
-        total=total,
+        total=int(summary["total"]),
+        booked_revenue_total=to_float(summary["booked_revenue_total"]),
+        expected_loss_total=to_float(summary["expected_loss_total"]),
         items=[HighRiskBooking(**r) for r in rows],
     )
 

@@ -38,7 +38,7 @@ Chi tiết tham số và kiểu trả về: Swagger UI `/docs`. Kiểu TypeScrip
 | GET | `/api/kpi/summary` | ✓ | KPI tổng + tách theo khách sạn (City vs Resort) | G1 |
 | GET | `/api/kpi/timeseries?grain=year\|quarter\|month\|week&by_hotel=` | ✓ | Chuỗi KPI để drill-down | G1 |
 | GET | `/api/cancellation/breakdown?by=lead_time\|channel\|deposit_type\|country\|market_segment\|customer_type&top_n=` | ✓ | Tỉ lệ hủy theo chiều | G2 |
-| GET | `/api/cancellation/high-risk?risk_band=High&test_set_only=true&sort=probability\|expected_loss&page=&page_size=` | ✓ | Booking rủi ro hủy cao, phân trang | G2 |
+| GET | `/api/cancellation/high-risk?risk_band=High\|Medium\|Low\|All&min_probability=&test_set_only=true&sort=probability\|expected_loss&page=&page_size=` | ✓ | Booking rủi ro hủy cao, phân trang; kèm `total`, `booked_revenue_total`, `expected_loss_total` của mọi trang | G2 |
 | GET | `/api/cancellation/model-metrics` | | AUC, precision, recall, F1, ngưỡng của model hủy | G2 |
 | GET | `/api/forecast?hotel_key=&model_version=` | | Room-nights tuần: dự báo, khoảng 80%, thực tế, lịch sử | G3 |
 | GET | `/api/forecast/metrics` | | MAPE model chính và baseline | G3 |

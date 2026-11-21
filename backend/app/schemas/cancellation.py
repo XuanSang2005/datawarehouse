@@ -9,6 +9,7 @@ BreakdownDimension = Literal[
     "lead_time", "channel", "deposit_type", "country", "market_segment", "customer_type"
 ]
 RiskBand = Literal["Low", "Medium", "High"]
+RiskBandFilter = Literal["Low", "Medium", "High", "All"]
 HighRiskSort = Literal["probability", "expected_loss"]
 
 
@@ -65,8 +66,13 @@ class HighRiskPage(BaseModel):
     model_version: str
     filters: BookingFilter
     risk_band: RiskBand | None
+    min_probability: float | None
     sort: HighRiskSort
     page: int
     page_size: int
-    total: int
+    total: int = Field(description="Số booking khớp điều kiện (mọi trang)")
+    booked_revenue_total: float = Field(description="Σ booked_revenue của mọi booking khớp (EUR)")
+    expected_loss_total: float = Field(
+        description="Σ cancel_probability × booked_revenue của mọi booking khớp (EUR)"
+    )
     items: list[HighRiskBooking]
