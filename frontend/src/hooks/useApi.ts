@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 
-interface ApiState<T> {
+export interface ApiState<T> {
   data: T | null
   error: Error | null
   loading: boolean
   reload: () => void
 }
 
-/** Gọi 1 hàm API khi component mount; trả về data/error/loading + hàm reload. */
-export function useApi<T>(fetcher: () => Promise<T>): ApiState<T> {
+/**
+ * Gọi 1 hàm API khi component mount và mỗi khi `deps` đổi (vd bộ lọc).
+ * Trả về data/error/loading + hàm reload. Khi đang tải lại, `data` cũ vẫn được giữ để giao diện không nháy.
+ */
+export function useApi<T>(fetcher: () => Promise<T>, deps: readonly unknown[] = []): ApiState<T> {
   const [data, setData] = useState<T | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,10 +32,20 @@ export function useApi<T>(fetcher: () => Promise<T>): ApiState<T> {
     return () => {
       cancelled = true
     }
-    // fetcher thường là hàm khai báo inline -> chỉ chạy lại khi reload.
+    // fetcher thường là hàm khai báo inline -> chỉ chạy lại khi reload hoặc deps đổi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick])
+  }, [tick, ...deps])
 
   const reload = useCallback(() => setTick((t) => t + 1), [])
   return { data, error, loading, reload }
+}
+
+/** Trả về giá trị sau khi nó ngừng thay đổi `delay` ms (dùng cho thanh trượt gọi API). */
+export function useDebounced<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
 }

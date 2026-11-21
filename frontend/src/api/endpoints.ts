@@ -17,7 +17,7 @@ import type {
   PipelineRun,
   RankingResponse,
   RankingSort,
-  RiskBand,
+  RiskBandFilter,
   WhatIfRequest,
   WhatIfResponse,
 } from '../types/api'
@@ -50,7 +50,8 @@ export const getCancellationBreakdown = (
   )
 
 export interface HighRiskParams extends FilterParams {
-  risk_band?: RiskBand | null
+  risk_band?: RiskBandFilter
+  min_probability?: number | null
   test_set_only?: boolean
   sort?: HighRiskSort
   model_version?: string

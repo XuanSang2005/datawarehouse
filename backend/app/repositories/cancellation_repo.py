@@ -1,5 +1,7 @@
 """Phân tích hủy (G2): tổng theo chiều (fact_booking), booking rủi ro (gold.ml_booking_risk)."""
 
+from dataclasses import dataclass
+
 from sqlalchemy import Connection, text
 
 from app.repositories.booking_sql import (
@@ -46,18 +48,30 @@ def fetch_breakdown(conn: Connection, flt: BookingFilter, by: str) -> list[dict]
     return [dict(r) for r in conn.execute(query, params).mappings()]
 
 
-def _risk_where(
-    flt: BookingFilter, model_version: str, risk_band: str | None, test_set_only: bool
-) -> tuple[str, dict]:
+@dataclass(frozen=True)
+class RiskSelection:
+    """Điều kiện chọn booking theo kết quả model (ngoài bộ lọc booking chung)."""
+
+    model_version: str
+    risk_band: str | None = None
+    min_probability: float | None = None
+    test_set_only: bool = True
+
+
+def _risk_where(flt: BookingFilter, sel: RiskSelection) -> tuple[str, dict]:
     extra = ["r.model_version = :model_version"]
-    if risk_band is not None:
+    if sel.risk_band is not None:
         extra.append("r.risk_band = :risk_band")
-    if test_set_only:
+    if sel.min_probability is not None:
+        extra.append("r.cancel_probability >= :min_probability")
+    if sel.test_set_only:
         extra.append("r.is_test_set")
     where, params = build_where(flt, extra)
-    params["model_version"] = model_version
-    if risk_band is not None:
-        params["risk_band"] = risk_band
+    params["model_version"] = sel.model_version
+    if sel.risk_band is not None:
+        params["risk_band"] = sel.risk_band
+    if sel.min_probability is not None:
+        params["min_probability"] = sel.min_probability
     return where, params
 
 
@@ -68,28 +82,30 @@ RISK_FROM = f"""
 """
 
 
-def count_high_risk(
-    conn: Connection,
-    flt: BookingFilter,
-    model_version: str,
-    risk_band: str | None,
-    test_set_only: bool,
-) -> int:
-    where, params = _risk_where(flt, model_version, risk_band, test_set_only)
-    return int(conn.execute(text(f"SELECT count(*) {RISK_FROM} {where}"), params).scalar() or 0)
+def summarize_high_risk(conn: Connection, flt: BookingFilter, sel: RiskSelection) -> dict:
+    """Số booking và tổng doanh thu của TOÀN BỘ booking khớp điều kiện (mọi trang)."""
+    where, params = _risk_where(flt, sel)
+    query = text(
+        f"""
+        SELECT count(*) AS total,
+               coalesce(sum(f.booked_revenue), 0) AS booked_revenue_total,
+               coalesce(sum(r.cancel_probability * f.booked_revenue), 0) AS expected_loss_total
+        {RISK_FROM}
+        {where}
+        """
+    )
+    return dict(conn.execute(query, params).mappings().one())
 
 
 def fetch_high_risk(
     conn: Connection,
     flt: BookingFilter,
-    model_version: str,
-    risk_band: str | None,
-    test_set_only: bool,
+    sel: RiskSelection,
     sort: str,
     limit: int,
     offset: int,
 ) -> list[dict]:
-    where, params = _risk_where(flt, model_version, risk_band, test_set_only)
+    where, params = _risk_where(flt, sel)
     query = text(
         f"""
         SELECT f.booking_id, h.hotel_key, h.hotel_name,

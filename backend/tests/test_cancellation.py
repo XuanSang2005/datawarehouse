@@ -106,4 +106,18 @@ def test_high_risk_validation(client, no_db):
     assert client.get("/api/cancellation/high-risk?page=0").status_code == 422
     assert client.get("/api/cancellation/high-risk?page_size=201").status_code == 422
     assert client.get("/api/cancellation/high-risk?sort=random").status_code == 422
+    assert client.get("/api/cancellation/high-risk?min_probability=1.5").status_code == 422
+    assert client.get("/api/cancellation/high-risk?min_probability=-0.1").status_code == 422
     assert client.get("/api/cancellation/breakdown?by=weather").status_code == 422
+
+
+def test_risk_where_adds_probability_threshold():
+    from app.repositories.cancellation_repo import RiskSelection, _risk_where
+    from app.schemas.common import BookingFilter
+
+    where, params = _risk_where(
+        BookingFilter(hotel_key=1), RiskSelection("v1", risk_band=None, min_probability=0.4)
+    )
+    assert "r.cancel_probability >= :min_probability" in where
+    assert "r.risk_band" not in where
+    assert params["min_probability"] == 0.4 and params["model_version"] == "v1"
