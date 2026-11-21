@@ -130,7 +130,7 @@ export default function WhatIfPage() {
   return (
     <>
       <PageHead
-        title="How far can you overbook?"
+        title="How far to overbook?"
         aside={
           filters.hotelKey == null && hotels.length > 0 ? (
             <Segmented<number | null>

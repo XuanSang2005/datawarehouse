@@ -51,9 +51,10 @@ export default function ChannelMarketPage() {
   return (
     <>
       <div className="grid items-stretch gap-x-12 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)]">
-        <PageHead
-          title="Where does realized revenue come from?"
-          aside={
+        {/* Toggle sits under the title so the title keeps the full column width (one line, large) */}
+        <div className="flex flex-col justify-end gap-5">
+          <PageHead title="Where revenue comes from" />
+          <div>
             <Segmented<Dimension>
               label="Rank by"
               value={dim}
@@ -63,8 +64,8 @@ export default function ChannelMarketPage() {
                 { value: 'market', label: 'Markets' },
               ]}
             />
-          }
-        />
+          </div>
+        </div>
         <Focal className="flex flex-col justify-between gap-[18px] px-[22px] py-[22px] sm:px-7 sm:py-6">
           <Cap className="text-kangaroo">{dim === 'channel' ? 'Top-earning channel' : 'Largest market'}</Cap>
           <div>
