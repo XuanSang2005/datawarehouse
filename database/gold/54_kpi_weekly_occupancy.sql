@@ -1,10 +1,10 @@
 -- =============================================================================
--- gold.kpi_weekly_occupancy — Phòng có khách theo khách sạn × tuần ISO (trang Dự báo nhu cầu, What-if)
--- Nguồn : gold.fact_daily_occupancy + dim_hotel + dim_date (đêm lưu trú)
--- Grain : 1 dòng = 1 khách sạn × 1 tuần ISO
--- days_in_week < 7 ở tuần đầu/cuối dữ liệu (tuần không đủ ngày): is_complete_week = false,
--- nên loại khỏi dữ liệu train dự báo.
--- ADR tính lại từ tổng (quy tắc 8).
+-- gold.kpi_weekly_occupancy — Occupied rooms per hotel × ISO week (Demand Forecast and What-if pages)
+-- Source: gold.fact_daily_occupancy + dim_hotel + dim_date (stay night)
+-- Grain : 1 row = 1 hotel × 1 ISO week
+-- days_in_week < 7 in the first/last week of the data (partial weeks): is_complete_week = false,
+-- these should be excluded from the forecast training data.
+-- ADR is recomputed from totals (rule 8).
 -- =============================================================================
 
 DROP VIEW IF EXISTS gold.kpi_weekly_occupancy;

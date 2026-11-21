@@ -1,1 +1,1 @@
-"""Phân tích dự đoán: mô hình hủy phòng, dự báo nhu cầu. Kết quả ghi vào schema gold."""
+"""Predictive analytics: cancellation model, demand forecast. Results go to the gold schema."""

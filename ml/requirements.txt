@@ -1,4 +1,4 @@
-# Thêm thư viện khi bắt đầu làm mô hình (vd: xgboost, prophet) và ghi lý do vào PR.
+# Add libraries when starting work on a model (e.g. xgboost, prophet) and explain why in the PR.
 pandas>=2.2,<3
 scikit-learn>=1.5,<2
 joblib>=1.4,<2

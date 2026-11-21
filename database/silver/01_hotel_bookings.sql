@@ -1,21 +1,21 @@
 -- =============================================================================
--- silver.hotel_bookings — Booking đã ép kiểu và chuẩn hóa giá trị rỗng.
--- Nguồn : bronze.hotel_bookings
--- Grain : 1 dòng = 1 booking
--- Biến đổi chính:
---   * booking_id     : khóa định danh tự sinh (dataset gốc không có) = _source_row
---   * 'NULL'/'NA'/'Undefined' : chuyển thành NULL thật (riêng meal: Undefined -> 'SC')
---   * arrival_date   : ghép từ year + month (tên tháng) + day_of_month
---   * booking_date   : arrival_date - lead_time (ngày khách đặt phòng)
+-- silver.hotel_bookings — Bookings with types cast and empty values normalized.
+-- Source: bronze.hotel_bookings
+-- Grain : 1 row = 1 booking
+-- Main transformations:
+--   * booking_id     : generated identifier (the original dataset has none) = _source_row
+--   * 'NULL'/'NA'/'Undefined' : converted to real NULL (except meal: Undefined -> 'SC')
+--   * arrival_date   : built from year + month (month name) + day_of_month
+--   * booking_date   : arrival_date - lead_time (the day the guest booked)
 --   * total_nights   : weekend + week nights
 --   * departure_date : arrival_date + total_nights
 --   * total_guests   : adults + children + babies
---   * party_type     : Solo / Couple / Family / Group / Other (theo số người lớn, có trẻ em hay không)
---   * country_code   : chuẩn hóa 2 mã không đúng chuẩn ISO alpha-3 (nhóm đã chốt, xem docs/STAR_SCHEMA.md):
---                      'CN' -> 'CAN' (Canada; dataset không có mã CAN), 'TMP' -> 'TLS' (mã cũ của Đông Timor)
--- KHÔNG lọc bỏ dòng bất thường ở đây -> xem database/checks/ để biết dòng nào có vấn đề.
--- ⚠ reservation_status / reservation_status_date chứa KẾT QUẢ booking:
---   giữ lại cho phân tích mô tả, nhưng TUYỆT ĐỐI không dùng làm feature cho mô hình dự đoán hủy.
+--   * party_type     : Solo / Couple / Family / Group / Other (by number of adults and whether there are children)
+--   * country_code   : normalizes 2 codes that are not valid ISO alpha-3 (agreed by the team, see docs/STAR_SCHEMA.md):
+--                      'CN' -> 'CAN' (Canada; the dataset has no CAN code), 'TMP' -> 'TLS' (old code for East Timor)
+-- Anomalous rows are NOT filtered out here -> see database/checks/ for which rows have issues.
+-- ⚠ reservation_status / reservation_status_date contain the booking OUTCOME:
+--   kept for descriptive analysis, but NEVER use them as features for the cancellation prediction model.
 -- =============================================================================
 
 DROP TABLE IF EXISTS silver.hotel_bookings;
@@ -56,7 +56,7 @@ SELECT
         WHEN adults::INT = 2                       THEN 'Couple'
         ELSE 'Group'
     END                                                           AS party_type,
-    CASE WHEN meal = 'Undefined' THEN 'SC' ELSE meal END          AS meal,  -- theo bài báo gốc: Undefined = SC
+    CASE WHEN meal = 'Undefined' THEN 'SC' ELSE meal END          AS meal,  -- per the original paper: Undefined = SC
     CASE country
         WHEN 'CN'  THEN 'CAN'
         WHEN 'TMP' THEN 'TLS'

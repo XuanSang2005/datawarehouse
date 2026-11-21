@@ -1,13 +1,14 @@
 -- =============================================================================
--- Dữ liệu đầu vào cho mô hình dự đoán hủy (E3): CHỈ là câu SELECT, không tạo bảng.
--- Đọc bởi: ml/cancellation/features.py (load_dataset). Không chạy bởi etl/run_pipeline.py.
--- Grain : 1 dòng = 1 booking của gold.fact_booking (toàn bộ booking đều được chấm điểm).
--- Cột   : booking_id + nhãn is_canceled + cột dùng để chia tập (arrival_date) + các cột
---         biết được TẠI THỜI ĐIỂM ĐẶT PHÒNG.
--- ⛔ Cố ý KHÔNG chọn cột suy ra từ kết quả hủy (xem comment đầu database/gold/30_fact_booking.sql)
---    và cột chỉ biết sau khi đặt (phòng thực nhận, số lần sửa booking, số ngày chờ).
---    Danh sách đầy đủ + lý do: ml/cancellation/features.py (LEAKAGE_COLUMNS).
---    ml/tests/test_cancellation_features.py kiểm tra file này không nhắc tới cột cấm nào.
+-- Input data for the cancellation prediction model (E3): just a SELECT, no table is created.
+-- Read by: ml/cancellation/features.py (load_dataset). Not run by etl/run_pipeline.py.
+-- Grain : 1 row = 1 booking of gold.fact_booking (every booking gets scored).
+-- Columns: booking_id + the is_canceled label + the split column (arrival_date) + columns
+--          known AT BOOKING TIME.
+-- ⛔ Deliberately does NOT select columns derived from the cancellation outcome (see the header of
+--    database/gold/30_fact_booking.sql) or columns only known after booking (room actually given,
+--    number of booking modifications, waiting days).
+--    Full list + reasons: ml/cancellation/features.py (LEAKAGE_COLUMNS).
+--    ml/tests/test_cancellation_features.py checks that this file mentions none of the forbidden columns.
 -- =============================================================================
 
 SELECT
@@ -15,13 +16,13 @@ SELECT
     f.is_canceled,
     d.full_date                            AS arrival_date,
 
-    -- Khách sạn và thời gian đến
+    -- Hotel and arrival time
     h.hotel_name,
     d.day_of_week                          AS arrival_day_of_week,
     d.season                               AS arrival_season,
     d.is_holiday                           AS arrival_is_holiday,
 
-    -- Đặt trước bao lâu, ở bao lâu, bao nhiêu khách
+    -- How far ahead, how long the stay, how many guests
     f.lead_time,
     f.weekend_nights,
     f.week_nights,
@@ -30,13 +31,13 @@ SELECT
     f.children,
     f.babies,
 
-    -- Kênh bán và đại lý
+    -- Sales channel and agent
     ch.market_segment,
     ch.distribution_channel,
     ag.agent_id,
     f.company_id,
 
-    -- Khách hàng
+    -- Customer
     co.country_code,
     co.market_group,
     bp.meal,
@@ -47,7 +48,7 @@ SELECT
     f.previous_cancellations,
     f.previous_bookings_not_canceled,
 
-    -- Phòng đặt và giá
+    -- Reserved room and price
     rr.room_type_code                      AS reserved_room_type,
     f.adr,
     f.total_of_special_requests

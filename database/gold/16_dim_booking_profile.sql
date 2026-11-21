@@ -1,8 +1,8 @@
 -- =============================================================================
--- gold.dim_booking_profile — Junk dimension: gom các mã/cờ ít giá trị của booking
--- Nguồn : DISTINCT các tổ hợp có trong silver.hotel_bookings
--- Grain : 1 dòng = 1 tổ hợp (meal, deposit_type, customer_type, is_repeated_guest, party_type)
---         ~150 dòng, tối đa lý thuyết 4 × 3 × 4 × 2 × 5 = 480
+-- gold.dim_booking_profile — Junk dimension: groups the booking's low-cardinality codes/flags
+-- Source: DISTINCT combinations present in silver.hotel_bookings
+-- Grain : 1 row = 1 combination (meal, deposit_type, customer_type, is_repeated_guest, party_type)
+--         ~150 rows, theoretical maximum 4 × 3 × 4 × 2 × 5 = 480
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.dim_booking_profile CASCADE;

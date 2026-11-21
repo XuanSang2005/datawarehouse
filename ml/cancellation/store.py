@@ -1,8 +1,9 @@
-"""Ghi kết quả mô hình hủy vào gold.ml_booking_risk và gold.ml_model_metrics.
+"""Write the cancellation model results to gold.ml_booking_risk and gold.ml_model_metrics.
 
-DDL nằm ở database/ml/ (quy tắc 1). Ở đây chỉ có câu DELETE/COPY/INSERT có tham số,
-tất cả trong MỘT transaction: lỗi giữa chừng thì không mất dữ liệu cũ.
-Idempotent: xóa đúng các dòng cùng model_version (và cùng model_name với bảng metric) rồi ghi lại.
+The DDL lives in database/ml/ (rule 1). Only parameterized DELETE/COPY/INSERT statements are here,
+all in ONE transaction: an error midway does not lose the old data.
+Idempotent: deletes exactly the rows with the same model_version (and, for the metrics table, the
+same model_name), then rewrites them.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from etl.db import run_sql_file
 log = logging.getLogger("ml.cancellation.store")
 
 DDL_FILES = (
-    DATABASE_DIR / "ml" / "01_ml_model_metrics.sql",  # bảng dùng chung, chỉ CREATE IF NOT EXISTS
+    DATABASE_DIR / "ml" / "01_ml_model_metrics.sql",  # shared table, CREATE IF NOT EXISTS only
     DATABASE_DIR / "ml" / "02_ml_booking_risk.sql",
 )
 
@@ -42,10 +43,10 @@ def ensure_tables(conn) -> None:
 
 
 def write_booking_risk(conn, scores: pd.DataFrame, model_version: str, scored_at: datetime) -> int:
-    """scores có cột booking_id, cancel_probability, risk_band, is_test_set."""
+    """scores has columns booking_id, cancel_probability, risk_band, is_test_set."""
     with conn.cursor() as cur:
         cur.execute("DELETE FROM gold.ml_booking_risk WHERE model_version = %s", (model_version,))
-        log.info("Đã xóa %s dòng cũ của %s trong gold.ml_booking_risk", cur.rowcount, model_version)
+        log.info("Deleted %s old rows of %s in gold.ml_booking_risk", cur.rowcount, model_version)
         copy_sql = f"COPY gold.ml_booking_risk ({', '.join(RISK_COLUMNS)}) FROM STDIN"
         with cur.copy(copy_sql) as copy:
             for row in scores.itertuples(index=False):
@@ -69,11 +70,11 @@ def write_metrics(
     model_version: str,
     trained_at: datetime,
 ) -> int:
-    """Chỉ đụng tới dòng có model_name thuộc model_names (bảng dùng chung với E4)."""
+    """Only touches rows whose model_name is in model_names (table shared with E4)."""
     rows = list(rows)
     unexpected = {r[0] for r in rows} - set(model_names)
     if unexpected:
-        raise ValueError(f"model_name ngoài danh sách được phép ghi: {sorted(unexpected)}")
+        raise ValueError(f"model_name not in the list allowed to be written: {sorted(unexpected)}")
     with conn.cursor() as cur:
         cur.execute(
             "DELETE FROM gold.ml_model_metrics WHERE model_version = %s AND model_name = ANY(%s)",

@@ -1,9 +1,9 @@
 -- =============================================================================
--- bronze.countries — Bảng mã quốc gia ISO 3166-1 + phân vùng UN M49 (nguyên bản)
--- Nguồn : github.com/lukes/ISO-3166-Countries-with-Regional-Codes (all/all.csv)
--- Grain : 1 dòng = 1 quốc gia / vùng lãnh thổ
--- Tên cột giữ nguyên header CSV (có dấu gạch ngang nên phải đặt trong dấu ngoặc kép).
--- Dùng để làm giàu gold.dim_country (tên nước, châu lục).
+-- bronze.countries — ISO 3166-1 country codes + UN M49 regions (as-is)
+-- Source: github.com/lukes/ISO-3166-Countries-with-Regional-Codes (all/all.csv)
+-- Grain : 1 row = 1 country / territory
+-- Column names keep the CSV header (they contain hyphens, so they must be double-quoted).
+-- Used to enrich gold.dim_country (country name, continent).
 -- =============================================================================
 
 DROP TABLE IF EXISTS bronze.countries;

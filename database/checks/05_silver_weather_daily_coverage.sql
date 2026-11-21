@@ -1,6 +1,6 @@
 -- severity: error
--- Mỗi điểm đo phải có ĐÚNG 1 dòng cho mỗi ngày, không thủng ngày nào (PK đã chặn trùng,
--- check này chặn thiếu), và phải có đủ 2 điểm đo mà gold.dim_hotel cần (Lisbon, Faro).
+-- Each location must have EXACTLY 1 row per day with no gaps (the PK blocks duplicates,
+-- this check blocks gaps), and both locations that gold.dim_hotel needs (Lisbon, Faro) must exist.
 WITH expected_locations AS (
     SELECT unnest(ARRAY['Lisbon', 'Faro']) AS location
 ),

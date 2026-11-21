@@ -1,15 +1,15 @@
 -- =============================================================================
--- gold.ml_model_metrics — Metric đánh giá của các mô hình trong ml/
--- Grain : 1 dòng = 1 phiên bản model × 1 metric (giao kèo: docs/STAR_SCHEMA.md mục 7)
--- Bảng DÙNG CHUNG giữa E3 (dự đoán hủy) và E4 (dự báo nhu cầu):
---   - KHÔNG DROP bảng này. Mỗi script chỉ xóa/ghi lại các dòng có model_name của chính nó.
--- File trong database/ml/ KHÔNG chạy bởi etl/run_pipeline.py, mà do script trong ml/ gọi
---   (etl.db.run_sql_file) trước khi ghi kết quả. Vì vậy phải idempotent.
+-- gold.ml_model_metrics — Evaluation metrics of the models in ml/
+-- Grain : 1 row = 1 model version × 1 metric (contract: docs/STAR_SCHEMA.md section 7)
+-- SHARED table between E3 (cancellation prediction) and E4 (demand forecasting):
+--   - Do NOT DROP this table. Each script only deletes/rewrites the rows with its own model_name.
+-- Files in database/ml/ are NOT run by etl/run_pipeline.py; the scripts in ml/ call them
+--   (etl.db.run_sql_file) before writing results. Hence they must be idempotent.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS gold.ml_model_metrics (
     model_version  TEXT        NOT NULL,
-    model_name     TEXT        NOT NULL,            -- vd: cancellation_logreg, cancellation_gbm, forecast_seasonal_naive
+    model_name     TEXT        NOT NULL,            -- e.g. cancellation_logreg, cancellation_gbm, forecast_seasonal_naive
     metric_name    TEXT        NOT NULL,            -- auc, precision, recall, f1, mape, ...
     metric_value   NUMERIC(12, 6) NOT NULL,
     dataset        TEXT        NOT NULL DEFAULT 'test',  -- test / backtest / train

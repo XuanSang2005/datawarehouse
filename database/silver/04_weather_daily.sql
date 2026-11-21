@@ -1,12 +1,12 @@
 -- =============================================================================
--- silver.weather_daily — Thời tiết theo ngày đã ép kiểu.
--- Nguồn : bronze.weather_daily
--- Grain : 1 dòng = 1 điểm đo × 1 ngày. PK (location, weather_date): nếu nguồn có ngày trùng,
---         pipeline dừng ngay ở file này (không lặng lẽ gộp).
--- Biến đổi chính:
---   * '' -> NULL, ép kiểu số / ngày
---   * sunshine_duration (giây) -> sunshine_hours (giờ)
--- Không lọc dòng (quy tắc silver).
+-- silver.weather_daily — Typed daily weather.
+-- Source: bronze.weather_daily
+-- Grain : 1 row = 1 location × 1 day. PK (location, weather_date): if the source has duplicate days,
+--         the pipeline stops right at this file (no silent merging).
+-- Main transformations:
+--   * '' -> NULL, cast to numeric / date
+--   * sunshine_duration (seconds) -> sunshine_hours (hours)
+-- No row filtering (silver rule).
 -- =============================================================================
 
 DROP TABLE IF EXISTS silver.weather_daily;

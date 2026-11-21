@@ -1,11 +1,11 @@
 -- =============================================================================
--- silver.countries — Mã quốc gia đã đổi tên cột về snake_case, chuẩn hóa rỗng thành NULL.
--- Nguồn : bronze.countries
--- Grain : 1 dòng = 1 quốc gia (khóa: country_code = ISO alpha-3)
--- Biến đổi chính:
+-- silver.countries — Country codes with columns renamed to snake_case, empty strings normalized to NULL.
+-- Source: bronze.countries
+-- Grain : 1 row = 1 country (key: country_code = ISO alpha-3)
+-- Main transformations:
 --   * '' -> NULL
---   * Bổ sung vùng cho 2 mã mà UN M49 để trống nhưng có trong dữ liệu booking:
---     TWN (Đài Loan) -> Asia / Eastern Asia; ATA (Nam Cực) -> Antarctica
+--   * Fill in the region for 2 codes that UN M49 leaves blank but that appear in the booking data:
+--     TWN (Taiwan) -> Asia / Eastern Asia; ATA (Antarctica) -> Antarctica
 -- =============================================================================
 
 DROP TABLE IF EXISTS silver.countries;

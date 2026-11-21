@@ -1,7 +1,7 @@
-"""Đọc dữ liệu và dựng feature cho mô hình dự đoán hủy.
+"""Load data and build features for the cancellation prediction model.
 
-Nguyên tắc: feature chỉ gồm thông tin BIẾT ĐƯỢC TẠI THỜI ĐIỂM ĐẶT PHÒNG (quy tắc 7 CLAUDE.md).
-Câu SELECT nằm ở database/ml/21_cancellation_features.sql (quy tắc 1: SQL chỉ nằm trong database/).
+Principle: features only contain information KNOWN AT BOOKING TIME (rule 7 of CLAUDE.md).
+The SELECT lives in database/ml/21_cancellation_features.sql (rule 1: SQL only lives in database/).
 """
 
 from __future__ import annotations
@@ -18,46 +18,46 @@ FEATURES_SQL: Path = DATABASE_DIR / "ml" / "21_cancellation_features.sql"
 ID_COLUMN = "booking_id"
 TARGET = "is_canceled"
 SPLIT_DATE_COLUMN = "arrival_date"
-# Chia theo thời gian (docs/STAR_SCHEMA.md mục 7): train arrival < 2017-01-01, test = năm 2017.
+# Time-based split (docs/STAR_SCHEMA.md section 7): train arrival < 2017-01-01, test = year 2017.
 TEST_START = date(2017, 1, 1)
-# Tập validation (để chọn ngưỡng risk band) = 6 tháng cuối của tập train.
+# Validation set (used to pick the risk band thresholds) = last 6 months of the train set.
 VALIDATION_START = date(2016, 7, 1)
 
-# Cột KHÔNG được dùng làm feature, kèm lý do. Gồm:
-#   (a) cột suy ra từ KẾT QUẢ hủy (comment đầu database/gold/30_fact_booking.sql),
-#   (b) cột chỉ biết/được cập nhật SAU thời điểm đặt phòng,
-#   (c) nhãn, khóa, cột dùng để chia tập.
+# Columns that must NOT be used as features, with the reason. They are:
+#   (a) columns derived from the cancellation OUTCOME (header of database/gold/30_fact_booking.sql),
+#   (b) columns only known/updated AFTER booking time,
+#   (c) the label, keys, and the split column.
 LEAKAGE_COLUMNS: dict[str, str] = {
-    # (a) Kết quả booking: chứa thẳng đáp án
-    "reservation_status": "Trạng thái cuối (Canceled/No-Show/Check-Out): chính là nhãn.",
-    "reservation_status_date": "Ngày hủy hoặc ngày trả phòng: chỉ có sau khi biết kết quả.",
-    "status_date_key": "Khóa ngày của reservation_status_date.",
-    "room_nights_sold": "= 0 khi hủy: suy ra từ is_canceled.",
-    "realized_revenue": "= 0 khi hủy: suy ra từ is_canceled.",
-    "lost_revenue": "> 0 chỉ khi hủy: suy ra từ is_canceled.",
-    "deposit_retained": "> 0 chỉ khi hủy: suy ra từ is_canceled.",
-    "net_lost_revenue": "> 0 chỉ khi hủy: suy ra từ is_canceled.",
-    "cancel_lead_days": "Chỉ có giá trị khi hủy.",
-    # (b) Thông tin phát sinh sau khi đặt
-    "assigned_room_type": "Phòng thực nhận, gán lúc check-in; booking hủy thường giữ nguyên"
-    " phòng đặt, nên chênh lệch với phòng đặt gần như chỉ xảy ra với khách đã đến.",
-    "assigned_room_type_key": "Khóa của assigned_room_type.",
-    "is_room_changed": "Suy ra từ assigned_room_type.",
-    "booking_changes": "Đếm số lần sửa booking cho tới lúc check-in hoặc hủy: tích lũy sau"
-    " thời điểm đặt, booking ở lâu trong hệ thống (thường là không hủy) có nhiều lần sửa hơn.",
-    "days_in_waiting_list": "Số ngày chờ xác nhận: chỉ chốt sau ngày nhập booking, và giá trị"
-    " lớn đi kèm nhóm booking đoàn được xử lý thủ công; không chắc có tại lúc chấm điểm.",
-    "required_car_parking_spaces": "EDA: 7.409 booking có chỗ đỗ xe > 0 thì tỉ lệ hủy đúng 0%."
-    " Một nhu cầu đặt trước không thể dự báo hoàn hảo như vậy, nên nhiều khả năng cột được"
-    " ghi nhận lúc check-in (chỉ khách đã đến mới có).",
-    # (c) Nhãn, khóa, cột chia tập
-    "is_canceled": "Nhãn cần dự đoán.",
-    "booking_id": "Khóa định danh, không mang thông tin.",
-    "arrival_date": "Chỉ dùng để chia train/test theo thời gian (tháng/tuần/thứ vẫn là feature).",
-    "arrival_date_year": "Năm đến: mô hình không ngoại suy được sang năm chưa thấy.",
+    # (a) Booking outcome: contains the answer directly
+    "reservation_status": "Final status (Canceled/No-Show/Check-Out): it is the label itself.",
+    "reservation_status_date": "Cancellation or check-out date: only exists after the outcome.",
+    "status_date_key": "Date key of reservation_status_date.",
+    "room_nights_sold": "= 0 when canceled: derived from is_canceled.",
+    "realized_revenue": "= 0 when canceled: derived from is_canceled.",
+    "lost_revenue": "> 0 only when canceled: derived from is_canceled.",
+    "deposit_retained": "> 0 only when canceled: derived from is_canceled.",
+    "net_lost_revenue": "> 0 only when canceled: derived from is_canceled.",
+    "cancel_lead_days": "Only has a value when canceled.",
+    # (b) Information that arises after booking
+    "assigned_room_type": "Room actually given, assigned at check-in; canceled bookings usually"
+    " keep the reserved room, so a difference from it almost only occurs for guests who arrived.",
+    "assigned_room_type_key": "Key of assigned_room_type.",
+    "is_room_changed": "Derived from assigned_room_type.",
+    "booking_changes": "Counts booking modifications up to check-in or cancellation: accumulates"
+    " after booking; bookings that stay longer in the system (usually not canceled) change more.",
+    "days_in_waiting_list": "Days waiting for confirmation: only settled after the booking entry"
+    " date; large values go with manually handled group bookings; not reliable at scoring time.",
+    "required_car_parking_spaces": "EDA: the 7,409 bookings with parking spaces > 0 have exactly 0%"
+    " cancellation rate. A pre-booked need cannot be that perfectly predictive, so the column is"
+    " most likely recorded at check-in (only guests who arrived have it).",
+    # (c) Label, keys, split column
+    "is_canceled": "The label to predict.",
+    "booking_id": "Identifier, carries no information.",
+    "arrival_date": "Only for the time-based train/test split (month/week/weekday stay features).",
+    "arrival_date_year": "Arrival year: the model cannot extrapolate to unseen years.",
 }
 
-# Feature dạng phân loại (chuỗi). NULL được thay bằng 'Unknown' / 'None'.
+# Categorical (string) features. NULL is replaced by 'Unknown' / 'None'.
 CATEGORICAL_FEATURES: list[str] = [
     "hotel_name",
     "arrival_season",
@@ -74,10 +74,11 @@ CATEGORICAL_FEATURES: list[str] = [
     "reserved_room_type",
 ]
 
-# Feature dạng số (gồm cờ 0/1).
-# Cố ý KHÔNG dùng tháng/tuần đến (arrival_month, arrival_week): mỗi tháng chỉ có 1-2 năm dữ liệu
-# nên mô hình học thuộc mẫu hủy của đúng năm đó (vd khối booking đoàn hủy hàng loạt trong một tuần),
-# AUC validation tăng 0,844 → 0,876 khi bỏ. Mùa vụ vẫn có qua arrival_season và booking_month.
+# Numeric features (including 0/1 flags).
+# Arrival month/week (arrival_month, arrival_week) are deliberately NOT used: each month only has
+# 1-2 years of data, so the model memorizes that year's cancellation pattern (e.g. a block of group
+# bookings canceled in one week); validation AUC rose 0.844 → 0.876 when they were dropped.
+# Seasonality is still captured by arrival_season and booking_month.
 NUMERIC_FEATURES: list[str] = [
     "lead_time",
     "arrival_day_of_week",
@@ -99,12 +100,12 @@ NUMERIC_FEATURES: list[str] = [
 
 FEATURES: list[str] = CATEGORICAL_FEATURES + NUMERIC_FEATURES
 
-# Cột quốc gia: ⚠ cân nhắc (xem ml/README.md). train.py chạy thêm 1 model bỏ nhóm này để so sánh.
+# Country columns: ⚠ debatable (see ml/README.md). train.py also runs a model without them.
 COUNTRY_FEATURES: list[str] = ["country_code", "market_group"]
 
 
 def load_dataset(conn) -> pd.DataFrame:
-    """Đọc toàn bộ booking của gold.fact_booking (kèm dimension) bằng câu SELECT FEATURES_SQL."""
+    """Load every booking of gold.fact_booking (with dimensions) using the FEATURES_SQL SELECT."""
     sql = FEATURES_SQL.read_text(encoding="utf-8")
     with conn.cursor() as cur:
         cur.execute(sql)
@@ -116,7 +117,7 @@ def load_dataset(conn) -> pd.DataFrame:
 
 
 def _as_category_text(series: pd.Series, missing: str) -> pd.Series:
-    """Chuẩn hóa cột phân loại về chuỗi; mã số (agent_id, company_id) bỏ phần '.0'."""
+    """Normalize a categorical column to text; numeric codes (agent_id, company_id) lose '.0'."""
 
     def to_text(value) -> str:
         if value is None or pd.isna(value):
@@ -129,7 +130,7 @@ def _as_category_text(series: pd.Series, missing: str) -> pd.Series:
 
 
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Trả về DataFrame CHỈ gồm các cột trong FEATURES (đúng thứ tự). Mọi cột khác bị bỏ."""
+    """Return a DataFrame with ONLY the FEATURES columns (in order); all others are dropped."""
     out = pd.DataFrame(index=df.index)
     missing_label = {"agent_id": "None", "company_id": "None"}
     for col in CATEGORICAL_FEATURES:
@@ -140,9 +141,9 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             out[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
 
-    # Feature suy ra (đều từ thông tin lúc đặt):
-    #   booking_month : tháng khách đặt phòng = tháng của (arrival_date - lead_time)
-    #   adr_per_person: giá mỗi đêm chia cho số người lớn + trẻ em (em bé không tính)
+    # Derived features (all from booking-time information):
+    #   booking_month : month the guest booked = month of (arrival_date - lead_time)
+    #   adr_per_person: nightly rate divided by adults + children (babies not counted)
     booking_date = df[SPLIT_DATE_COLUMN] - pd.to_timedelta(df["lead_time"], unit="D")
     out["booking_month"] = booking_date.dt.month.astype(float)
     payers = (df["adults"] + df["children"]).where(lambda s: s > 0, 1)
@@ -152,11 +153,11 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def in_test_period(df: pd.DataFrame) -> pd.Series:
-    """True nếu booking thuộc tập test (đến từ 2017-01-01)."""
+    """True if the booking belongs to the test set (arrivals from 2017-01-01)."""
     return df[SPLIT_DATE_COLUMN] >= pd.Timestamp(TEST_START)
 
 
 def in_validation_period(df: pd.DataFrame) -> pd.Series:
-    """True nếu booking thuộc tập validation (6 tháng cuối của tập train)."""
+    """True if the booking belongs to the validation set (last 6 months of the train set)."""
     arrival = df[SPLIT_DATE_COLUMN]
     return (arrival >= pd.Timestamp(VALIDATION_START)) & (arrival < pd.Timestamp(TEST_START))

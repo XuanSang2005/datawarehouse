@@ -1,4 +1,4 @@
-"""Unit test cho baseline, MAPE, khoảng dự báo và backtest của ml/forecast (không cần DB)."""
+"""Unit tests for the baselines, MAPE, forecast intervals and backtest of ml/forecast (no DB)."""
 
 import math
 from datetime import timedelta
@@ -18,7 +18,7 @@ from ml.forecast.models import (
 
 
 def make_series(n_weeks: int = 70, hotels=(1, 2)) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Chuỗi tổng hợp có mùa vụ 52 tuần + lịch dư 20 tuần cho dự báo tương lai."""
+    """Synthetic series with 52-week seasonality + 20 extra calendar weeks for future forecasts."""
     weeks = pd.date_range("2015-07-06", periods=n_weeks + 20, freq="7D")
     calendar = pd.DataFrame(
         {"iso_week": weeks.isocalendar().week.astype(int).to_numpy(), "n_holidays": 0},
@@ -47,12 +47,12 @@ def test_mape_rejects_zero_actual_and_bad_shapes():
 
 
 def test_seasonal_naive_uses_same_week_last_year():
-    past = list(range(100))  # tuần cuối = 99 → tuần +1 ứng với chỉ số 100 − 52 = 48
+    past = list(range(100))  # last week = 99 → week +1 maps to index 100 − 52 = 48
     assert seasonal_naive(past, 3) == [48.0, 49.0, 50.0]
 
 
 def test_seasonal_naive_nan_when_history_short():
-    past = list(range(50))  # h=1 cần chỉ số −2 → NaN; h=3 cần chỉ số 0
+    past = list(range(50))  # h=1 needs index −2 → NaN; h=3 needs index 0
     out = seasonal_naive(past, 3)
     assert math.isnan(out[0]) and math.isnan(out[1]) and out[2] == 0.0
 
@@ -101,12 +101,12 @@ def test_rolling_origin_one_forecast_per_week_and_horizon():
     start = history["week_start_date"].iloc[60]
     end = history["week_start_date"].iloc[65]
     bt = rolling_origin(PerHotelBaseline("sn", seasonal_naive), history, calendar, start, end, 4)
-    # 6 tuần mục tiêu × 4 horizon × 2 khách sạn
+    # 6 target weeks × 4 horizons × 2 hotels
     assert len(bt) == 6 * 4 * 2
     assert not bt.duplicated(["hotel_key", "week_start_date", "h"]).any()
-    # Không nhìn trước: tuần gốc luôn trước tuần mục tiêu đúng h tuần
+    # No peeking: the origin week is always exactly h weeks before the target week
     assert ((bt["week_start_date"] - bt["origin"]).dt.days == bt["h"] * 7).all()
-    # Chuỗi tuần hoàn đúng 52 tuần → seasonal naive gần như hoàn hảo
+    # Series with an exact 52-week cycle → seasonal naive is nearly perfect
     assert mape(bt["actual"], bt["yhat"]) < 1e-9
     metrics = summarize(bt, {1: "City Hotel", 2: "Resort Hotel"})
     assert {"mape", "mape_h1", "mape_h4", "mape_city_hotel", "mape_h1_resort_hotel"} <= set(metrics)

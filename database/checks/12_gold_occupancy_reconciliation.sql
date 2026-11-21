@@ -1,6 +1,6 @@
 -- severity: error
--- Tổng room-nights trong fact_daily_occupancy phải bằng tổng số đêm (nằm trong phạm vi snapshot)
--- của các booking không hủy trong fact_booking, theo từng khách sạn.
+-- Total room-nights in fact_daily_occupancy must equal the total nights (within the snapshot range)
+-- of non-canceled bookings in fact_booking, per hotel.
 WITH period AS (
     SELECT min(d.full_date) AS first_night, max(d.full_date) AS last_night
     FROM gold.fact_daily_occupancy AS o
