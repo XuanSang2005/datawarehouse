@@ -1,4 +1,4 @@
-# Build context gốc repo (image etl và job deploy/railway/jobs.Dockerfile): chỉ cần etl/, database/, ml/.
+# Repo-root build context (etl image and the deploy/railway/jobs.Dockerfile job): only etl/, database/, ml/ are needed.
 *
 !etl/
 !database/

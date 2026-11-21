@@ -4,17 +4,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: sổ cái khách sạn cổ điển. Một mặt phẳng, không card, không bóng đổ; các phần ngăn bằng đường kẻ.
-   Mỗi trang có đúng một khối xanh Rifle làm điểm nhấn. Theme sáng cố định (chủ ý một phong cách). */
+/* Layout: a classic hotel ledger. One flat surface, no cards, no shadows; sections are separated by rules.
+   Each page has exactly one Rifle green block as the accent. Fixed light theme (one deliberate style). */
 :root {
-  --merino: #F1F1EC;   /* nền */
-  --kangaroo: #D0C7B3; /* mặt phụ, đường kẻ */
-  --oyster: #939474;   /* trang trí */
-  --oyster-ink: #6F7052; /* chữ phụ, 4.5:1 trên nền */
-  --rifle: #43442B;    /* điểm nhấn chính */
-  --cedar: #29272B;    /* chữ */
-  --rust: #A3442A;     /* chỉ dùng cho hủy phòng */
-  --brass: #9C7A3C;    /* đường Resort trên biểu đồ, cảnh báo */
+  --merino: #F1F1EC;   /* background */
+  --kangaroo: #D0C7B3; /* secondary surface, rules */
+  --oyster: #939474;   /* decoration */
+  --oyster-ink: #6F7052; /* secondary text, 4.5:1 on background */
+  --rifle: #43442B;    /* main accent */
+  --cedar: #29272B;    /* text */
+  --rust: #A3442A;     /* used only for cancellations */
+  --brass: #9C7A3C;    /* Resort line on charts, warnings */
   --f-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
   --f-ui: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -84,7 +84,7 @@ main { padding-block: 34px 40px; }
 .tabs button { border: 0; background: none; padding: 2px 0; font-size: 14px; font-weight: 600; color: var(--oyster-ink); cursor: pointer; border-bottom: 2px solid transparent; transition: color .2s, border-color .3s; }
 .tabs button[aria-pressed="true"] { color: var(--cedar); border-color: var(--rifle); }
 
-/* ---------- Focal block (một khối mỗi trang) ---------- */
+/* ---------- Focal block (one block per page) ---------- */
 .focal { background: var(--rifle); color: var(--merino); position: relative; overflow: hidden; }
 .focal .cap { color: var(--kangaroo); }
 .focal .big { font-family: var(--f-display); font-weight: 500; font-size: clamp(72px, 11vw, 168px); line-height: .86; letter-spacing: -.035em; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
@@ -581,8 +581,8 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
   const kfmt = v => nf0.format(v / 1000) + 'K';
   const curH = s => s.replace(/^([+−]?€)/, '<span class="cur">$1</span>');
 
-  /* ---------- Số liệu mẫu (xấp xỉ theo dataset Hotel Booking Demand) ---------- */
-  // b = số booking, c = tỉ lệ hủy, a = ADR (€), n = số đêm trung bình
+  /* ---------- Sample data (approximating the Hotel Booking Demand dataset) ---------- */
+  // b = bookings, c = cancellation rate, a = ADR (€), n = average nights
   const SEG = {
     city: {
       'Online TA': { b: 38748, c: .380, a: 116, n: 2.98 }, 'Offline TA/TO': { b: 16747, c: .432, a: 88, n: 2.98 },
@@ -595,7 +595,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
       'Corporate': { b: 2309, c: .146, a: 53, n: 4.30 }, 'Other': { b: 201, c: .100, a: 60, n: 4.30 },
     },
   };
-  // Thị trường: tên, mã, tổng booking, tỉ trọng ở City, tỉ lệ hủy, ADR
+  // Markets: name, code, total bookings, City share, cancellation rate, ADR
   const MKT = [
     ['Portugal', 'PRT', 48590, .62, .566, 93], ['United Kingdom', 'GBR', 12129, .47, .202, 97],
     ['France', 'FRA', 10415, .80, .186, 112], ['Spain', 'ESP', 8568, .52, .254, 107],
@@ -607,7 +607,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
   const NAME = { city: 'City', resort: 'Resort', both: 'Both hotels' };
   const PLACE = { both: 'Lisbon & Algarve', city: 'Lisbon', resort: 'Algarve' };
 
-  // Measure non-additive (ADR, tỉ lệ hủy) tính lại từ tổng, không lấy trung bình của trung bình
+  // Non-additive measures (ADR, cancellation rate) are recomputed from totals, never as an average of averages
   function agg(rows) {
     let b = 0, cx = 0, rn = 0, rev = 0, lost = 0;
     rows.forEach(r => { b += r.b; cx += r.b * r.c; const nights = r.b * (1 - r.c) * r.n; rn += nights; rev += nights * r.a; lost += r.b * r.c * r.n * r.a; });
@@ -617,7 +617,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
   const allRows = f => hotelsOf(f).flatMap(h => Object.values(SEG[h]));
   const segRows = (f, k) => hotelsOf(f).map(h => SEG[h][k]);
 
-  /* ---------- Tween số ---------- */
+  /* ---------- Number tween ---------- */
   const shown = new Map();
   function tween(el, to, fmt, dur = 750, html = false) {
     const from = shown.has(el) ? shown.get(el) : to;
@@ -657,7 +657,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
     chart.classList.remove('drawn'); void chart.offsetWidth; chart.classList.add('drawn');
     setTimeout(() => $$('.series', svg).forEach(p => { if (!p.dataset.dash) p.style.strokeDasharray = ''; }), 1500);
   }
-  // Biểu đồ đường: một trục y, nhãn trực tiếp ở cuối đường, crosshair + tooltip
+  // Line chart: one y axis, direct labels at line ends, crosshair + tooltip
   function lineChart(chart, cfg) {
     const W = Math.max(300, chart.clientWidth), H = cfg.height || 300;
     const m = { t: 20, r: cfg.endLabels ? 74 : 12, b: 30, l: 52 };
@@ -727,7 +727,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
     return { svg, X, Y, m, iw, ih };
   }
 
-  /* ---------- Bộ lọc khách sạn dùng chung ---------- */
+  /* ---------- Shared hotel filter ---------- */
   let F = 'both';
 
   /* ---------- OVERVIEW ---------- */
@@ -781,7 +781,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
   toggleGroup($('#tabs-mix'), v => { mixBy = v; renderMix(); });
 
   /* ---------- RISK ---------- */
-  // Booking mẫu tuần 21–27/08/2017. Không dùng reservation_status làm feature.
+  // Sample bookings for the week of 21–27/08/2017. reservation_status is not used as a feature.
   const BK = [
     { id: 84213, h: 'city', cc: 'PRT', d: '2017-08-22', n: 2, seg: 'Groups', lead: 287, dep: 'None', adr: 96, sr: 0, park: 0, prev: 0, rep: 0, p: .93 },
     { id: 83977, h: 'city', cc: 'PRT', d: '2017-08-21', n: 3, seg: 'Offline TA/TO', lead: 196, dep: 'Non-refund', adr: 88, sr: 0, park: 0, prev: 0, rep: 0, p: .91 },
@@ -918,7 +918,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
   }
 
   /* ---------- WHAT-IF ---------- */
-  // Mô phỏng 1 đêm: số khách đến ~ Normal (xấp xỉ nhị thức, nhân hệ số phân tán cho hủy theo nhóm)
+  // Simulate 1 night: arrivals ~ Normal (binomial approximation, multiplied by a dispersion factor for group cancellations)
   const erf = x => { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + .3275911 * x); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - .284496736) * t + .254829592) * t * Math.exp(-x * x)); };
   const Phi = z => .5 * (1 + erf(z / Math.SQRT2));
   const phi = z => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
@@ -977,7 +977,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
     requestAnimationFrame(step);
   });
 
-  /* ---------- Router + bộ lọc ---------- */
+  /* ---------- Router + filters ---------- */
   const VIEWS = ['overview', 'risk', 'forecast', 'what-if', 'pipeline'];
   const current = () => { const v = (location.hash || '#overview').slice(1); return VIEWS.includes(v) ? v : 'overview'; };
   function renderView(v, animate) {

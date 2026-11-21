@@ -1,5 +1,5 @@
-# File này CHỈ chứa cấu hình công cụ (ruff, pytest) cho toàn bộ code Python.
-# Dependencies nằm trong requirements.txt của từng thành phần (etl/, ml/, backend/).
+# This file ONLY holds tool configuration (ruff, pytest) for all Python code.
+# Dependencies live in each component's requirements.txt (etl/, ml/, backend/).
 
 [tool.ruff]
 line-length = 100

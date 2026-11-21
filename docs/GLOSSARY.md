@@ -1,87 +1,88 @@
-# Thuật ngữ (Glossary)
+# Glossary
 
-Các thuật ngữ data warehouse dùng trong dự án, kèm ví dụ cụ thể từ repo.
+Data warehouse terms used in the project, with short definitions and concrete examples from the repo.
 
-## Kiến trúc
+## Architecture
 
-| Thuật ngữ | Ý nghĩa | Trong dự án |
+| Term | Definition | In this project |
 |---|---|---|
-| **OLTP** | Hệ thống nghiệp vụ, ghi/sửa từng giao dịch | Phần mềm đặt phòng (PMS). File CSV là dữ liệu trích ra từ đây |
-| **OLAP** | Hệ thống phân tích, tổng hợp lượng dữ liệu lớn | Lớp gold + dashboard |
-| **Data Warehouse** | Kho dữ liệu sạch, tích hợp, hướng chủ đề, lưu theo thời gian | Schema `gold` |
-| **Data Lake** | Kho dữ liệu thô, đủ mọi định dạng | `data/raw/` + schema `bronze` |
-| **Lakehouse** | Kết hợp lake (thô, rẻ) và warehouse (có cấu trúc) | Toàn bộ hệ thống |
-| **Medallion** | Chia 3 lớp Bronze (thô) → Silver (sạch) → Gold (sẵn sàng phân tích) | `database/bronze`, `silver`, `gold` |
-| **Data Mart** | Phần nhỏ của DW cho một phòng ban | Các bảng `kpi_*` cho Revenue / Marketing |
+| **OLTP** | Operational system that writes/updates individual transactions | The booking software (PMS). The CSV file is data extracted from it |
+| **OLAP** | Analytical system that aggregates large volumes of data | The gold layer + dashboards |
+| **Data Warehouse** | Store of clean, integrated, subject-oriented, time-variant data | The `gold` schema |
+| **Data Lake** | Store of raw data in any format | `data/raw/` + the `bronze` schema |
+| **Lakehouse** | Combines a lake (raw, cheap) with a warehouse (structured) | The whole system |
+| **Medallion architecture** | Three layers: Bronze (raw) → Silver (clean) → Gold (analysis-ready) | `database/bronze`, `silver`, `gold` |
+| **Data Mart** | A subset of the DW serving one department | The `kpi_*` tables for Revenue / Marketing |
 
 ## ETL
 
-| Thuật ngữ | Ý nghĩa | Trong dự án |
+| Term | Definition | In this project |
 |---|---|---|
-| **Extract** | Lấy dữ liệu từ nguồn | `etl/extract/` |
-| **Load** | Nạp vào kho | `etl/load/bronze_loader.py` (COPY) |
-| **Transform** | Làm sạch, biến đổi | `database/silver/*.sql`, `database/gold/*.sql` |
-| **ELT** | Nạp thô trước, biến đổi trong DB sau | Cách dự án đang làm |
-| **Full load / Incremental load** | Nạp lại toàn bộ / chỉ nạp phần mới | Đang dùng full load |
-| **Data quality check** | Kiểm tra dữ liệu bất thường | `database/checks/` |
-| **Data lineage** | Truy vết nguồn gốc một con số | `_source_row` ở bronze = `booking_id` ở silver |
-| **Orchestration** | Điều phối thứ tự các bước | `etl/run_pipeline.py` |
+| **Extract** | Retrieve data from a source | `etl/extract/` |
+| **Load** | Load data into the store | `etl/load/bronze_loader.py` (COPY) |
+| **Transform** | Clean and reshape data | `database/silver/*.sql`, `database/gold/*.sql` |
+| **ELT** | Load raw data first, transform inside the DB afterwards | The approach used by this project |
+| **Full load / Incremental load** | Reload everything / load only new data | Full load is used |
+| **Data quality check** | Detect anomalous data | `database/checks/` |
+| **Data lineage** | Trace where a number comes from | `_source_row` in bronze = `booking_id` in silver |
+| **Orchestration** | Control the order of the steps | `etl/run_pipeline.py` |
 
-## Mô hình hóa chiều (Dimensional modeling)
+## Dimensional modeling
 
-| Thuật ngữ | Ý nghĩa | Ví dụ |
+| Term | Definition | Example |
 |---|---|---|
-| **Fact table** | Bảng sự kiện, chứa số đo | `fact_booking` |
-| **Dimension table** | Bảng ngữ cảnh: ai, khi nào, ở đâu, qua kênh nào | `dim_date`, `dim_hotel`, `dim_country` |
-| **Grain** | Một dòng fact đại diện cho cái gì | 1 booking; hoặc 1 khách sạn × 1 đêm |
-| **Measure** | Cột số trong fact | `revenue`, `total_nights`, `adr` |
-| **Additive** | Cộng được theo mọi chiều | `revenue`, `room_nights` |
-| **Semi-additive** | Không cộng theo thời gian | Số phòng đang có khách mỗi ngày |
-| **Non-additive** | Không cộng được, phải tính lại từ thành phần | **ADR**, **tỉ lệ hủy** |
-| **Natural key** | Mã từ nguồn | `country = 'PRT'` |
-| **Surrogate key** | Khóa số tự sinh trong DW | `country_key = 17` |
-| **Star schema** | Fact ở giữa, dimension nối thẳng vào | Mô hình gold |
-| **Snowflake schema** | Dimension chuẩn hóa thành nhiều bảng | Không dùng |
-| **Hierarchy** | Phân cấp trong dimension | Năm → Quý → Tháng → Tuần → Ngày |
-| **Role-playing dimension** | Một dimension đóng nhiều vai | `dim_date` cho ngày đặt và ngày đến |
-| **Degenerate dimension** | Mã định danh nằm trong fact, không có bảng riêng | `booking_id` |
-| **Junk dimension** | Gom các cờ lặt vặt vào một bảng | `dim_booking_profile` (meal, deposit_type, customer_type) |
-| **Conformed dimension** | Dimension dùng chung cho nhiều fact | `dim_date`, `dim_hotel` |
-| **SCD Type 1 / Type 2** | Thuộc tính thay đổi: ghi đè / thêm dòng mới, giữ lịch sử | Thiết kế cho `dim_agent` |
-| **Transaction fact** | Mỗi dòng là một sự kiện | `fact_booking` |
-| **Periodic snapshot** | Chụp trạng thái theo chu kỳ | `fact_daily_occupancy` |
-| **Accumulating snapshot** | Theo dõi vòng đời qua nhiều mốc | Đặt → hủy/đến → trả phòng |
+| **Fact table** | Table of events that holds the measures | `fact_booking` |
+| **Dimension table** | Context table: who, when, where, through which channel | `dim_date`, `dim_hotel`, `dim_country` |
+| **Grain** | What one fact row represents | 1 booking; or 1 hotel × 1 night |
+| **Measure** | Numeric column in a fact table | `revenue`, `total_nights`, `adr` |
+| **Additive measure** | Can be summed across every dimension | `revenue`, `room_nights` |
+| **Semi-additive measure** | Cannot be summed across time | Number of occupied rooms per day |
+| **Non-additive measure** | Cannot be summed; must be recomputed from its components | **ADR**, **cancellation rate** |
+| **Natural key** | Identifier from the source system | `country = 'PRT'` |
+| **Surrogate key** | Integer key generated inside the DW | `country_key = 17` |
+| **Star schema** | Fact table in the center, dimensions joined directly to it | The gold model |
+| **Snowflake schema** | Dimensions normalized into several tables | Not used |
+| **Hierarchy** | Levels within a dimension | Year → Quarter → Month → Week → Day |
+| **Role-playing dimension** | One dimension used in several roles | `dim_date` for booking date and arrival date |
+| **Degenerate dimension** | Identifier stored in the fact table without its own table | `booking_id` |
+| **Junk dimension** | Groups miscellaneous low-cardinality flags into one table | `dim_booking_profile` (meal, deposit_type, customer_type) |
+| **Conformed dimension** | Dimension shared by several fact tables | `dim_date`, `dim_hotel` |
+| **SCD Type 1 / Type 2** | Handling changing attributes: overwrite / add a new row and keep history | Designed for `dim_agent` |
+| **Transaction fact** | Each row is one event | `fact_booking` |
+| **Periodic snapshot** | State captured at regular intervals | `fact_daily_occupancy` |
+| **Accumulating snapshot** | Tracks a lifecycle through several milestones | Booked → cancelled/arrived → checked out |
 
-## OLAP
+## OLAP operations
 
-| Thao tác | Ý nghĩa | Ví dụ |
+| Operation | Definition | Example |
 |---|---|---|
-| **Roll-up** | Gộp lên cấp cao hơn | Tháng → Năm |
-| **Drill-down** | Đi xuống chi tiết hơn | Năm → Tháng → Tuần |
-| **Slice** | Cố định một chiều | Chỉ City Hotel |
-| **Dice** | Lọc nhiều chiều | City Hotel + OTA + 2016 |
-| **Pivot** | Xoay trục | Đổi hàng và cột |
+| **Roll-up** | Aggregate to a higher level | Month → Year |
+| **Drill-down** | Move down to more detail | Year → Month → Week |
+| **Slice** | Fix one dimension | City Hotel only |
+| **Dice** | Filter on several dimensions | City Hotel + OTA + 2016 |
+| **Pivot** | Rotate the axes | Swap rows and columns |
 
-## KPI khách sạn
+## Hotel KPIs
 
-| KPI | Công thức |
+| KPI | Formula |
 |---|---|
 | **Room-nights** | `weekend_nights + week_nights` |
-| **Revenue** | `adr × total_nights` (chỉ booking không hủy) |
-| **ADR** | `sum(revenue) / sum(room_nights)` |
-| **Cancellation rate** | `số booking hủy / tổng số booking` |
-| **Lead time** | Số ngày từ lúc đặt đến ngày đến |
-| **LOS** | Số đêm lưu trú trung bình |
-| **Occupancy** | `room_nights bán được / room_nights sẵn có` (cần nhập công suất) |
-| **RevPAR** | `revenue / room_nights sẵn có` (cần nhập công suất) |
+| **Revenue** | `adr × total_nights` (non-cancelled bookings only) |
+| **ADR** (Average Daily Rate) | `sum(revenue) / sum(room_nights)` |
+| **Cancellation rate** | `cancelled bookings / total bookings` |
+| **Lead time** | Number of days from booking to arrival |
+| **LOS** (Length of Stay) | Average number of nights per stay |
+| **Occupancy** | `room_nights sold / room_nights available` (requires capacity input) |
+| **RevPAR** (Revenue per Available Room) | `revenue / room_nights available` (requires capacity input) |
 
-## Hỗ trợ ra quyết định
+## Decision support
 
-| Thuật ngữ | Ý nghĩa |
+| Term | Definition |
 |---|---|
 | **DSS** | Decision Support System |
-| **Descriptive / Diagnostic / Predictive / Prescriptive** | Chuyện gì đã xảy ra / vì sao / sẽ xảy ra gì / nên làm gì |
-| **What-if analysis** | Mô phỏng kết quả theo kịch bản tham số |
-| **Data leakage** | Mô hình được thấy trước đáp án (ví dụ dùng `reservation_status`) |
-| **AUC, Precision, Recall** | Đánh giá mô hình phân loại (dự đoán hủy) |
-| **MAPE** | Sai số phần trăm trung bình (đánh giá dự báo) |
+| **Descriptive / Diagnostic / Predictive / Prescriptive** | What happened / why it happened / what will happen / what should be done |
+| **What-if analysis** | Simulating outcomes under parameter scenarios |
+| **Data leakage** | The model gets to see the answer in advance (e.g. by using `reservation_status`) |
+| **Time-based split** | Train on earlier periods and test on later ones, as in real deployment |
+| **AUC, Precision, Recall** | Metrics for classification models (cancellation prediction) |
+| **MAPE** | Mean absolute percentage error (forecast evaluation) |

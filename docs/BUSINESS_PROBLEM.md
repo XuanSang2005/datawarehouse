@@ -1,60 +1,60 @@
-# Định nghĩa bài toán kinh doanh
+# Business Problem Definition
 
-> Đây là nội dung gốc cho **Chương 2: Business problem definition** của báo cáo và slide.
+> This is the source content for **Chapter 2: Business problem definition** of the report and slides.
 
-## 1. Bối cảnh tổ chức
+## 1. Organizational context
 
-Một tập đoàn khách sạn ở Bồ Đào Nha vận hành 2 cơ sở:
-- **City Hotel**: khách sạn thành phố ở Lisbon
-- **Resort Hotel**: khu nghỉ dưỡng ven biển ở Algarve
+A hotel group in Portugal operates two properties:
+- **City Hotel**: a city hotel in Lisbon
+- **Resort Hotel**: a seaside resort in the Algarve
 
-Dữ liệu đặt phòng 07/2015 – 08/2017 (119.390 booking) cho thấy các vấn đề sau:
+Booking data from 07/2015 to 08/2017 (119,390 bookings) reveals the following problems:
 
-| Vấn đề | Bằng chứng từ dữ liệu |
+| Problem | Evidence from the data |
 |---|---|
-| **Tỉ lệ hủy phòng rất cao** | 37,0% tổng cộng; City Hotel 41,7%, Resort Hotel 27,8% |
-| **Nhu cầu và giá biến động mạnh theo mùa** | Tháng 7–8 có nhiều lượt đến nhất; ADR của Resort tháng 8 khoảng 174 € so với tháng 1 khoảng 49 € (gấp ~3,5 lần) |
-| **Phụ thuộc kênh trung gian** | 82% booking đến qua kênh TA/TO (đại lý du lịch, OTA); chỉ 12% đặt trực tiếp |
-| **Dữ liệu phân tán, chưa có hệ thống phân tích tập trung** | Quyết định dựa vào kinh nghiệm và báo cáo Excel |
+| **Very high cancellation rate** | 37.0% overall; City Hotel 41.7%, Resort Hotel 27.8% |
+| **Strong seasonal swings in demand and price** | July–August have the most arrivals; the Resort's ADR is about €174 in August versus about €49 in January (~3.5 times higher) |
+| **Dependence on intermediary channels** | 82% of bookings come through the TA/TO channel (travel agents, OTAs); only 12% are direct bookings |
+| **Fragmented data with no centralized analytics system** | Decisions rely on experience and Excel reports |
 
-Phòng bị hủy sát ngày thì không bán lại kịp, nên mất doanh thu trực tiếp. Ngược lại, nếu overbooking
-quá tay thì khách đến mà hết phòng, gây tốn chi phí đền bù và mất uy tín.
+Rooms cancelled close to the arrival date cannot be resold in time, which results in directly lost revenue. Conversely,
+excessive overbooking means guests arrive to find no room available, which incurs compensation costs and damages the hotel's reputation.
 
-## 2. Người ra quyết định
+## 2. Decision makers
 
-| Người ra quyết định | Quyết định cụ thể | Tần suất |
+| Decision maker | Specific decisions | Frequency |
 |---|---|---|
-| **Revenue Manager** | Mức overbooking theo tuần/phân khúc; áp đặt cọc cho booking rủi ro cao; điều chỉnh giá theo mùa | Hằng tuần |
-| **Sales & Marketing Manager** | Phân bổ ngân sách theo kênh (OTA, direct, corporate) và thị trường quốc gia; thời điểm khuyến mãi | Hằng tháng/quý |
-| **General Manager** | Đánh giá hiệu quả 2 khách sạn; ưu tiên chiến lược | Hằng tháng |
-| **Bộ phận Reservations** | Gọi xác nhận lại các booking có nguy cơ hủy cao | Hằng ngày |
+| **Revenue Manager** | Overbooking level by week/segment; deposit requirements for high-risk bookings; seasonal price adjustments | Weekly |
+| **Sales & Marketing Manager** | Budget allocation by channel (OTA, direct, corporate) and country market; promotion timing | Monthly/quarterly |
+| **General Manager** | Performance evaluation of the two hotels; strategic priorities | Monthly |
+| **Reservations department** | Reconfirmation calls for bookings with a high risk of cancellation | Daily |
 
-## 3. Mục tiêu kỳ vọng
+## 3. Expected objectives
 
-| # | Mục tiêu | Cách đo |
+| # | Objective | Measure of success |
 |---|---|---|
-| G1 | Cung cấp cái nhìn tập trung về KPI (doanh thu, room-nights, ADR, tỉ lệ hủy) theo nhiều chiều | Dashboard có lọc/drill-down theo khách sạn, thời gian, kênh, quốc gia |
-| G2 | Dự đoán booking nào sẽ hủy | AUC ≥ 0,85 trên tập test theo thời gian (năm 2017) |
-| G3 | Dự báo nhu cầu (room-nights) theo tuần | MAPE trên giai đoạn backtest |
-| G4 | Hỗ trợ quyết định overbooking và đặt cọc | Mô phỏng what-if: doanh thu cứu được so với rủi ro hết phòng |
-| G5 | Xác định kênh và thị trường giá trị nhất | Xếp hạng theo doanh thu thực (sau hủy), ADR, tỉ lệ hủy |
+| G1 | Provide a centralized view of KPIs (revenue, room-nights, ADR, cancellation rate) across multiple dimensions | Dashboard with filtering/drill-down by hotel, time, channel and country |
+| G2 | Predict which bookings will be cancelled | AUC ≥ 0.85 on a time-based test set (year 2017) |
+| G3 | Forecast weekly demand (room-nights) | MAPE over the backtest period |
+| G4 | Support overbooking and deposit decisions | What-if simulation: revenue recovered versus the risk of running out of rooms |
+| G5 | Identify the most valuable channels and markets | Ranking by realized revenue (after cancellations), ADR and cancellation rate |
 
-## 4. Phạm vi
+## 4. Scope
 
-**Trong phạm vi:** dữ liệu lịch sử của 2 khách sạn; phân tích mô tả, chẩn đoán, dự đoán, đề xuất; ứng dụng web tương tác.
+**In scope:** historical data of the two hotels; descriptive, diagnostic, predictive and prescriptive analytics; an interactive web application.
 
-**Ngoài phạm vi:** kết nối trực tiếp PMS thời gian thực; tối ưu giá động tự động.
+**Out of scope:** real-time direct integration with the PMS; automated dynamic price optimization.
 
-**Giả định và hạn chế:**
-- Dataset **không có số phòng** của mỗi khách sạn, nên occupancy và RevPAR chỉ tính được khi người dùng nhập công suất làm tham số.
-- Không có dữ liệu chi phí (hoa hồng OTA, chi phí đền bù overbooking): đưa vào làm **tham số điều chỉnh được** trong what-if.
-- Tên khách sạn đã được ẩn danh trong dataset gốc.
+**Assumptions and limitations:**
+- The dataset **does not include the number of rooms** of each hotel, so occupancy and RevPAR can only be computed when the user enters the capacity as a parameter.
+- There is no cost data (OTA commissions, overbooking compensation costs): these are introduced as **adjustable parameters** in the what-if analysis.
+- Hotel names are anonymized in the original dataset.
 
-## 5. Giải pháp đề xuất (tóm tắt)
+## 5. Proposed solution (summary)
 
-1. **Lakehouse** PostgreSQL theo kiến trúc Medallion: tích hợp dữ liệu booking, ngày lễ, thời tiết.
-2. **Star schema** ở lớp Gold, phục vụ phân tích OLAP.
-3. **Phân tích**: mô hình dự đoán hủy, mô hình dự báo nhu cầu.
-4. **Ứng dụng web** cho từng người ra quyết định: dashboard KPI, rủi ro hủy, dự báo, mô phỏng what-if.
+1. A PostgreSQL **lakehouse** following the medallion architecture: integrates booking, public holiday and weather data.
+2. A **star schema** in the Gold layer, serving OLAP analysis.
+3. **Analytics**: a cancellation prediction model and a demand forecasting model.
+4. A **web application** for each decision maker: KPI dashboard, cancellation risk, forecasting, what-if simulation.
 
-Chi tiết kỹ thuật: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+Technical details: [`ARCHITECTURE.md`](ARCHITECTURE.md)
