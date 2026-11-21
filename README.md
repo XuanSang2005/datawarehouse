@@ -162,6 +162,7 @@ Tài liệu API tự sinh có ở http://localhost:8000/docs.
 |---|---|---|
 | **Hotel Booking Demand** | 119.390 booking, City Hotel (Lisbon) và Resort Hotel (Algarve), 07/2015–08/2017 | Tự tải (mirror công khai của Kaggle) |
 | **Ngày lễ Bồ Đào Nha** | 2013–2018 | Sinh bằng thư viện `holidays` |
+| **Mã quốc gia ISO 3166** | Tên nước, châu lục (phân vùng UN M49) | Tự tải (GitHub `lukes/ISO-3166-Countries-with-Regional-Codes`) |
 | *(dự kiến)* Thời tiết lịch sử | Lisbon, Faro | Open-Meteo Archive API |
 
 Mô tả từng cột: [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md)

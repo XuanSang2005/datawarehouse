@@ -1,9 +1,10 @@
 # gold/ — Star schema & bảng phục vụ ứng dụng
 
-Chưa có file SQL. Thiết kế chi tiết (đang chờ nhóm chốt): [`docs/STAR_SCHEMA.md`](../../docs/STAR_SCHEMA.md).
+Thiết kế chi tiết (đã chốt): [`docs/STAR_SCHEMA.md`](../../docs/STAR_SCHEMA.md). Mô tả cột: `docs/DATA_DICTIONARY.md` mục 5.
 
 | File                              | Bảng                         | Loại                                   |
 |-----------------------------------|------------------------------|----------------------------------------|
+| `00_business_assumptions.sql`     | `gold.business_assumptions`  | Tham số giả định (tỉ lệ cọc 20%)       |
 | `10_dim_date.sql`                 | `gold.dim_date`              | Dimension (role-playing, conformed)    |
 | `11_dim_hotel.sql`                | `gold.dim_hotel`             | Dimension (conformed)                  |
 | `12_dim_country.sql`              | `gold.dim_country`           | Dimension (cần nguồn mã ISO 3166)      |
@@ -17,5 +18,5 @@ Chưa có file SQL. Thiết kế chi tiết (đang chờ nhóm chốt): [`docs/S
 
 Bảng kết quả ML (`gold.ml_*`) do code trong `ml/` ghi vào, **không** tạo ở đây (cột đã thống nhất trong `STAR_SCHEMA.md` mục 7).
 
-Quy ước đánh số: `1x` = dimension, `3x` = fact, `5x` = KPI/view. Dimension phải chạy trước fact.
+Quy ước đánh số: `0x` = tham số, `1x` = dimension, `3x` = fact, `5x` = KPI/view. Dimension phải chạy trước fact.
 Mỗi file bắt đầu bằng `DROP TABLE IF EXISTS gold.<bảng> CASCADE;` (CASCADE xóa FK/view phụ thuộc, các file sau sẽ tạo lại).

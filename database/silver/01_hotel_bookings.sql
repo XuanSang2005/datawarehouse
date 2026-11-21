@@ -8,6 +8,11 @@
 --   * arrival_date   : ghép từ year + month (tên tháng) + day_of_month
 --   * booking_date   : arrival_date - lead_time (ngày khách đặt phòng)
 --   * total_nights   : weekend + week nights
+--   * departure_date : arrival_date + total_nights
+--   * total_guests   : adults + children + babies
+--   * party_type     : Solo / Couple / Family / Group / Other (theo số người lớn, có trẻ em hay không)
+--   * country_code   : chuẩn hóa 2 mã không đúng chuẩn ISO alpha-3 (nhóm đã chốt, xem docs/STAR_SCHEMA.md):
+--                      'CN' -> 'CAN' (Canada; dataset không có mã CAN), 'TMP' -> 'TLS' (mã cũ của Đông Timor)
 -- KHÔNG lọc bỏ dòng bất thường ở đây -> xem database/checks/ để biết dòng nào có vấn đề.
 -- ⚠ reservation_status / reservation_status_date chứa KẾT QUẢ booking:
 --   giữ lại cho phân tích mô tả, nhưng TUYỆT ĐỐI không dùng làm feature cho mô hình dự đoán hủy.
@@ -23,7 +28,8 @@ WITH src AS (
             b.arrival_date_year::INT,
             EXTRACT(MONTH FROM to_date(b.arrival_date_month, 'FMMonth'))::INT,
             b.arrival_date_day_of_month::INT
-        ) AS arrival_date
+        ) AS arrival_date,
+        COALESCE(NULLIF(NULLIF(b.children, 'NA'), 'NULL')::INT, 0) AS children_int
     FROM bronze.hotel_bookings AS b
 )
 SELECT
@@ -37,11 +43,25 @@ SELECT
     stays_in_weekend_nights::INT                                  AS weekend_nights,
     stays_in_week_nights::INT                                     AS week_nights,
     (stays_in_weekend_nights::INT + stays_in_week_nights::INT)    AS total_nights,
+    (arrival_date + stays_in_weekend_nights::INT
+                  + stays_in_week_nights::INT)                    AS departure_date,
     adults::INT                                                   AS adults,
-    COALESCE(NULLIF(NULLIF(children, 'NA'), 'NULL')::INT, 0)      AS children,
+    children_int                                                  AS children,
     babies::INT                                                   AS babies,
+    (adults::INT + children_int + babies::INT)                    AS total_guests,
+    CASE
+        WHEN adults::INT = 0                       THEN 'Other'
+        WHEN children_int + babies::INT > 0        THEN 'Family'
+        WHEN adults::INT = 1                       THEN 'Solo'
+        WHEN adults::INT = 2                       THEN 'Couple'
+        ELSE 'Group'
+    END                                                           AS party_type,
     CASE WHEN meal = 'Undefined' THEN 'SC' ELSE meal END          AS meal,  -- theo bài báo gốc: Undefined = SC
-    NULLIF(NULLIF(country, 'NULL'), 'NA')                         AS country_code,
+    CASE country
+        WHEN 'CN'  THEN 'CAN'
+        WHEN 'TMP' THEN 'TLS'
+        ELSE NULLIF(NULLIF(country, 'NULL'), 'NA')
+    END                                                           AS country_code,
     NULLIF(market_segment, 'Undefined')                           AS market_segment,
     NULLIF(distribution_channel, 'Undefined')                     AS distribution_channel,
     (is_repeated_guest = '1')                                     AS is_repeated_guest,

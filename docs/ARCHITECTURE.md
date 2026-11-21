@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                                   NGUỒN DỮ LIỆU                                         │
-│   hotel_bookings.csv (Kaggle)    pt_holidays (thư viện holidays)    weather (dự kiến)   │
+│   hotel_bookings.csv  pt_holidays (holidays)  countries (ISO 3166)  weather (dự kiến)   │
 └───────────────┬─────────────────────────────────────────────────────────────────────────┘
                 │  etl/extract/*.py  ->  data/raw/
                 ▼
@@ -65,9 +65,9 @@ init → extract → bronze → silver → gold → checks
 ```
 Mỗi bước, và mỗi file SQL, được ghi một dòng vào `meta.etl_run_log` (trạng thái, số dòng, lỗi).
 
-## 4. Mô hình dữ liệu Gold: star schema (ĐỀ XUẤT, chờ chốt)
+## 4. Mô hình dữ liệu Gold: star schema
 
-> Thiết kế chi tiết (từng cột, grain, công thức measure, kế hoạch triển khai, câu hỏi cần chốt): [`STAR_SCHEMA.md`](STAR_SCHEMA.md).
+> Thiết kế chi tiết (từng cột, grain, công thức measure, quyết định đã chốt): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). SQL: `database/gold/`.
 
 ```
                          ┌──────────────┐
@@ -89,10 +89,11 @@ Mỗi bước, và mỗi file SQL, được ghi một dòng vào `meta.etl_run_l
 
 - **`fact_booking`**: grain = 1 booking (~119.209 dòng sau khi loại 181 dòng bất thường).
   Measures: `booking_count`, `is_canceled`, `lead_time`, `total_nights`, `room_nights_sold`, `guests`, `adr` (non-additive),
-  `booked_revenue`, `realized_revenue`, `lost_revenue`, `cancel_lead_days`.
+  `booked_revenue`, `realized_revenue`, `lost_revenue`, `deposit_retained`, `net_lost_revenue`, `cancel_lead_days`.
 - **`fact_daily_occupancy`**: grain = 1 khách sạn × 1 đêm (1.586 dòng, 2015-07-01 → 2017-08-31).
   Measures: `rooms_occupied`, `rooms_canceled`, `rooms_booked`, `guests_in_house`, `arrivals`, `departures`, `realized_revenue`, `lost_revenue`. Dùng cho dự báo nhu cầu và what-if overbooking.
 - **`kpi_*`** (view): tổng hợp sẵn cho từng trang dashboard.
+- **`business_assumptions`**: tham số giả định mà dataset không có (tỉ lệ cọc Non Refund giữ lại, mặc định 20%).
 - **`ml_booking_risk`**, **`ml_demand_forecast`**, **`ml_model_metrics`**: do `ml/` ghi.
 
 ## 5. Backend: phân tầng
@@ -151,4 +152,5 @@ pages/*.tsx ──dùng──▶ hooks/useApi.ts ──gọi──▶ api/endpoi
 | 2026-11-21 | Chọn bài toán quản lý doanh thu và hủy phòng, dataset Hotel Booking Demand |
 | 2026-11-21 | Stack: PostgreSQL + Python/SQL + FastAPI + React |
 | 2026-11-21 | Bronze lưu TEXT; silver không lọc dòng; quyết định lọc dữ liệu bất thường đặt ở gold |
-| 2026-11-21 | Đề xuất star schema chi tiết (`STAR_SCHEMA.md`): 7 dimension, 2 fact, 5 view KPI. Chờ nhóm chốt các câu Q1–Q5 |
+| 2026-11-21 | Chốt star schema (`STAR_SCHEMA.md`): 7 dimension, 2 fact, 5 view KPI |
+| 2026-11-21 | Loại 181 dòng bất thường khỏi fact; `CN` → `CAN`; giả định giữ 20% cọc khi booking Non Refund bị hủy; thêm nguồn mã ISO 3166 |

@@ -1,9 +1,9 @@
 # Thiết kế chi tiết Star Schema (lớp Gold)
 
-> Trạng thái: **ĐỀ XUẤT, chờ nhóm chốt**. Các điểm cần chốt nằm ở [mục 9](#9-các-quyết-định-cần-chốt).
-> Khi chốt xong: viết SQL trong `database/gold/` theo đúng tên file ở [mục 8](#8-kế-hoạch-triển-khai), rồi cập nhật `docs/DATA_DICTIONARY.md` mục 4.
+> Trạng thái: **ĐÃ CHỐT và ĐÃ TRIỂN KHAI** (2026-11-21). Các quyết định nằm ở [mục 9](#9-các-quyết-định-đã-chốt).
+> SQL: `database/gold/` (danh sách file ở [mục 8](#8-triển-khai)). Mô tả cột ngắn gọn: `docs/DATA_DICTIONARY.md` mục 4.
 >
-> Mọi con số trong tài liệu này được đo trực tiếp trên `hotel_bookings.csv` (119.390 dòng).
+> Mọi con số trong tài liệu này là kết quả chạy pipeline thật trên `hotel_bookings.csv` (119.390 dòng).
 
 ---
 
@@ -70,6 +70,7 @@ erDiagram
         numeric booked_revenue
         numeric realized_revenue
         numeric lost_revenue
+        numeric net_lost_revenue
     }
     fact_daily_occupancy {
         int hotel_key PK, FK
@@ -199,7 +200,7 @@ Bản ASCII (dùng cho slide):
 | `year_month` | TEXT | `2016-08` | Nhãn trục biểu đồ, sắp xếp được |
 | `season` | TEXT | `High` | `High` = 7–8; `Shoulder` = 4–6, 9–10; `Low` = 11–3. Dựa trên ADR đo được của Resort: T8 ≈ 174 €, T1 ≈ 49 € |
 | `is_holiday` | BOOLEAN | `true` | Có trong `silver.pt_holidays` |
-| `holiday_name` | TEXT | `Assumption Day` | NULL nếu không phải ngày lễ |
+| `holiday_name` | TEXT | `Assunção de Nossa Senhora` | Tên tiếng Bồ Đào Nha (thư viện `holidays`). NULL nếu không phải ngày lễ |
 
 > ⚠ **Lưu ý chất lượng nguồn (đã kiểm chứng):**
 > 1. Cột `arrival_date_week_number` của dataset **không khớp** tuần ISO tính từ ngày đến (năm 2016 lệch 100%, năm 2015/2017 lệch ~10%). Vì vậy `dim_date` tự tính tuần, và cột nguồn **không đưa lên gold**.
@@ -245,11 +246,13 @@ Trên dashboard và trong view, mỗi vai được dùng qua alias: `JOIN gold.d
 | `region` | TEXT | `Europe` | Châu lục (theo phân vùng UN M49) |
 | `sub_region` | TEXT | `Southern Europe` | |
 | `is_domestic` | BOOLEAN | `true` | `country_code = 'PRT'` |
-| `market_group` | TEXT | `Domestic` | `Domestic` (PRT) / `Core EU` (GBR, FRA, ESP, DEU, ITA, IRL, BEL, NLD) / `Other Europe` / `Rest of World` / `Unknown`. Phục vụ Sales & Marketing (mục tiêu G5) |
+| `market_group` | TEXT | `Domestic` | `Domestic` (PRT) / `Core Europe` (GBR, FRA, ESP, DEU, ITA, IRL, BEL, NLD) / `Other Europe` / `Rest of World` / `Unknown`. Phục vụ Sales & Marketing (mục tiêu G5) |
 
-> ⚠ Hai mã không chuẩn trong nguồn: `CN` (1.279 booking) và `TMP` (3 booking).
-> `TMP` là mã cũ của Đông Timor, nay là `TLS`. `CN` là mã alpha-2, **chưa chắc** là Trung Quốc (đã có `CHN` riêng: 999 booking) hay Canada
-> (dataset không có `CAN`). Xem [mục 9, câu Q2](#9-các-quyết-định-cần-chốt). Việc chuẩn hóa mã, nếu có, làm ở **silver**.
+> Hai mã không chuẩn trong nguồn được chuẩn hóa ở **silver** (`silver/01_hotel_bookings.sql`):
+> `CN` (1.279 booking) → `CAN` (Canada; nhóm chốt ở Q2, vì đã có `CHN` riêng và dataset không có `CAN`),
+> `TMP` (3 booking, mã cũ của Đông Timor) → `TLS`. Sau khi chuẩn hóa, mọi mã đều có trong bảng ISO.
+>
+> Phân bố booking theo `market_group`: Core Europe 49.945, Domestic 48.483, Rest of World 11.067, Other Europe 9.236, Unknown 478.
 
 ### 4.4 `gold.dim_channel`: kênh bán
 
@@ -303,7 +306,8 @@ thêm dòng mới với `agent_key` mới, và fact tra key theo `booking_date B
 ### 4.7 `gold.dim_booking_profile`: junk dimension
 
 - **Mục đích:** gom các cờ và mã ít giá trị, vốn sẽ làm fact rộng ra hoặc sinh ra nhiều dimension nhỏ lẻ.
-- **Nguồn:** `DISTINCT` các tổ hợp **có trong dữ liệu**. **149 dòng** (tối đa lý thuyết: 4 × 3 × 4 × 2 × 5 = 480).
+- **Nguồn:** `DISTINCT` các tổ hợp **có trong dữ liệu** (`silver.hotel_bookings`, kể cả các dòng bị loại khỏi fact). **154 dòng** (tối đa lý thuyết: 4 × 3 × 4 × 2 × 5 = 480).
+- `party_type` được tính sẵn ở silver để fact và dimension dùng chung một định nghĩa.
 
 | Cột | Kiểu | Giá trị |
 |---|---|---|
@@ -370,7 +374,9 @@ UNIQUE trên 5 cột thuộc tính. Phân bố `party_type`: Couple 81.559, Solo
 | `adr` | NUMERIC(10,2) | giữ nguyên nguồn | **Non-additive** | ⛔ Không bao giờ `SUM(adr)` hay `AVG(adr)`; dùng `SUM(realized_revenue) / NULLIF(SUM(room_nights_sold), 0)` |
 | `booked_revenue` | NUMERIC(12,2) | `adr × total_nights` | Additive | Giá trị booking lúc đặt (gồm cả booking sau này bị hủy) |
 | `realized_revenue` | NUMERIC(12,2) | `booked_revenue` nếu không hủy, ngược lại `0` | Additive | **Doanh thu thực thu** (định nghĩa trong `GLOSSARY.md`) |
-| `lost_revenue` | NUMERIC(12,2) | `booked_revenue` nếu hủy, ngược lại `0` | Additive | **Thiệt hại do hủy (cận trên)**. Xem Q3 về đặt cọc Non Refund |
+| `lost_revenue` | NUMERIC(12,2) | `booked_revenue` nếu hủy, ngược lại `0` | Additive | **Thiệt hại gộp do hủy** (cận trên) |
+| `deposit_retained` | NUMERIC(12,2) | `booked_revenue × non_refund_deposit_rate` nếu hủy **và** `deposit_type = 'Non Refund'`, ngược lại `0` | Additive | Tiền cọc khách sạn giữ lại. Mặc định **20%** (Q3), lấy từ `gold.business_assumptions` |
+| `net_lost_revenue` | NUMERIC(12,2) | `lost_revenue − deposit_retained` | Additive | **Thiệt hại thực sau khi giữ cọc** |
 | `days_in_waiting_list` | INT | | Non-additive | |
 | `previous_cancellations`, `previous_bookings_not_canceled` | INT | | Non-additive | Lịch sử khách; dùng được làm feature ML |
 | `total_of_special_requests`, `required_car_parking_spaces` | INT | | Additive | |
@@ -378,7 +384,8 @@ UNIQUE trên 5 cột thuộc tính. Phân bố `party_type`: Couple 81.559, Solo
 | `is_room_changed` | SMALLINT | `reserved <> assigned` | Additive | ⚠ Chỉ biết khi đến, rủi ro leakage |
 | `cancel_lead_days` | INT | `arrival_date - reservation_status_date` nếu hủy, ngược lại NULL | Non-additive | ⛔ Hủy trước ngày đến bao lâu. Trả lời câu "hủy sát ngày nên không bán lại kịp". Trung vị = 54 ngày, 10% hủy trong vòng 4 ngày |
 
-Đối chiếu tổng (dùng cho check): booked 42,71 tr€ = realized 25,99 tr€ + lost 16,73 tr€; `SUM(room_nights_sold)` = 254.282.
+Đối chiếu tổng (đã chạy thật): booked 42,71 tr€ = realized 25,99 tr€ + lost 16,73 tr€. Lost 16,73 tr€ = cọc giữ lại 0,72 tr€ + net lost 16,01 tr€.
+`SUM(room_nights_sold)` = 254.282, ADR toàn kỳ = 102,20 €, tỉ lệ hủy = 37,08% (City 41,8%, Resort 27,8%).
 
 **Index:** PK `booking_id`; index trên `(hotel_key, arrival_date_key)`, `booking_date_key`, `channel_key`, `country_key`.
 
@@ -388,7 +395,7 @@ UNIQUE trên 5 cột thuộc tính. Phân bố `party_type`: Couple 81.559, Solo
 |---|---|
 | ✅ Được dùng (biết tại lúc đặt) | `lead_time`, ngày đến (tháng, tuần, `is_holiday`), số đêm, số khách, `hotel`, `country`, `channel`, `agent`, `reserved_room_type`, cả junk profile, `previous_*`, `days_in_waiting_list`, `adr`, `total_of_special_requests`, `required_car_parking_spaces` |
 | ⚠ Cân nhắc kỹ | `booking_changes`, `assigned_room_type_key`, `is_room_changed` |
-| ⛔ Cấm | `status_date_key`, `reservation_status`, `cancel_lead_days`, `realized_revenue`, `lost_revenue`, `room_nights_sold` (đều suy ra từ kết quả hủy) |
+| ⛔ Cấm | `status_date_key`, `reservation_status`, `cancel_lead_days`, `realized_revenue`, `lost_revenue`, `deposit_retained`, `net_lost_revenue`, `room_nights_sold` (đều suy ra từ kết quả hủy) |
 
 ### 5.2 `gold.fact_daily_occupancy`: periodic snapshot
 
@@ -413,11 +420,11 @@ UNIQUE trên 5 cột thuộc tính. Phân bố `party_type`: Couple 81.559, Solo
 | `arrivals` | INT | Booking không hủy có `arrival_date = d` | Additive |
 | `departures` | INT | Booking không hủy có `departure_date = d` | Additive |
 | `realized_revenue` | NUMERIC(12,2) | Tổng `adr` của booking không hủy ở đêm d | Additive |
-| `lost_revenue` | NUMERIC(12,2) | Tổng `adr` của booking hủy lẽ ra ở đêm d | Additive |
+| `lost_revenue` | NUMERIC(12,2) | Tổng `adr` của booking hủy lẽ ra ở đêm d (gộp, chưa trừ cọc) | Additive |
 
 - **ADR theo đêm** = `SUM(realized_revenue) / NULLIF(SUM(rooms_occupied), 0)`.
 - **Occupancy** = `rooms_occupied / capacity` và **RevPAR** = `realized_revenue / capacity`, với `capacity` là tham số người dùng nhập (tính ở backend, không lưu ở đây).
-- **Đối chiếu (check):** `SUM(realized_revenue)` của bảng này = `SUM(realized_revenue)` của `fact_booking` với các đêm nằm trong phạm vi.
+- **Đối chiếu (check `12_gold_occupancy_reconciliation`):** tổng `rooms_occupied` theo khách sạn = tổng số đêm (trong phạm vi) của các booking không hủy ở `fact_booking`.
 
 ---
 
@@ -454,43 +461,41 @@ Chia train/test theo thời gian (quy tắc 7): train theo `arrival_date` < 2017
 
 ---
 
-## 8. Kế hoạch triển khai
+## 8. Triển khai
 
-| Bước | File | Nội dung |
+| Thứ tự chạy | File | Nội dung |
 |---|---|---|
-| 0 | `etl/extract/countries.py`, `database/bronze/03_countries.sql`, `database/silver/03_countries.sql` | **Nguồn mới:** bảng mã ISO 3166 kèm phân vùng UN (CSV công khai trên GitHub, cột `name`, `alpha-3`, `region`, `sub-region`). Đăng ký trong `etl/extract/__init__.py` |
-| 1 | `database/gold/10_dim_date.sql` | |
-| 2 | `database/gold/11_dim_hotel.sql` | |
-| 3 | `database/gold/12_dim_country.sql` | Cần bước 0 |
-| 4 | `database/gold/13_dim_channel.sql` | |
-| 5 | `database/gold/14_dim_room_type.sql` | |
-| 6 | `database/gold/15_dim_agent.sql` | |
-| 7 | `database/gold/16_dim_booking_profile.sql` | |
-| 8 | `database/gold/30_fact_booking.sql` | Cần 1–7 |
-| 9 | `database/gold/31_fact_daily_occupancy.sql` | Cần 8 |
-| 10 | `database/gold/50_…` → `54_…` | Cần 8–9 |
-| 11 | `database/checks/1x_gold_*.sql` | Xem bên dưới |
-| 12 | `docs/DATA_DICTIONARY.md` mục 4, `docs/ARCHITECTURE.md` mục 4 | |
+| bronze/silver | `etl/extract/countries.py`, `database/bronze/03_countries.sql`, `database/silver/03_countries.sql` | **Nguồn mới (Q4):** bảng mã ISO 3166 + phân vùng UN M49 (`lukes/ISO-3166-Countries-with-Regional-Codes`, 249 dòng). Silver bổ sung vùng cho TWN và ATA (UN để trống) |
+| silver | `database/silver/01_hotel_bookings.sql` | Thêm `departure_date`, `total_guests`, `party_type`; chuẩn hóa `CN → CAN`, `TMP → TLS` |
+| 0x | `database/gold/00_business_assumptions.sql` | Bảng tham số giả định: `non_refund_deposit_rate = 0.20` |
+| 1x | `database/gold/10_dim_date.sql` … `16_dim_booking_profile.sql` | 7 dimension |
+| 3x | `database/gold/30_fact_booking.sql`, `31_fact_daily_occupancy.sql` | 2 fact, có PK, FK và index |
+| 5x | `database/gold/50_kpi_monthly_hotel.sql` … `54_kpi_weekly_occupancy.sql` | 5 view KPI |
 
-**Check chất lượng cho gold** (`database/checks/`):
+Số dòng sau khi chạy: `dim_date` 2.191, `dim_hotel` 2, `dim_country` 178, `dim_channel` 26, `dim_room_type` 12, `dim_agent` 334,
+`dim_booking_profile` 154, `fact_booking` 119.209, `fact_daily_occupancy` 1.586.
 
-| File | Severity | Trả về dòng vi phạm khi |
-|---|---|---|
-| `10_gold_fact_booking_row_count.sql` | error | `count(fact_booking)` ≠ `count(silver)` − số dòng bị loại theo quy tắc |
-| `11_gold_fact_booking_orphan_keys.sql` | error | Có FK không tìm thấy dimension (phòng khi FK constraint bị tắt) |
-| `12_gold_revenue_reconciliation.sql` | error | `booked_revenue` ≠ `realized_revenue + lost_revenue` (lệch > 0,01 €) |
-| `13_gold_occupancy_reconciliation.sql` | error | Tổng `realized_revenue` theo đêm ≠ tổng của `fact_booking` trong phạm vi |
-| `14_gold_dim_date_coverage.sql` | error | Có ngày trong silver nằm ngoài `dim_date` |
-| `15_gold_adr_outlier.sql` | warning | `adr > 1000` |
+**Check chất lượng cho gold** (`database/checks/`). Toàn vẹn khóa ngoại và độ phủ của `dim_date` do FK constraint đảm bảo (pipeline lỗi ngay nếu vi phạm), nên không cần check riêng.
+
+| File | Severity | Trả về dòng vi phạm khi | Kết quả |
+|---|---|---|---|
+| `10_gold_fact_booking_row_count.sql` | error | `count(fact_booking)` ≠ `count(silver)` − số dòng bị loại theo quy tắc | ✔ 0 |
+| `11_gold_revenue_reconciliation.sql` | error | `booked ≠ realized + lost` hoặc `lost ≠ deposit_retained + net_lost` (lệch > 0,01 €) | ✔ 0 |
+| `12_gold_occupancy_reconciliation.sql` | error | Tổng room-nights theo đêm ≠ tổng số đêm của booking không hủy trong phạm vi | ✔ 0 |
+| `13_gold_adr_outlier.sql` | warning | `adr > 1000` | ⚠ 1 (ADR 5.400 €, đã hủy) |
+
+**Đổi tỉ lệ cọc mặc định:** sửa giá trị trong `00_business_assumptions.sql` rồi chạy `python -m etl.run_pipeline --from gold`.
+Trang what-if cho người dùng thử tỉ lệ khác mà không cần chạy lại pipeline: backend tính
+`net_lost = lost_revenue − rate × lost_revenue` cho các booking `Non Refund` (lọc qua `dim_booking_profile.deposit_type`).
 
 ---
 
-## 9. Các quyết định cần chốt
+## 9. Các quyết định đã chốt
 
-| # | Câu hỏi | Đề xuất trong tài liệu này | Phương án khác |
+| # | Câu hỏi | Quyết định của nhóm | Triển khai ở |
 |---|---|---|---|
-| Q1 | Loại hẳn 181 dòng bất thường khỏi fact, hay giữ lại và gắn cờ `is_valid`? | **Loại**, có check đếm dòng để chứng minh | Giữ + cờ: truy vết tốt hơn, nhưng mọi query đều phải nhớ `WHERE is_valid` |
-| Q2 | Mã `CN` (1.279 booking) là gì? | Giữ nguyên `CN`, đặt `country_name = 'CN (không rõ)'`, `market_group = 'Unknown'` | Gộp vào `CHN` (Trung Quốc) hoặc map sang `CAN` (Canada) ở silver |
-| Q3 | Booking `Non Refund` bị hủy (99,4% trong 14.587 booking loại này bị hủy) có tính là mất doanh thu không? | `lost_revenue` là **cận trên** (tính hết). What-if cho người dùng nhập "% tiền cọc giữ lại" | Coi `Non Refund` bị hủy là doanh thu đã thu (`lost_revenue = 0`) |
-| Q4 | Thêm nguồn mã quốc gia (bước 0) để có tên và châu lục? | **Có**: cần cho phân tích thị trường (G5) | Không thêm: `dim_country` chỉ có mã |
-| Q5 | Có cần thêm accumulating snapshot (đặt → hủy/đến → trả phòng)? | **Không**: `fact_booking` đã có đủ 4 mốc ngày, tương đương accumulating snapshot | Tách bảng riêng để minh họa đủ 3 loại fact trong báo cáo |
+| Q1 | 181 dòng bất thường (180 không có khách, 1 ADR âm): loại hay giữ kèm cờ? | **Loại hẳn khỏi fact** | `WHERE` trong `gold/30_fact_booking.sql`, check `10_gold_fact_booking_row_count` |
+| Q2 | Mã `CN` (1.279 booking) là nước nào? | **Canada: đổi thành `CAN`** (kèm `TMP` → `TLS`) | `silver/01_hotel_bookings.sql` |
+| Q3 | Booking `Non Refund` bị hủy có tính là mất doanh thu không? | **Mặc định khách sạn giữ 20% tiền cọc.** Giữ cả thiệt hại gộp (`lost_revenue`) lẫn thiệt hại thực (`net_lost_revenue`); what-if cho đổi tỉ lệ | `gold/00_business_assumptions.sql`, cột `deposit_retained`, `net_lost_revenue` |
+| Q4 | Thêm nguồn mã quốc gia ISO 3166? | **Đồng ý** | `etl/extract/countries.py`, `bronze/03`, `silver/03` |
+| Q5 | Có tách bảng accumulating snapshot? | **Không**: `fact_booking` đã có đủ 4 mốc ngày | |

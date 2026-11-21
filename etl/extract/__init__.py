@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from etl.extract import hotel_bookings, pt_holidays
+from etl.extract import countries, hotel_bookings, pt_holidays
 
 
 @dataclass(frozen=True)
@@ -24,4 +24,5 @@ class Source:
 SOURCES: list[Source] = [
     Source("hotel_bookings", "hotel_bookings.csv", "bronze.hotel_bookings", hotel_bookings.extract),
     Source("pt_holidays", "pt_holidays.csv", "bronze.pt_holidays", pt_holidays.extract),
+    Source("countries", "countries.csv", "bronze.countries", countries.extract),
 ]
