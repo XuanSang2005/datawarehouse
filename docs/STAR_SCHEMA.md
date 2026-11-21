@@ -507,7 +507,7 @@ Bảng do code trong `ml/` **tạo và ghi**, không nằm trong `database/gold/
 | Bảng | Grain | Cột |
 |---|---|---|
 | `gold.ml_booking_risk` | 1 booking × 1 phiên bản model | `booking_id` (→ `fact_booking`), `model_version`, `cancel_probability` NUMERIC(5,4), `risk_band` (`Low`/`Medium`/`High`), `is_test_set` BOOLEAN, `scored_at` |
-| `gold.ml_demand_forecast` | 1 khách sạn × 1 tuần × 1 phiên bản | `hotel_key`, `week_start_date` (→ `dim_date.week_start_date`), `model_version`, `predicted_room_nights`, `lower_bound`, `upper_bound`, `actual_room_nights` (NULL nếu là tương lai) |
+| `gold.ml_demand_forecast` | 1 khách sạn × 1 tuần × 1 phiên bản | `hotel_key`, `week_start_date` (→ `dim_date.week_start_date`), `model_version`, `predicted_room_nights`, `lower_bound`, `upper_bound`, `actual_room_nights` (NULL nếu là tương lai), `horizon_weeks` (số tuần tính từ origin dự báo; khoảng tin cậy rộng dần theo horizon), `created_at` |
 | `gold.ml_model_metrics` | 1 model × 1 metric | `model_version`, `model_name`, `metric_name` (`auc`, `precision`, `recall`, `mape`…), `metric_value`, `trained_at` |
 
 Chia train/test theo thời gian (quy tắc 7): train theo `arrival_date` < 2017-01-01, test là năm 2017.
