@@ -61,6 +61,7 @@ FROM meta.etl_run_log ORDER BY log_id DESC LIMIT 20;
 |---|---|
 | `init/...` | `database/init/` |
 | `extract/<nguon>` | `etl/extract/<nguon>.py` (lỗi mạng: thử lại, hoặc tải file thủ công vào `data/raw/`) |
+| `extract/weather_daily` | `etl/extract/weather.py`. Xem bảng Open-Meteo bên dưới |
 | `bronze/NN_xxx.sql` | `database/bronze/NN_xxx.sql` (DDL) |
 | `bronze/load_<nguon>` | `etl/load/bronze_loader.py`. Thường do **header CSV không khớp DDL** (thông báo liệt kê cột thiếu/thừa) |
 | `silver/NN_xxx.sql`, `gold/NN_xxx.sql` | Đúng file SQL đó |
@@ -72,8 +73,42 @@ FROM meta.etl_run_log ORDER BY log_id DESC LIMIT 20;
 | `ModuleNotFoundError: psycopg / pandas...` | Chưa activate venv, hoặc chưa `pip install -r requirements-dev.txt` |
 | `relation "silver.xxx" does not exist` | Chưa chạy bước trước. Chạy lại toàn bộ: `python -m etl.run_pipeline` |
 | Gold chạy sai thứ tự (fact trước dim) | Đổi số trong tên file: dim `1x`, fact `3x` |
+| `checks/05_silver_weather_daily_coverage` hoặc `14_gold_weather_coverage` failed | File `data/raw/weather_daily.csv` cũ hoặc thiếu ngày. Tải lại: `python -m etl.run_pipeline --refresh-sources` |
+
+**Nguồn thời tiết Open-Meteo** (`extract/weather_daily`):
+
+| Thông báo | Nguyên nhân | Cách sửa |
+|---|---|---|
+| `Open-Meteo trả HTTP 429 ..., thử lại sau 2s` (WARNING) | Quá giới hạn request/phút | Không cần làm gì, extract tự thử lại tối đa 4 lần |
+| `Open-Meteo trả HTTP 429 ...: Daily API request limit exceeded` | Quá giới hạn ~10.000 request/ngày **theo IP** (mạng trường/công ty, VPN dùng chung IP dễ gặp) | Đổi mạng (ví dụ 4G) rồi chạy lại, hoặc xin file `weather_daily.csv` của bạn cùng nhóm bỏ vào `data/raw/`. Pipeline thấy file có sẵn sẽ không gọi API nữa |
+| `WeatherDataError: Ngày trả về không khớp ...` | API trả thiếu/trùng ngày (hiếm) | Chạy lại `--refresh-sources`. File lỗi không được ghi vào `data/raw/` |
 
 **Debug một file SQL riêng lẻ:** copy nội dung file vào psql, DBeaver hoặc VS Code SQLTools rồi chạy từng đoạn.
+
+## 2b. Docker demo (`docker compose --profile app up -d --build`)
+
+Kiểm tra demo từ đầu (nên làm trước buổi bảo vệ):
+```bash
+docker compose --profile app down -v
+```
+```bash
+docker compose --profile app up -d --build
+```
+```bash
+docker compose logs -f etl
+```
+Đợi `✔ Pipeline hoàn tất`, rồi mở http://localhost:5173/system.
+
+| Triệu chứng | Nguyên nhân | Cách sửa |
+|---|---|---|
+| Trang chạy nhưng không có số liệu, `relation "gold.xxx" does not exist` | Container `etl` chưa chạy xong hoặc bị lỗi | `docker compose ps -a` xem `etl` có `Exited (0)` không; `docker compose logs etl` để xem bước lỗi, rồi tra bảng §2 |
+| `etl` báo `Không kết nối được DB` | `db` chưa healthy, hoặc `.env` khác lúc tạo volume | `docker compose logs db`; reset: `docker compose --profile app down -v` |
+| Sửa SQL/ETL nhưng Docker vẫn chạy code cũ | Image chưa build lại | Thêm `--build`, hoặc `docker compose build etl` |
+| Muốn tải lại file nguồn trong Docker | File nằm trong volume `rawdata` | `docker compose run --rm etl python -m etl.run_pipeline --refresh-sources` |
+| Build lỗi `CERTIFICATE_VERIFY_FAILED` khi `pip install` / `npm ci` | Mạng có proxy chặn SSL (mạng công ty) | Build ở mạng khác. Đây không phải lỗi của repo |
+
+**Vấn đề đã phát hiện khi kiểm tra demo (issue #8):** trước đây `--profile app` chỉ bật db + backend + frontend,
+nên từ DB rỗng ứng dụng chạy nhưng **không có dữ liệu** (phải tự chạy pipeline bằng venv). Đã thêm service `etl`.
 
 ## 3. Backend
 
@@ -131,7 +166,8 @@ SELECT * FROM silver.hotel_bookings WHERE booking_id = 42;
 
 Vào tab **Actions** trên GitHub → bấm vào lần chạy đỏ → job đỏ:
 - **Python (lint + test)**: chạy `ruff check .` và `pytest` ở máy mình để xem lỗi.
-- **ETL pipeline**: chạy `python -m etl.run_pipeline` ở máy mình.
+- **ETL pipeline**: chạy `python -m etl.run_pipeline` ở máy mình. CI giữ `data/raw/` bằng cache; muốn CI tải lại thì sửa code trong `etl/extract/`.
+- **Docker demo**: chạy các lệnh ở §2b; log của mọi container nằm ở bước cuối của job.
 - **Frontend**: chạy `cd frontend && npm run lint && npm run build`.
 
 ---

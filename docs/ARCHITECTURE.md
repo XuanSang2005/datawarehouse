@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                                   NGUỒN DỮ LIỆU                                         │
-│   hotel_bookings.csv  pt_holidays (holidays)  countries (ISO 3166)  weather (dự kiến)   │
+│   hotel_bookings.csv  pt_holidays (holidays)  countries (ISO 3166)  weather (Open-Meteo) │
 └───────────────┬─────────────────────────────────────────────────────────────────────────┘
                 │  etl/extract/*.py  ->  data/raw/
                 ▼
@@ -84,6 +84,10 @@ Mỗi bước, và mỗi file SQL, được ghi một dòng vào `meta.etl_run_l
      │profile (junk)│           │           └──────────────┘
      └──────────────┘   ┌───────▼──────────────┐
                         │ fact_daily_occupancy │ (periodic snapshot: 1 dòng = 1 khách sạn × 1 đêm)
+                        └──────────┬───────────┘
+                                   │ 1 : 1 (hotel_key + ngày, không nhân bản dòng)
+                        ┌──────────▼───────────┐
+                        │  fact_daily_weather  │ (1 dòng = 1 khách sạn × 1 ngày, Open-Meteo)
                         └──────────────────────┘
 ```
 
@@ -92,7 +96,11 @@ Mỗi bước, và mỗi file SQL, được ghi một dòng vào `meta.etl_run_l
   `booked_revenue`, `realized_revenue`, `lost_revenue`, `deposit_retained`, `net_lost_revenue`, `cancel_lead_days`.
 - **`fact_daily_occupancy`**: grain = 1 khách sạn × 1 đêm (1.586 dòng, 2015-07-01 → 2017-08-31).
   Measures: `rooms_occupied`, `rooms_canceled`, `rooms_booked`, `guests_in_house`, `arrivals`, `departures`, `realized_revenue`, `lost_revenue`. Dùng cho dự báo nhu cầu và what-if overbooking.
-- **`kpi_*`** (view): tổng hợp sẵn cho từng trang dashboard.
+- **`fact_daily_weather`**: grain = 1 khách sạn × 1 ngày (2.192 dòng, 2015–2017; Lisbon cho City Hotel, Faro cho Resort Hotel).
+  Measures: nhiệt độ, lượng mưa, giờ nắng, gió, `is_rainy_day`. PK trùng khóa nối nên ghép với `fact_daily_occupancy` (1:1)
+  và `fact_booking` (N:1 theo ngày đến) không nhân bản dòng.
+- **Ngày lễ**: thuộc tính `is_holiday`, `holiday_name` của `dim_date` (lễ quốc gia Bồ Đào Nha).
+- **`kpi_*`** (view): tổng hợp sẵn cho từng trang dashboard. `kpi_daily_occupancy_weather` ghép occupancy + lịch + thời tiết theo đêm.
 - **`business_assumptions`**: tham số giả định mà dataset không có (tỉ lệ cọc Non Refund giữ lại, mặc định 20%).
 - **`ml_booking_risk`**, **`ml_demand_forecast`**, **`ml_model_metrics`**: do `ml/` ghi.
 
@@ -142,6 +150,19 @@ pages/*.tsx ──dùng──▶ hooks/useApi.ts ──gọi──▶ api/endpoi
 | Backend | `localhost:8000` (`/docs` = Swagger) | |
 | Frontend | `localhost:5173` | |
 
+### Chạy bằng Docker (demo)
+
+`docker compose --profile app up -d --build` bật 4 service:
+
+| Service | Image | Vai trò |
+|---|---|---|
+| `db` | `postgres:16-alpine` | Lakehouse. Dữ liệu ở volume `pgdata` |
+| `etl` | `etl/Dockerfile` (context = gốc repo) | Chạy `python -m etl.run_pipeline` **một lần** rồi thoát, sau khi `db` healthy. File nguồn giữ ở volume `rawdata` |
+| `backend` | `backend/Dockerfile` | FastAPI, chờ `db` healthy (không chờ `etl`: trang System hiển thị tiến độ pipeline) |
+| `frontend` | `frontend/Dockerfile` | nginx phục vụ bản build, proxy `/api` sang `backend` |
+
+CI có job `docker` chạy đúng lệnh trên từ DB rỗng, chờ `etl` thoát với mã 0 rồi gọi `/api/health` qua frontend.
+
 ## 8. Lý do chọn công nghệ
 
 | Lựa chọn | Lý do | Phương án đã cân nhắc |
@@ -161,4 +182,5 @@ pages/*.tsx ──dùng──▶ hooks/useApi.ts ──gọi──▶ api/endpoi
 | 2026-11-21 | Bronze lưu TEXT; silver không lọc dòng; quyết định lọc dữ liệu bất thường đặt ở gold |
 | 2026-11-21 | Chốt star schema (`STAR_SCHEMA.md`): 7 dimension, 2 fact, 5 view KPI |
 | 2026-11-21 | Loại 181 dòng bất thường khỏi fact; `CN` → `CAN`; giả định giữ 20% cọc khi booking Non Refund bị hủy; thêm nguồn mã ISO 3166 |
+| 2026-11-21 | Thêm nguồn thời tiết Open-Meteo (Lisbon, Faro) thành fact riêng `fact_daily_weather`; thêm service `etl` vào Docker Compose để demo chạy được từ DB rỗng (issue #8) |
 | 2026-11-21 | Backend E5: API dùng mã `UNK` cho quốc gia không rõ; what-if chỉ nhận thêm đặt phòng ở đêm "kín trên sổ" (đặt ≥ công suất), dùng tỉ lệ hủy thực tế từng đêm |

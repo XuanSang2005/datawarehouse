@@ -39,8 +39,34 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r etl/requirements.txt
+      # Giữ file nguồn giữa các lần chạy CI để không gọi lại API (Open-Meteo giới hạn request/ngày).
+      # Đổi code extract -> key đổi -> tải lại.
+      - uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: raw-sources-${{ hashFiles('etl/extract/**') }}
       - run: cp .env.example .env
       - run: python -m etl.run_pipeline
+
+  docker:
+    name: Docker demo (DB rỗng -> pipeline -> app)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose --profile app up -d --build
+      - name: Đợi container etl chạy xong pipeline
+        run: |
+          code=$(timeout 900 docker wait "$(docker compose ps -aq etl)")
+          docker compose logs etl
+          test "$code" = "0"
+      - name: Kiểm tra frontend -> backend -> database
+        run: |
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://localhost:5173/api/health \
+            | tee /dev/stderr | grep -q '"database":"up"'
+          curl -fsS -o /dev/null http://localhost:5173/
+      - if: failure()
+        run: docker compose --profile app logs
 
   frontend:
     name: Frontend (lint + build)
