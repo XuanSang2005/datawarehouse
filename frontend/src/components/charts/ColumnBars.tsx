@@ -1,5 +1,5 @@
 // Simple vertical columns like the prototype's "Cancellation by lead time": big number on top, mono label underneath.
-// Built with divs instead of Recharts because there are ≤ 10 columns and the tops need Bodoni text.
+// Built with divs instead of Recharts because there are ≤ 10 columns and the tops need large display text.
 import { pct } from '../../lib/format'
 
 export interface Column {
@@ -33,7 +33,7 @@ export default function ColumnBars({
           title={c.title}
           aria-label={`${c.label}: ${pct(c.value)}`}
         >
-          <b className="font-display text-lg font-medium sm:text-[22px]">{pct(c.value, 0)}</b>
+          <b className="font-display text-lg font-bold sm:text-[22px]">{pct(c.value, 0)}</b>
           <i
             className={`block w-full max-w-16 origin-bottom transition-[height] duration-700 ease-ledger ${
               tone === 'rust' ? 'bg-rust' : 'bg-rifle'

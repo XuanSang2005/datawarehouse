@@ -149,7 +149,7 @@ export default function ForecastPage() {
                 <small className="font-mono text-[11.5px] text-oyster-ink">
                   W{isoWeek(w.week)} · {dayMonth(w.week)}
                 </small>
-                <b className="font-display text-[30px] leading-[1.05] font-medium tabular-nums">{num(w.total)}</b>
+                <b className="font-display text-[30px] leading-[1.05] font-bold tabular-nums">{num(w.total)}</b>
                 {w.perHotel.length === 1 ? (
                   <small className="font-mono text-[11.5px] text-oyster-ink">
                     {num(w.perHotel[0].lo)}–{num(w.perHotel[0].hi)}

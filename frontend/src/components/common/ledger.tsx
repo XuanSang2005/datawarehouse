@@ -5,14 +5,19 @@ import { compact, eur, eurCompact, pct } from '../../lib/format'
 
 /** Uppercase, letter-spaced mono caption (".cap" in the prototype). */
 export function Cap({ children, className = '' }: { children: ReactNode; className?: string }) {
+  // Default colour only when the caller sets none: two text-* colour classes would conflict
+  // (e.g. text-kangaroo on the dark focal block lost to text-oyster-ink and became unreadable).
+  const hasColour = /(^|\s)text-(merino|kangaroo|oyster|oyster-ink|rifle|cedar|rust|brass)(\s|$)/.test(className)
   return (
-    <span className={`font-mono text-[11.5px] tracking-[0.14em] uppercase text-oyster-ink ${className}`}>
+    <span
+      className={`font-mono text-[11.5px] tracking-[0.14em] uppercase ${hasColour ? '' : 'text-oyster-ink'} ${className}`}
+    >
       {children}
     </span>
   )
 }
 
-/** Large page title (Bodoni). */
+/** Large page title (Archivo). */
 export function PageHead({ title, aside }: { title: ReactNode; aside?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 animate-rise">
@@ -24,7 +29,7 @@ export function PageHead({ title, aside }: { title: ReactNode; aside?: ReactNode
   )
 }
 
-/** A content section: top rule, Bodoni title, right-hand aside (legend/tabs). */
+/** A content section: top rule, Archivo title, right-hand aside (legend/tabs). */
 export function Section({
   title,
   aside,
@@ -68,7 +73,7 @@ export function Focal({
 export function BigNumber({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`font-display font-medium leading-[0.86] tracking-[-0.035em] whitespace-nowrap tabular-nums ${className}`}
+      className={`font-display font-bold leading-[0.86] tracking-[-0.035em] whitespace-nowrap tabular-nums ${className}`}
     >
       {children}
     </div>
@@ -235,7 +240,7 @@ export function KpiStrip({ items }: { items: KpiItem[] }) {
         >
           <Cap>{k.label}</Cap>
           <span
-            className={`font-display font-medium text-[clamp(34px,4.4vw,62px)] leading-[0.95] tracking-[-0.02em] whitespace-nowrap tabular-nums ${
+            className={`font-display font-bold text-[clamp(34px,4.4vw,62px)] leading-[0.95] tracking-[-0.02em] whitespace-nowrap tabular-nums ${
               k.alert ? 'text-rust' : ''
             }`}
           >

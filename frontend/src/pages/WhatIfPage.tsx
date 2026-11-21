@@ -273,7 +273,7 @@ export default function WhatIfPage() {
               ).map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between gap-3 border-t border-merino/25 py-2.5">
                   <span className="text-sm text-kangaroo">{k}</span>
-                  <b className="font-display text-[30px] font-medium tabular-nums">{v}</b>
+                  <b className="font-display text-[30px] font-bold tabular-nums">{v}</b>
                 </div>
               ))}
             </div>
@@ -420,7 +420,7 @@ function Breakdown({ data, depositOn, total }: { data: WhatIfResponse; depositOn
         ).map(([k, v], i) => (
           <div key={k} className={`flex flex-col gap-1 ${i % 2 ? 'border-l border-kangaroo pl-5' : ''} ${i === 2 ? 'sm:border-l sm:border-kangaroo sm:pl-5' : ''}`}>
             <Cap>{k}</Cap>
-            <b className="font-display text-[30px] font-medium tabular-nums">{v}</b>
+            <b className="font-display text-[30px] font-bold tabular-nums">{v}</b>
           </div>
         ))}
       </div>

@@ -167,7 +167,7 @@ export default function SystemStatusPage() {
                   i % 2 === 1 ? 'max-md:border-l max-md:border-kangaroo max-md:pl-6' : ''
                 }`}
               >
-                <b className="font-display text-[48px] leading-none font-medium tabular-nums">{num(c.rows_affected ?? 0)}</b>
+                <b className="font-display text-[48px] leading-none font-bold tabular-nums">{num(c.rows_affected ?? 0)}</b>
                 <span className="font-semibold [overflow-wrap:anywhere]">{fileName(c.step).replace(/_/g, ' ')}</span>
                 <StatusBadge
                   value={c.status}

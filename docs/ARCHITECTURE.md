@@ -143,7 +143,7 @@ pages/*.tsx ──use──▶ hooks/useApi.ts ──call──▶ api/endpoints
   `components/filters/FilterBar.tsx`. Values persist across pages and are sent to the backend as query params.
 - The frontend **does not compute KPIs**: rates, ADR and what-if all come from the backend; the FE only formats them (`lib/format.ts`, en-GB style).
 - The UI follows the prototype in `docs/design/prototype/` (a "ledger" style: paper background, rules instead of cards, one
-  Rifle green block per page as the accent, large numbers in Bodoni Moda). Color/font tokens are declared in one place in
+  Rifle green block per page as the accent, large numbers and titles in Archivo, a heavy low-contrast sans chosen over the prototype's Bodoni Moda for legibility). Color/font tokens are declared in one place in
   `styles/global.css` (Tailwind's `@theme`) and `lib/theme.ts` (hex values for SVG).
 
 | Page | Users | Main endpoints |

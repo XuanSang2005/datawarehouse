@@ -143,7 +143,7 @@ export default function CancellationPage() {
         </div>
         <div className="flex flex-col gap-1.5 pb-2">
           <Cap className="text-kangaroo">Room revenue at risk</Cap>
-          <b className="font-display text-[40px] leading-none font-medium tabular-nums">
+          <b className="font-display text-[40px] leading-none font-bold tabular-nums">
             {list.data ? <Money value={list.data.expected_loss_total} /> : '—'}
           </b>
           <span className="text-sm text-kangaroo">
@@ -166,7 +166,7 @@ export default function CancellationPage() {
               className="range-ledger range-on-focal"
               style={{ '--p': `${((thr * 100 - 5) / 90) * 100}%` } as CSSProperties}
             />
-            <output htmlFor="thr" className="min-w-[74px] text-right font-display text-[34px] leading-none">
+            <output htmlFor="thr" className="min-w-[74px] text-right font-display text-[34px] leading-none font-bold">
               {pct(thr, 0)}
             </output>
           </div>
@@ -334,7 +334,7 @@ function BookingDetail({
       className="mt-8 flex flex-col gap-6 border-t border-cedar pt-6 xl:sticky xl:top-28 xl:mt-0 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-10"
     >
       <div className="flex items-end justify-between gap-4">
-        <div className="font-display text-[84px] leading-[0.82] font-medium tracking-[-0.03em] text-rust tabular-nums sm:text-[104px]">
+        <div className="font-display text-[84px] leading-[0.82] font-bold tracking-[-0.03em] text-rust tabular-nums sm:text-[104px]">
           {pct(b.cancel_probability, 0)}
         </div>
         <div className="text-right">
@@ -461,7 +461,7 @@ function BreakdownSection({
             <>
               <div className="flex flex-col gap-1.5">
                 <Cap>Model AUC, 2017 test</Cap>
-                <b className="font-display text-[64px] leading-[0.9] font-medium">
+                <b className="font-display text-[64px] leading-[0.9] font-bold">
                   {test?.auc != null ? test.auc.toFixed(3) : '—'}
                 </b>
               </div>
@@ -477,7 +477,7 @@ function BreakdownSection({
                     <dt>
                       <Cap>{k}</Cap>
                     </dt>
-                    <dd className="mt-0.5 font-display text-[26px] font-medium tabular-nums">{pct(v ?? null, 0)}</dd>
+                    <dd className="mt-0.5 font-display text-[26px] font-bold tabular-nums">{pct(v ?? null, 0)}</dd>
                   </div>
                 ))}
               </dl>
