@@ -1,7 +1,9 @@
 -- =============================================================================
 -- gold.dim_hotel — Dimension khách sạn (conformed)
 -- Nguồn : DISTINCT silver.hotel_bookings.hotel_name + thuộc tính mô tả từ bài báo gốc
---         (City Hotel ở Lisbon, Resort Hotel ở Algarve; tọa độ dùng để nối thời tiết sau này)
+--         (City Hotel ở Lisbon, Resort Hotel ở Algarve)
+--   * weather_location: điểm đo thời tiết của khách sạn (khóa nối với silver.weather_daily.location,
+--     dùng trong gold/32_fact_daily_weather.sql). Tọa độ trùng với etl/extract/weather.py.
 -- Grain : 1 dòng = 1 khách sạn (2 dòng)
 -- Cố ý KHÔNG có cột số phòng: dataset không có công suất (quy tắc 10 trong CLAUDE.md).
 -- =============================================================================
@@ -23,7 +25,9 @@ SELECT
     CASE hotel_name WHEN 'City Hotel' THEN 38.72230 WHEN 'Resort Hotel' THEN 37.01930 END::NUMERIC(8, 5)
                                                                                    AS latitude,
     CASE hotel_name WHEN 'City Hotel' THEN -9.13930 WHEN 'Resort Hotel' THEN -7.93040 END::NUMERIC(8, 5)
-                                                                                   AS longitude
+                                                                                   AS longitude,
+    CASE hotel_name WHEN 'City Hotel' THEN 'Lisbon' WHEN 'Resort Hotel' THEN 'Faro' END
+                                                                                   AS weather_location
 FROM hotels;
 
 ALTER TABLE gold.dim_hotel ADD PRIMARY KEY (hotel_key);

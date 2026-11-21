@@ -1,7 +1,7 @@
 # Thiết kế chi tiết Star Schema (lớp Gold)
 
 > Trạng thái: **ĐÃ CHỐT và ĐÃ TRIỂN KHAI** (2026-11-21). Các quyết định nằm ở [mục 9](#9-các-quyết-định-đã-chốt).
-> SQL: `database/gold/` (danh sách file ở [mục 8](#8-triển-khai)). Mô tả cột ngắn gọn: `docs/DATA_DICTIONARY.md` mục 4.
+> SQL: `database/gold/` (danh sách file ở [mục 8](#8-triển-khai)). Mô tả cột ngắn gọn: `docs/DATA_DICTIONARY.md` mục 6.
 >
 > Mọi con số trong tài liệu này là kết quả chạy pipeline thật trên `hotel_bookings.csv` (119.390 dòng).
 
@@ -11,10 +11,10 @@
 
 | Bước | Quyết định |
 |---|---|
-| **1. Chọn quy trình nghiệp vụ** | (a) **Đặt phòng**: khách đặt, có thể hủy hoặc đến ở. (b) **Lưu trú theo đêm**: phòng nào có khách vào đêm nào. |
-| **2. Khai báo grain** | `fact_booking`: **1 dòng = 1 booking**. `fact_daily_occupancy`: **1 dòng = 1 khách sạn × 1 đêm lưu trú**. |
+| **1. Chọn quy trình nghiệp vụ** | (a) **Đặt phòng**: khách đặt, có thể hủy hoặc đến ở. (b) **Lưu trú theo đêm**: phòng nào có khách vào đêm nào. (c) **Bối cảnh ngày**: thời tiết tại từng khách sạn mỗi ngày (nguồn ngoài, Open-Meteo). |
+| **2. Khai báo grain** | `fact_booking`: **1 dòng = 1 booking**. `fact_daily_occupancy`: **1 dòng = 1 khách sạn × 1 đêm lưu trú**. `fact_daily_weather`: **1 dòng = 1 khách sạn × 1 ngày**. |
 | **3. Xác định dimension** | Ngày (4 vai), khách sạn, quốc gia, kênh bán, loại phòng (2 vai), đại lý, hồ sơ booking (junk). |
-| **4. Xác định measure** | Số booking, số đêm, số khách, doanh thu (đã đặt / thực thu / mất do hủy), lead time, ADR (non-additive). |
+| **4. Xác định measure** | Số booking, số đêm, số khách, doanh thu (đã đặt / thực thu / mất do hủy), lead time, ADR (non-additive). Nhiệt độ, lượng mưa, giờ nắng (non-additive theo thời gian trừ lượng mưa và số ngày mưa). |
 
 ### Bus matrix: dimension nào dùng cho fact nào
 
@@ -22,11 +22,13 @@
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | `fact_booking` | ✔ ×4 vai | ✔ | ✔ | ✔ | ✔ ×2 vai | ✔ | ✔ |
 | `fact_daily_occupancy` | ✔ (đêm lưu trú) | ✔ | | | | | |
+| `fact_daily_weather` | ✔ (ngày) | ✔ | | | | | |
 | `ml_booking_risk` (ml/) | qua `booking_id` | | | | | | |
 | `ml_demand_forecast` (ml/) | ✔ (tuần) | ✔ | | | | | |
 
-`dim_date` và `dim_hotel` là **conformed dimension**: hai fact dùng chung, nên dashboard ghép (drill-across) được
-"doanh thu theo booking" với "phòng có khách theo đêm" trên cùng trục thời gian và khách sạn.
+`dim_date` và `dim_hotel` là **conformed dimension**: ba fact dùng chung, nên dashboard ghép (drill-across) được
+"doanh thu theo booking", "phòng có khách theo đêm" và "thời tiết theo ngày" trên cùng trục thời gian và khách sạn.
+Ngày lễ không cần fact riêng: là thuộc tính `is_holiday`, `holiday_name` của `dim_date` (lễ quốc gia, áp dụng cho cả 2 khách sạn).
 
 ---
 
@@ -47,6 +49,8 @@ erDiagram
     dim_booking_profile ||--o{ fact_booking : "booking_profile_key"
     dim_date ||--o{ fact_daily_occupancy : "stay_date_key"
     dim_hotel ||--o{ fact_daily_occupancy : "hotel_key"
+    dim_date ||--o{ fact_daily_weather : "date_key"
+    dim_hotel ||--o{ fact_daily_weather : "hotel_key"
 
     fact_booking {
         bigint booking_id PK "degenerate dim"
@@ -83,6 +87,16 @@ erDiagram
         numeric realized_revenue
         numeric lost_revenue
     }
+    fact_daily_weather {
+        int hotel_key PK, FK
+        int date_key PK, FK
+        text weather_group
+        numeric temp_max_c
+        numeric temp_mean_c
+        numeric precipitation_mm
+        numeric sunshine_hours
+        smallint is_rainy_day
+    }
     dim_date {
         int date_key PK "YYYYMMDD"
         date full_date
@@ -99,6 +113,7 @@ erDiagram
         text hotel_name
         text hotel_type
         text city
+        text weather_location
     }
     dim_country {
         int country_key PK
@@ -150,10 +165,11 @@ Bản ASCII (dùng cho slide):
    │dim_booking_  │──┘                     │                     │  ┌──────────────┐
    │profile (junk)│                        │                     └──│  dim_agent   │ (SCD2-ready)
    └──────────────┘                        │ expand theo đêm         └──────────────┘
-                                ┌──────────▼───────────┐
-                                │ fact_daily_occupancy │  1 dòng = 1 khách sạn × 1 đêm
-                                │ (periodic snapshot)  │  dùng chung dim_date, dim_hotel
-                                └──────────────────────┘
+                                ┌──────────▼───────────┐       ┌──────────────────────┐
+                                │ fact_daily_occupancy │ 1 : 1 │  fact_daily_weather  │  1 dòng = 1 khách sạn × 1 ngày
+                                │ (periodic snapshot)  │◀─────▶│  (Open-Meteo)        │  dùng chung dim_date, dim_hotel
+                                └──────────────────────┘       └──────────────────────┘
+                                  1 dòng = 1 khách sạn × 1 đêm
 ```
 
 ---
@@ -229,8 +245,10 @@ Trên dashboard và trong view, mỗi vai được dùng qua alias: `JOIN gold.d
 | `city` | TEXT | `Lisbon` | `Algarve` |
 | `country_code` | TEXT | `PRT` | `PRT` |
 | `latitude`, `longitude` | NUMERIC(8,5) | Lisbon | Faro (Algarve) |
+| `weather_location` | TEXT | `Lisbon` | `Faro` |
 
-- Tọa độ dùng để nối dữ liệu thời tiết Open-Meteo sau này.
+- `weather_location` là điểm đo thời tiết của khách sạn, khóa nối với `silver.weather_daily.location`
+  (tọa độ trùng với `etl/extract/weather.py`). Dùng trong `fact_daily_weather`.
 - **Cố ý không có cột số phòng:** dataset không có công suất (quy tắc 10 trong `CLAUDE.md`). Occupancy và RevPAR tính ở backend từ tham số người dùng nhập.
 
 ### 4.3 `gold.dim_country`
@@ -395,7 +413,7 @@ UNIQUE trên 5 cột thuộc tính. Phân bố `party_type`: Couple 81.559, Solo
 |---|---|
 | ✅ Được dùng (biết tại lúc đặt) | `lead_time`, ngày đến (tháng, tuần, `is_holiday`), số đêm, số khách, `hotel`, `country`, `channel`, `agent`, `reserved_room_type`, cả junk profile, `previous_*`, `days_in_waiting_list`, `adr`, `total_of_special_requests`, `required_car_parking_spaces` |
 | ⚠ Cân nhắc kỹ | `booking_changes`, `assigned_room_type_key`, `is_room_changed` |
-| ⛔ Cấm | `status_date_key`, `reservation_status`, `cancel_lead_days`, `realized_revenue`, `lost_revenue`, `deposit_retained`, `net_lost_revenue`, `room_nights_sold` (đều suy ra từ kết quả hủy) |
+| ⛔ Cấm | `status_date_key`, `reservation_status`, `cancel_lead_days`, `realized_revenue`, `lost_revenue`, `deposit_retained`, `net_lost_revenue`, `room_nights_sold` (đều suy ra từ kết quả hủy). Thời tiết thực tế ngày đến (`fact_daily_weather`): lúc đặt phòng chưa biết |
 
 ### 5.2 `gold.fact_daily_occupancy`: periodic snapshot
 
@@ -426,6 +444,40 @@ UNIQUE trên 5 cột thuộc tính. Phân bố `party_type`: Couple 81.559, Solo
 - **Occupancy** = `rooms_occupied / capacity` và **RevPAR** = `realized_revenue / capacity`, với `capacity` là tham số người dùng nhập (tính ở backend, không lưu ở đây).
 - **Đối chiếu (check `12_gold_occupancy_reconciliation`):** tổng `rooms_occupied` theo khách sạn = tổng số đêm (trong phạm vi) của các booking không hủy ở `fact_booking`.
 
+### 5.3 `gold.fact_daily_weather`: periodic snapshot (nguồn ngoài)
+
+- **Mục đích:** gắn bối cảnh thời tiết vào nhu cầu và hủy phòng ("đêm mưa ở Algarve có ít khách hơn không?",
+  feature cho dự báo nhu cầu). Đi cùng `dim_date.is_holiday` / `is_weekend` để phân tích theo ngày.
+- **Nguồn:** `silver.weather_daily` (Open-Meteo Historical Weather API, mô hình tái phân tích ERA5) tại 2 điểm đo:
+  **Lisbon** cho City Hotel, **Faro** cho Resort Hotel. Nối với `dim_hotel` qua `dim_hotel.weather_location`.
+- **Grain:** **1 dòng = 1 khách sạn × 1 ngày lịch.** PK `(hotel_key, date_key)`, FK sang `dim_hotel`, `dim_date`.
+- **Phạm vi:** 2015-01-01 → 2017-12-31 (1.096 ngày) → **2.192 dòng**. Rộng hơn `fact_daily_occupancy` để phủ cả ngày đến lẫn đêm lưu trú.
+- **Vì sao là fact riêng, không thêm cột vào `fact_daily_occupancy`?** (1) phạm vi ngày khác nhau; (2) giữ một nguồn một bảng,
+  nguồn thời tiết lỗi thì không làm hỏng fact chính; (3) nối được với **cả hai** fact mà không nhân bản dòng, vì PK chính là khóa nối:
+
+| Nối với | Khóa | Quan hệ | Ý nghĩa |
+|---|---|---|---|
+| `fact_daily_occupancy` | `hotel_key`, `stay_date_key = date_key` | 1 : 1 | Thời tiết của đêm lưu trú (view `kpi_daily_occupancy_weather`) |
+| `fact_booking` | `hotel_key`, `arrival_date_key = date_key` | N : 1 | Thời tiết của ngày đến |
+
+| Cột | Kiểu | Ý nghĩa | Tính cộng |
+|---|---|---|---|
+| `hotel_key`, `date_key` | INT PK, FK | | |
+| `weather_code` | SMALLINT | Mã thời tiết WMO trong ngày | Không |
+| `weather_group` | TEXT | Nhóm từ mã WMO: `Clear` (0–1), `Cloudy` (2–3), `Fog` (45, 48), `Drizzle` (51–57), `Rain` (61–67, 80–82), `Snow` (71–77, 85–86), `Thunderstorm` (95–99) | Không (dùng để lọc/nhóm) |
+| `temp_max_c`, `temp_min_c`, `temp_mean_c` | NUMERIC(4,1) | Nhiệt độ ở 2 m (°C) | Non-additive: lấy `avg` theo ngày |
+| `precipitation_mm`, `rain_mm` | NUMERIC(6,1) | Tổng lượng mưa (mm) | Additive theo thời gian |
+| `precipitation_hours` | NUMERIC(4,1) | Số giờ có mưa | Additive theo thời gian |
+| `wind_speed_max_kmh` | NUMERIC(5,1) | Gió mạnh nhất ở 10 m (km/h) | Non-additive (`max`/`avg`) |
+| `sunshine_hours` | NUMERIC(5,2) | Số giờ nắng | Additive theo thời gian |
+| `is_rainy_day` | SMALLINT 0/1 | `precipitation_mm >= 1` (ngưỡng "ngày mưa" thông dụng) | `SUM` = số ngày mưa |
+
+- **Không cộng theo khách sạn:** hai khách sạn ở hai điểm đo khác nhau, cộng lượng mưa của 2 điểm không có nghĩa.
+- **ML:** dùng được cho **dự báo nhu cầu** (dạng trung bình nhiều năm theo tuần, hoặc như dự báo thời tiết khi triển khai thật).
+  **Không** dùng thời tiết thực tế của ngày đến làm feature **dự đoán hủy**: lúc đặt phòng (lead time trung bình ~100 ngày) chưa ai biết.
+- **Kết quả đã chạy thật (2015–2017):** Lisbon nhiệt độ TB 16,8 °C, ~453 mm/năm; Faro 18,5 °C, ~398 mm/năm. Số đêm mưa trong phạm vi
+  occupancy: City 148/793, Resort 115/793. Đêm mưa ở Resort có trung bình 134 phòng có khách so với 153 đêm khô (City: 164 so với 170).
+
 ---
 
 ## 6. Bảng KPI cho dashboard (`5x`, dạng VIEW)
@@ -440,6 +492,7 @@ Mọi measure non-additive đều tính từ tổng (quy tắc 8).
 | `52_kpi_country.sql` | `gold.kpi_country` | khách sạn × quốc gia × năm | Sales & Marketing (G5) |
 | `53_kpi_cancellation_profile.sql` | `gold.kpi_cancellation_profile` | khách sạn × nhóm lead time × `deposit_type` × `channel_group` | Rủi ro hủy phòng |
 | `54_kpi_weekly_occupancy.sql` | `gold.kpi_weekly_occupancy` | khách sạn × tuần ISO (từ `fact_daily_occupancy`) | Dự báo nhu cầu, What-if |
+| `55_kpi_daily_occupancy_weather.sql` | `gold.kpi_daily_occupancy_weather` | khách sạn × đêm (`fact_daily_occupancy` JOIN 1:1 `fact_daily_weather` + cờ lễ/cuối tuần của `dim_date`) | Phân tích thời tiết/ngày lễ, feature dự báo |
 
 Cột chung của các view `50`–`53`: `bookings`, `canceled_bookings`, `cancellation_rate = canceled / bookings`, `room_nights_sold`,
 `realized_revenue`, `lost_revenue`, `adr = realized_revenue / NULLIF(room_nights_sold, 0)`, `avg_lead_time`, `avg_los = room_nights_sold / NULLIF(bookings - canceled, 0)`.
@@ -469,11 +522,12 @@ Chia train/test theo thời gian (quy tắc 7): train theo `arrival_date` < 2017
 | silver | `database/silver/01_hotel_bookings.sql` | Thêm `departure_date`, `total_guests`, `party_type`; chuẩn hóa `CN → CAN`, `TMP → TLS` |
 | 0x | `database/gold/00_business_assumptions.sql` | Bảng tham số giả định: `non_refund_deposit_rate = 0.20` |
 | 1x | `database/gold/10_dim_date.sql` … `16_dim_booking_profile.sql` | 7 dimension |
-| 3x | `database/gold/30_fact_booking.sql`, `31_fact_daily_occupancy.sql` | 2 fact, có PK, FK và index |
-| 5x | `database/gold/50_kpi_monthly_hotel.sql` … `54_kpi_weekly_occupancy.sql` | 5 view KPI |
+| bronze/silver | `etl/extract/weather.py`, `database/bronze/04_weather_daily.sql`, `database/silver/04_weather_daily.sql` | **Nguồn mới (Q6):** thời tiết Open-Meteo theo ngày, Lisbon + Faro, 2015–2017 (2.192 dòng) |
+| 3x | `database/gold/30_fact_booking.sql`, `31_fact_daily_occupancy.sql`, `32_fact_daily_weather.sql` | 3 fact, có PK, FK và index |
+| 5x | `database/gold/50_kpi_monthly_hotel.sql` … `55_kpi_daily_occupancy_weather.sql` | 6 view KPI |
 
 Số dòng sau khi chạy: `dim_date` 2.191, `dim_hotel` 2, `dim_country` 178, `dim_channel` 26, `dim_room_type` 12, `dim_agent` 334,
-`dim_booking_profile` 154, `fact_booking` 119.209, `fact_daily_occupancy` 1.586.
+`dim_booking_profile` 154, `fact_booking` 119.209, `fact_daily_occupancy` 1.586, `fact_daily_weather` 2.192.
 
 **Check chất lượng cho gold** (`database/checks/`). Toàn vẹn khóa ngoại và độ phủ của `dim_date` do FK constraint đảm bảo (pipeline lỗi ngay nếu vi phạm), nên không cần check riêng.
 
@@ -483,6 +537,10 @@ Số dòng sau khi chạy: `dim_date` 2.191, `dim_hotel` 2, `dim_country` 178, `
 | `11_gold_revenue_reconciliation.sql` | error | `booked ≠ realized + lost` hoặc `lost ≠ deposit_retained + net_lost` (lệch > 0,01 €) | ✔ 0 |
 | `12_gold_occupancy_reconciliation.sql` | error | Tổng room-nights theo đêm ≠ tổng số đêm của booking không hủy trong phạm vi | ✔ 0 |
 | `13_gold_adr_outlier.sql` | warning | `adr > 1000` | ⚠ 1 (ADR 5.400 €, đã hủy) |
+| `14_gold_weather_coverage.sql` | error | Đêm trong `fact_daily_occupancy` hoặc ngày đến trong `fact_booking` không có thời tiết của khách sạn đó | ✔ 0 |
+
+Check cho nguồn thời tiết ở silver: `05_silver_weather_daily_coverage.sql` (error: mỗi điểm đo đủ ngày, không thủng; trùng ngày đã bị PK chặn)
+và `06_silver_weather_daily_missing_values.sql` (warning: thiếu nhiệt độ/lượng mưa). Cả hai ✔ 0.
 
 **Đổi tỉ lệ cọc mặc định:** sửa giá trị trong `00_business_assumptions.sql` rồi chạy `python -m etl.run_pipeline --from gold`.
 Trang what-if cho người dùng thử tỉ lệ khác mà không cần chạy lại pipeline: backend tính
@@ -499,3 +557,4 @@ Trang what-if cho người dùng thử tỉ lệ khác mà không cần chạy l
 | Q3 | Booking `Non Refund` bị hủy có tính là mất doanh thu không? | **Mặc định khách sạn giữ 20% tiền cọc.** Giữ cả thiệt hại gộp (`lost_revenue`) lẫn thiệt hại thực (`net_lost_revenue`); what-if cho đổi tỉ lệ | `gold/00_business_assumptions.sql`, cột `deposit_retained`, `net_lost_revenue` |
 | Q4 | Thêm nguồn mã quốc gia ISO 3166? | **Đồng ý** | `etl/extract/countries.py`, `bronze/03`, `silver/03` |
 | Q5 | Có tách bảng accumulating snapshot? | **Không**: `fact_booking` đã có đủ 4 mốc ngày | |
+| Q6 | Tích hợp thời tiết thế nào mà không nhân bản dòng fact? (issue #8) | **Fact riêng `fact_daily_weather`** grain khách sạn × ngày, nối qua conformed dim; Lisbon cho City, Faro cho Resort. Ngày lễ giữ ở `dim_date` | `etl/extract/weather.py`, `bronze/04`, `silver/04`, `gold/32`, `gold/55`, check `05`, `06`, `14` |

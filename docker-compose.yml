@@ -1,6 +1,8 @@
 # Cách dùng:
 #   docker compose up -d db                 # Dev hằng ngày: chỉ chạy PostgreSQL
-#   docker compose --profile app up -d      # Demo: chạy cả db + backend + frontend
+#   docker compose --profile app up -d --build   # Demo: db + etl (chạy pipeline 1 lần) + backend + frontend
+#   docker compose logs -f etl              # Theo dõi pipeline, đợi dòng "Pipeline hoàn tất"
+#   docker compose run --rm etl             # Chạy lại pipeline trong Docker (không cần venv)
 #   docker compose down                     # Dừng (giữ dữ liệu)
 #   docker compose down -v                  # Dừng + XÓA dữ liệu DB (reset sạch)
 name: tourism-dss
@@ -18,6 +20,24 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  etl:
+    # Chạy python -m etl.run_pipeline một lần rồi thoát (exit 0 = thành công).
+    # File nguồn tải về được giữ trong volume `rawdata`, lần sau không tải lại.
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: etl/Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    volumes:
+      - rawdata:/app/data/raw
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
 
   backend:
     profiles: ["app"]
@@ -42,3 +62,4 @@ services:
 
 volumes:
   pgdata:
+  rawdata:

@@ -1,0 +1,7 @@
+# Build context gốc repo (chỉ image etl dùng): chỉ cần etl/ và database/.
+*
+!etl/
+!database/
+**/__pycache__
+**/*.pyc
+etl/tests/

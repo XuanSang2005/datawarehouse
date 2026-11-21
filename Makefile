@@ -1,7 +1,7 @@
 # Lối tắt cho các lệnh hay dùng. Windows không có `make` -> xem lệnh gốc trong README.md.
 # Yêu cầu: đã activate venv (source .venv/bin/activate).
 
-.PHONY: help install db-up db-down db-reset db-shell etl backend frontend app-up test lint format
+.PHONY: help install db-up db-down db-reset db-shell etl etl-docker backend frontend app-up app-reset test lint format
 
 help:            ## Liệt kê các lệnh
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -25,14 +25,20 @@ db-shell:        ## Mở psql vào DB
 etl:             ## Chạy toàn bộ pipeline ETL
 	python -m etl.run_pipeline
 
+etl-docker:      ## Chạy pipeline ETL trong Docker (không cần venv)
+	docker compose run --rm etl
+
 backend:         ## Chạy backend dev (port 8000)
 	cd backend && uvicorn app.main:app --reload --port 8000
 
 frontend:        ## Chạy frontend dev (port 5173)
 	cd frontend && npm run dev
 
-app-up:          ## Chạy cả hệ thống bằng Docker (demo)
+app-up:          ## Chạy cả hệ thống bằng Docker (demo): db + etl + backend + frontend
 	docker compose --profile app up -d --build
+
+app-reset:       ## XÓA dữ liệu rồi chạy lại demo Docker từ DB rỗng
+	docker compose --profile app down -v && docker compose --profile app up -d --build
 
 test:            ## Chạy test Python
 	pytest

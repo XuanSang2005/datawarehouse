@@ -103,7 +103,26 @@ Grain: **1 dòng = 1 quốc gia/vùng lãnh thổ** (249 dòng). Bronze giữ ng
 | `region` | TEXT | `region` (châu lục UN M49); bổ sung TWN → Asia, ATA → Antarctica |
 | `sub_region` | TEXT | `sub-region` |
 
-## 5. Gold
+## 5. `bronze.weather_daily` → `silver.weather_daily`
+
+Nguồn: [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) (mô hình ERA5, CC BY 4.0), tải bằng `etl/extract/weather.py`.
+Grain: **1 dòng = 1 điểm đo × 1 ngày**, PK `(location, weather_date)`. 2 điểm đo × 1.096 ngày (2015-01-01 → 2017-12-31) = **2.192 dòng**.
+Bronze giữ nguyên tên biến của API (mọi cột TEXT, giá trị null của API là chuỗi rỗng). Ngày tính theo giờ `Europe/Lisbon`.
+
+| Cột (silver) | Kiểu | Lấy từ (bronze) | Ý nghĩa |
+|---|---|---|---|
+| `location` | TEXT (PK) | `location` | `Lisbon` (City Hotel) hoặc `Faro` (Resort Hotel) |
+| `weather_date` | DATE (PK) | `weather_date` | Ngày |
+| `latitude`, `longitude` | NUMERIC(8,5) | `latitude`, `longitude` | Tâm ô lưới mà API trả về (lệch vài km so với tọa độ yêu cầu) |
+| `weather_code` | SMALLINT | `weather_code` | Mã thời tiết WMO |
+| `temp_max_c`, `temp_min_c`, `temp_mean_c` | NUMERIC(4,1) | `temperature_2m_max/min/mean` | Nhiệt độ ở 2 m (°C) |
+| `precipitation_mm` | NUMERIC(6,1) | `precipitation_sum` | Tổng lượng mưa + tuyết (mm) |
+| `rain_mm` | NUMERIC(6,1) | `rain_sum` | Lượng mưa (mm) |
+| `precipitation_hours` | NUMERIC(4,1) | `precipitation_hours` | Số giờ có mưa |
+| `wind_speed_max_kmh` | NUMERIC(5,1) | `wind_speed_10m_max` | Gió mạnh nhất ở 10 m (km/h) |
+| `sunshine_hours` | NUMERIC(5,2) | `sunshine_duration` (giây) ÷ 3600 | Số giờ nắng |
+
+## 6. Gold
 
 Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). Quy ước: `-1` = Unknown, `0` = không áp dụng; FK trong fact không bao giờ NULL.
 
@@ -118,7 +137,7 @@ Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_S
 | Bảng | Grain (số dòng) | Cột |
 |---|---|---|
 | `dim_date` | 1 ngày, 2013–2018 (2.191) | `date_key` (PK, YYYYMMDD), `full_date`, `day_of_month`, `day_of_week` (ISO 1–7), `day_name`, `is_weekend`, `iso_week`, `iso_year`, `week_start_date`, `month`, `month_name`, `quarter`, `year`, `year_month`, `season` (High/Shoulder/Low), `is_holiday`, `holiday_name` |
-| `dim_hotel` | 1 khách sạn (2) | `hotel_key` (PK), `hotel_name`, `hotel_type`, `city`, `country_code`, `latitude`, `longitude` |
+| `dim_hotel` | 1 khách sạn (2) | `hotel_key` (PK), `hotel_name`, `hotel_type`, `city`, `country_code`, `latitude`, `longitude`, `weather_location` (`Lisbon` / `Faro`, khóa nối `silver.weather_daily`) |
 | `dim_country` | 1 mã quốc gia + Unknown (178) | `country_key` (PK, -1 = Unknown), `country_code`, `country_name`, `region`, `sub_region`, `is_domestic`, `market_group` (Domestic / Core Europe / Other Europe / Rest of World / Unknown) |
 | `dim_channel` | 1 tổ hợp segment × channel (26) | `channel_key` (PK), `market_segment`, `distribution_channel`, `channel_group` (OTA / Offline TA/TO / Direct / Corporate / Groups / Other), `is_intermediated` |
 | `dim_room_type` | 1 mã phòng (12) | `room_type_key` (PK), `room_type_code`, `room_type_label` |
@@ -149,6 +168,19 @@ Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_S
 | `arrivals`, `departures` | Lượt đến / trả phòng (booking không hủy) |
 | `realized_revenue`, `lost_revenue` | Tổng `adr` của booking không hủy / đã hủy ở đêm này |
 
+### `gold.fact_daily_weather`: 1 dòng = 1 khách sạn × 1 ngày (2.192 dòng, 2015-01-01 → 2017-12-31)
+
+Nối 1:1 với `fact_daily_occupancy` (`hotel_key`, `stay_date_key = date_key`) và N:1 từ `fact_booking` (`hotel_key`, `arrival_date_key = date_key`), không nhân bản dòng fact.
+
+| Cột | Ý nghĩa |
+|---|---|
+| `hotel_key`, `date_key` | PK, FK |
+| `weather_code`, `weather_group` | Mã WMO và nhóm: `Clear`, `Cloudy`, `Fog`, `Drizzle`, `Rain`, `Snow`, `Thunderstorm`, `Unknown` |
+| `temp_max_c`, `temp_min_c`, `temp_mean_c` | Nhiệt độ (°C), non-additive |
+| `precipitation_mm`, `rain_mm`, `precipitation_hours` | Lượng mưa (mm), số giờ mưa |
+| `wind_speed_max_kmh`, `sunshine_hours` | Gió mạnh nhất (km/h), số giờ nắng |
+| `is_rainy_day` | 0/1, `precipitation_mm >= 1`. ⛔ không dùng làm feature dự đoán hủy (chưa biết lúc đặt) |
+
 ### View KPI
 
 | View | Grain | Cột riêng (ngoài bộ cột chung) |
@@ -157,12 +189,13 @@ Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_S
 | `kpi_channel` | khách sạn × `channel_group` × tháng đến | `channel_group`, `year`, `month`, `year_month` |
 | `kpi_country` | khách sạn × quốc gia × năm đến | `country_code`, `country_name`, `region`, `market_group`, `year` |
 | `kpi_cancellation_profile` | khách sạn × nhóm lead time × `deposit_type` × `channel_group` | `lead_time_band`, `lead_time_band_order`, `deposit_type`, `channel_group` |
+| `kpi_daily_occupancy_weather` | khách sạn × đêm (1.586) | `stay_date`, `day_of_week`, `is_weekend`, `is_holiday`, `holiday_name`, `season`, các measure của `fact_daily_occupancy`, `adr`, `weather_group`, `temp_max_c`, `temp_mean_c`, `precipitation_mm`, `sunshine_hours`, `wind_speed_max_kmh`, `is_rainy_day` |
 | `kpi_weekly_occupancy` | khách sạn × tuần ISO | `iso_year`, `iso_week`, `week_start_date`, `days_in_week`, `is_complete_week`, `room_nights_sold`, `room_nights_canceled`, `room_nights_booked`, `guest_nights`, `arrivals`, `realized_revenue`, `lost_revenue`, `adr`, `night_cancellation_rate` |
 
 Bộ cột chung của 4 view đầu: `bookings`, `canceled_bookings`, `cancellation_rate`, `room_nights_sold`, `realized_revenue`,
 `lost_revenue`, `net_lost_revenue`, `adr`, `avg_lead_time`, `avg_los`. Tỉ lệ và ADR đều tính lại từ tổng.
 
-## 6. `meta.etl_run_log`
+## 7. `meta.etl_run_log`
 
 | Cột | Ý nghĩa |
 |---|---|
