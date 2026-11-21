@@ -1,9 +1,20 @@
+// Trạng thái dạng ô vuông màu + chữ, như phần "Data quality" của prototype.
 const TONE: Record<string, string> = {
-  ok: 'good', up: 'good', success: 'good',
-  warning: 'warn', degraded: 'warn', running: 'warn',
-  failed: 'bad', down: 'bad',
+  ok: 'bg-rifle',
+  up: 'bg-rifle',
+  success: 'bg-rifle',
+  warning: 'bg-brass',
+  degraded: 'bg-brass',
+  running: 'bg-brass',
+  failed: 'bg-rust',
+  down: 'bg-rust',
 }
 
-export default function StatusBadge({ value }: { value: string }) {
-  return <span className={`badge badge-${TONE[value] ?? 'neutral'}`}>{value}</span>
+export default function StatusBadge({ value, label }: { value: string; label?: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-sm">
+      <i className={`inline-block size-[9px] flex-none ${TONE[value] ?? 'bg-oyster'}`} />
+      {label ?? value}
+    </span>
+  )
 }

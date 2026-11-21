@@ -138,7 +138,22 @@ pages/*.tsx ──dùng──▶ hooks/useApi.ts ──gọi──▶ api/endpoi
      │
      └──dùng──▶ components/ (layout, common, charts, filters)
 ```
-- `routes.tsx` là danh sách trang duy nhất; Sidebar và Router cùng đọc từ đây.
+- `routes.tsx` là danh sách trang duy nhất; thanh điều hướng trên cùng và Router cùng đọc từ đây.
+- Bộ lọc dùng chung (`context/FiltersProvider.tsx`): khách sạn chọn ở thanh trên, ngày đến / kênh / quốc gia ở
+  `components/filters/FilterBar.tsx`. Giá trị giữ nguyên khi chuyển trang và được gửi thành query param cho backend.
+- Frontend **không tính KPI**: tỉ lệ, ADR, what-if đều do backend trả về; FE chỉ định dạng (`lib/format.ts`, kiểu vi-VN).
+- Giao diện theo prototype `docs/design/prototype/` (phong cách "sổ cái": nền giấy, đường kẻ thay cho card, mỗi trang
+  một khối xanh Rifle làm điểm nhấn, số lớn bằng Bodoni Moda). Token màu/font khai báo một chỗ trong
+  `styles/global.css` (`@theme` của Tailwind) và `lib/theme.ts` (giá trị hex cho SVG).
+
+| Trang | Người dùng | Endpoint chính |
+|---|---|---|
+| Tổng quan (`/`) | General Manager | `/api/kpi/summary`, `/api/kpi/timeseries` (drill-down Năm → Quý → Tháng → Tuần), `/api/channels/ranking` |
+| Rủi ro hủy (`/cancellation`) | Revenue Manager, Reservations | `/api/cancellation/high-risk` (ngưỡng xác suất, theo tuần đến), `/breakdown`, `/model-metrics` |
+| Dự báo (`/forecast`) | Revenue, Sales & Marketing | `/api/forecast`, `/api/forecast/metrics` |
+| What-if (`/what-if`) | Revenue Manager | `POST /api/what-if` (gọi lại sau 300 ms khi kéo thanh trượt) |
+| Kênh & thị trường (`/channels`) | Sales & Marketing | `/api/channels/ranking`, `/api/markets/ranking` |
+| Pipeline (`/system`) | Nhóm kỹ thuật | `/api/health`, `/api/pipeline/runs` |
 - Vite proxy `/api` sang `localhost:8000` (dev); nginx proxy sang `backend:8000` (Docker). FE không cần biết URL backend và không gặp lỗi CORS.
 
 ## 7. Cấu hình và cổng
@@ -172,6 +187,8 @@ CI có job `docker` chạy đúng lệnh trên từ DB rỗng, chờ `etl` thoá
 | **Python + SQL thuần** | Dễ debug, đủ cho dataset tĩnh, mỗi file SQL là một bước rõ ràng | dbt, Airflow (tốn thời gian setup) |
 | **FastAPI** | Nhanh, tự sinh tài liệu `/docs`, cùng ngôn ngữ Python với ETL/ML | Flask, Django |
 | **React + Vite + TS** | Tương tác mạnh (yêu cầu "interactive" của tiêu chí 50% điểm), type an toàn | Streamlit, Power BI |
+| **Tailwind CSS v4** | Style viết ngay trong component, token thiết kế (màu, font của prototype) khai báo một chỗ bằng `@theme`; không phải đặt tên class/CSS riêng cho từng trang | CSS thuần (khó giữ nhất quán khi nhiều người sửa), CSS-in-JS |
+| **Recharts** | Component React khai báo, đủ loại cần dùng (đường, vùng khoảng tin cậy, phân tán, ReferenceArea/Dot), tooltip tùy biến được để giống prototype, nhẹ hơn ECharts | Chart.js (API imperative), ECharts (nặng), tự vẽ D3 (tốn công) |
 
 ## 9. Nhật ký quyết định
 
@@ -184,3 +201,4 @@ CI có job `docker` chạy đúng lệnh trên từ DB rỗng, chờ `etl` thoá
 | 2026-11-21 | Loại 181 dòng bất thường khỏi fact; `CN` → `CAN`; giả định giữ 20% cọc khi booking Non Refund bị hủy; thêm nguồn mã ISO 3166 |
 | 2026-11-21 | Thêm nguồn thời tiết Open-Meteo (Lisbon, Faro) thành fact riêng `fact_daily_weather`; thêm service `etl` vào Docker Compose để demo chạy được từ DB rỗng (issue #8) |
 | 2026-11-21 | Backend E5: API dùng mã `UNK` cho quốc gia không rõ; what-if chỉ nhận thêm đặt phòng ở đêm "kín trên sổ" (đặt ≥ công suất), dùng tỉ lệ hủy thực tế từng đêm |
+| 2026-11-21 | Frontend E6: Tailwind CSS v4 + Recharts, giao diện theo prototype; thêm trang Kênh & thị trường; bộ lọc dùng chung qua React context |

@@ -129,6 +129,8 @@ export type BreakdownDimension =
   | 'market_segment'
   | 'customer_type'
 export type RiskBand = 'Low' | 'Medium' | 'High'
+/** Bộ lọc nhóm rủi ro; 'All' = mọi nhóm */
+export type RiskBandFilter = RiskBand | 'All'
 export type HighRiskSort = 'probability' | 'expected_loss'
 
 export interface BreakdownItem {
@@ -181,10 +183,16 @@ export interface HighRiskPage {
   model_version: string
   filters: BookingFilter
   risk_band: RiskBand | null
+  min_probability: number | null
   sort: HighRiskSort
   page: number
   page_size: number
+  /** Số booking khớp điều kiện (mọi trang) */
   total: number
+  /** Σ doanh thu đặt của mọi booking khớp (EUR) */
+  booked_revenue_total: number
+  /** Σ xác suất hủy × doanh thu đặt của mọi booking khớp (EUR) */
+  expected_loss_total: number
   items: HighRiskBooking[]
 }
 

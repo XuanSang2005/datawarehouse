@@ -1,54 +1,134 @@
-:root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --text: #1d2433;
-  --muted: #6b7385;
-  --border: #e3e6ec;
-  --accent: #1f6feb;
-  --good: #1a7f37;
-  --warn: #9a6700;
-  --bad: #cf222e;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text);
-  background: var(--bg);
+/* Tailwind CSS v4. Giao diện viết bằng utility class trong TSX; file này chỉ chứa:
+   - token thiết kế (màu, font) lấy từ prototype docs/design/prototype/ → sinh class bg-rifle, font-display...
+   - vài style nền không viết được bằng utility (lớp nhiễu giấy, thanh trượt range, keyframes).
+   Phong cách: "sổ cái khách sạn" — một mặt phẳng, không card, không bóng đổ; các phần ngăn bằng đường kẻ;
+   mỗi trang có đúng một khối xanh Rifle làm điểm nhấn. Theme sáng cố định (chủ ý). */
+@import 'tailwindcss';
+
+@theme {
+  --color-merino: #f1f1ec; /* nền */
+  --color-kangaroo: #d0c7b3; /* mặt phụ, đường kẻ */
+  --color-oyster: #939474; /* trang trí */
+  --color-oyster-ink: #6f7052; /* chữ phụ, tương phản 4.5:1 trên nền */
+  --color-rifle: #43442b; /* điểm nhấn chính, City Hotel */
+  --color-cedar: #29272b; /* chữ */
+  --color-rust: #a3442a; /* CHỈ dùng cho hủy phòng / giá trị âm */
+  --color-brass: #9c7a3c; /* Resort Hotel, cảnh báo */
+
+  --font-display: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
+  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --ease-ledger: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-rise: rise 0.7s var(--ease-ledger) both;
+
+  @keyframes rise {
+    from {
+      transform: translateY(18px);
+      opacity: 0.35;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; }
-h1 { margin-top: 0; font-size: 1.6rem; }
-
-.app { display: flex; min-height: 100vh; }
-.app-main { flex: 1; padding: 28px 32px; min-width: 0; }
-
-.sidebar { width: 230px; background: #111827; color: #e5e7eb; padding: 20px 12px; }
-.sidebar-brand { font-weight: 700; font-size: 1.1rem; padding: 0 10px 20px; }
-.sidebar-brand small { display: block; font-weight: 400; font-size: .75rem; color: #9ca3af; }
-.sidebar-link {
-  display: block; padding: 9px 10px; border-radius: 6px;
-  color: inherit; text-decoration: none; margin-bottom: 2px;
+@layer base {
+  html,
+  body {
+    background: var(--color-merino);
+    color: var(--color-cedar);
+    color-scheme: light;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Lớp nhiễu giấy như prototype */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0.13;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .16 0 0 0 0 .15 0 0 0 0 .17 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  h1,
+  h2,
+  h3 {
+    font-weight: 400;
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-rifle);
+    outline-offset: 3px;
+  }
 }
-.sidebar-link:hover { background: #1f2937; }
-.sidebar-link.active { background: var(--accent); color: #fff; }
 
-.card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 18px 20px; margin-bottom: 18px;
+/* Thanh trượt: rãnh mảnh, phần đã kéo tô màu (biến --p do component đặt). */
+@utility range-ledger {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+  --fill: var(--color-rifle);
+  --rest: var(--color-kangaroo);
+  --knob: var(--color-merino);
+  &::-webkit-slider-runnable-track {
+    height: 3px;
+    background: linear-gradient(90deg, var(--fill) var(--p, 50%), var(--rest) var(--p, 50%));
+  }
+  &::-moz-range-track {
+    height: 3px;
+    background: linear-gradient(90deg, var(--fill) var(--p, 50%), var(--rest) var(--p, 50%));
+  }
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -7.5px;
+    border-radius: 50%;
+    background: var(--knob);
+    border: 2px solid var(--fill);
+  }
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--knob);
+    border: 2px solid var(--fill);
+  }
 }
-.card h3 { margin-top: 0; }
-.muted { color: var(--muted); }
-
-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
-th { color: var(--muted); font-weight: 600; }
-
-.badge { padding: 2px 8px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
-.badge-good { background: #dafbe1; color: var(--good); }
-.badge-warn { background: #fff8c5; color: var(--warn); }
-.badge-bad { background: #ffebe9; color: var(--bad); }
-.badge-neutral { background: #eaeef2; color: var(--muted); }
-
-.error-box {
-  background: #ffebe9; color: var(--bad); border: 1px solid #ffcecb;
-  padding: 10px 14px; border-radius: 8px; display: flex; gap: 12px; align-items: center;
+/* Biến thể đặt trên khối xanh Rifle */
+@utility range-on-focal {
+  --fill: var(--color-merino);
+  --rest: rgb(241 241 236 / 0.28);
+  --knob: var(--color-rifle);
 }
-.error-box button { margin-left: auto; }
+
+/* Biểu đồ Recharts: chữ trục dùng font mono như prototype */
+.recharts-cartesian-axis-tick-value {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  fill: var(--color-oyster-ink);
+}
+.recharts-wrapper:focus,
+.recharts-surface:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
