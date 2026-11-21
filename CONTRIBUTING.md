@@ -52,7 +52,7 @@ docs(report): write chapter 2 business problem
 
 ### Steps for a piece of work
 **Step 0: create an issue before coding** (mandatory, see rule 11 in `CLAUDE.md`).
-On GitHub: **Issues → New issue** tab; write the context, what to do and the acceptance criteria (checklist).
+On GitHub: **Issues → New issue**, pick a template (Feature, Bug, or Task / docs / chore) and fill in the context, the tasks and the definition of done (blank issues are disabled).
 Note the issue number (e.g. `#12`) to link it to the PR.
 
 ```bash
