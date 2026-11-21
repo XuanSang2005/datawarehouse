@@ -10,7 +10,7 @@ extend-exclude = ["frontend", "ml/notebooks"]
 select = ["E", "F", "W", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
-testpaths = ["etl/tests", "backend/tests"]
+testpaths = ["etl/tests", "ml/tests", "backend/tests"]
 pythonpath = [".", "backend"]
 addopts = "-q"
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
