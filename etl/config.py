@@ -1,6 +1,6 @@
-"""Cấu hình chung cho ETL: đường dẫn thư mục + thông tin kết nối DB.
+"""Shared ETL configuration: directory paths + DB connection settings.
 
-Mọi giá trị đọc từ file `.env` ở thư mục gốc repo (xem `.env.example`).
+All values are read from the `.env` file at the repo root (see `.env.example`).
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ class DbSettings:
         )
 
     def describe(self) -> str:
-        """Mô tả kết nối, KHÔNG in mật khẩu (dùng cho log)."""
+        """Describe the connection WITHOUT the password (for logging)."""
         return f"{self.user}@{self.host}:{self.port}/{self.dbname}"
 
 

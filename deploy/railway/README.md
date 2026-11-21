@@ -1,18 +1,18 @@
-# Deploy lên Railway
+# Deploying to Railway
 
-Bản online để demo. Mỗi thành phần là một service của Railway, deploy bằng Railway CLI từ máy có repo
-(không cần GitHub integration). Cấu hình docker compose ở máy local **không đổi**: các biến mới đều có mặc định.
+Online version for the demo. Each component is a Railway service, deployed with the Railway CLI from a machine with the repo
+(no GitHub integration needed). The local docker compose setup is **unchanged**: all new variables have defaults.
 
-| Service | Nguồn | Vai trò |
+| Service | Source | Role |
 |---|---|---|
-| `Postgres` | Database của Railway | Lakehouse (bronze/silver/gold/meta) |
-| `jobs` | `deploy/railway/jobs.Dockerfile` (context = gốc repo) | Chạy **một lần**: `etl.run_pipeline` → `ml.cancellation.train` → `ml.forecast.train`, rồi thoát |
-| `backend` | `backend/Dockerfile` | FastAPI, lắng nghe `$PORT` do Railway cấp |
-| `frontend` | `frontend/Dockerfile` | nginx phục vụ bản build React, proxy `/api/*` sang `BACKEND_URL` |
+| `Postgres` | Railway database | Lakehouse (bronze/silver/gold/meta) |
+| `jobs` | `deploy/railway/jobs.Dockerfile` (context = repo root) | Runs **once**: `etl.run_pipeline` → `ml.cancellation.train` → `ml.forecast.train`, then exits |
+| `backend` | `backend/Dockerfile` | FastAPI, listening on the `$PORT` provided by Railway |
+| `frontend` | `frontend/Dockerfile` | nginx serving the React build, proxying `/api/*` to `BACKEND_URL` |
 
-## Biến môi trường
+## Environment variables
 
-`backend` và `jobs` (tham chiếu biến của service Postgres, Railway tự điền):
+`backend` and `jobs` (references to the Postgres service variables, filled in by Railway):
 ```
 POSTGRES_HOST=${{Postgres.PGHOST}}
 POSTGRES_PORT=${{Postgres.PGPORT}}
@@ -20,12 +20,12 @@ POSTGRES_USER=${{Postgres.PGUSER}}
 POSTGRES_PASSWORD=${{Postgres.PGPASSWORD}}
 POSTGRES_DB=${{Postgres.PGDATABASE}}
 ```
-`jobs` thêm `RAILWAY_DOCKERFILE_PATH=deploy/railway/jobs.Dockerfile`.
+`jobs` also sets `RAILWAY_DOCKERFILE_PATH=deploy/railway/jobs.Dockerfile`.
 
-`frontend`: `BACKEND_URL=https://<domain công khai của backend>` (vd `https://backend-production-xxxx.up.railway.app`).
-`PORT` do Railway tự đặt cho mọi service.
+`frontend`: `BACKEND_URL=https://<public backend domain>` (e.g. `https://backend-production-xxxx.up.railway.app`).
+`PORT` is set by Railway for every service.
 
-## Các bước (Railway CLI ≥ 4)
+## Steps (Railway CLI ≥ 4)
 
 ```bash
 npm install -g @railway/cli
@@ -45,7 +45,7 @@ railway add --service backend --variables 'POSTGRES_HOST=${{Postgres.PGHOST}}' -
 ```bash
 railway add --service jobs --variables 'POSTGRES_HOST=${{Postgres.PGHOST}}' --variables 'POSTGRES_PORT=${{Postgres.PGPORT}}' --variables 'POSTGRES_USER=${{Postgres.PGUSER}}' --variables 'POSTGRES_PASSWORD=${{Postgres.PGPASSWORD}}' --variables 'POSTGRES_DB=${{Postgres.PGDATABASE}}' --variables 'RAILWAY_DOCKERFILE_PATH=deploy/railway/jobs.Dockerfile'
 ```
-Deploy job dữ liệu (từ gốc repo) và backend:
+Deploy the data job (from the repo root) and the backend:
 ```bash
 railway up --service jobs --detach
 ```
@@ -55,13 +55,13 @@ railway up backend --path-as-root --service backend --detach
 ```bash
 railway domain --service backend
 ```
-Đợi `jobs` chạy xong (trạng thái deployment `SUCCESS`, log có dòng "Pipeline hoàn tất" và 2 lần ghi bảng ML):
+Wait for `jobs` to finish (deployment status `SUCCESS`, the log shows "Pipeline finished" and 2 ML table writes):
 ```bash
 railway deployment list --service jobs
 ```
-Tạo frontend, trỏ vào domain backend vừa tạo, rồi deploy:
+Create the frontend, pointing at the backend domain just created, then deploy:
 ```bash
-railway add --service frontend --variables 'BACKEND_URL=https://<domain-backend>'
+railway add --service frontend --variables 'BACKEND_URL=https://<backend-domain>'
 ```
 ```bash
 railway up frontend --path-as-root --service frontend --detach
@@ -70,13 +70,13 @@ railway up frontend --path-as-root --service frontend --detach
 railway domain --service frontend
 ```
 
-## Gói Free: tối đa 3 service
+## Free plan: at most 3 services
 
-Postgres + backend + jobs đã đủ 3, nên sau khi `jobs` chạy xong thì **xóa service `jobs`** (dữ liệu vẫn nằm trong
-Postgres) rồi mới tạo `frontend`. Muốn chạy lại pipeline/ML sau này: xóa tạm `frontend`, tạo lại `jobs` theo
-lệnh trên, chạy xong thì xóa `jobs` và tạo lại `frontend`. Gói trả phí không có giới hạn này: giữ `jobs` và bấm
-Redeploy khi cần chạy lại.
+Postgres + backend + jobs already make 3, so once `jobs` has finished, **delete the `jobs` service** (the data stays in
+Postgres) before creating `frontend`. To re-run the pipeline/ML later: temporarily delete `frontend`, recreate `jobs` with
+the command above, and when it finishes delete `jobs` and recreate `frontend`. Paid plans have no such limit: keep `jobs` and
+click Redeploy when you need to re-run it.
 
-## Kiểm tra
-- `https://<domain-backend>/api/health` → `{"status": "ok", "database": "up", ...}`
-- `https://<domain-frontend>/` mở được 6 trang; trang Pipeline hiện lần chạy ETL trên Railway.
+## Verification
+- `https://<backend-domain>/api/health` → `{"status": "ok", "database": "up", ...}`
+- `https://<frontend-domain>/` opens all 6 pages; the Pipeline page shows the ETL run on Railway.

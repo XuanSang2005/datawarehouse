@@ -14,10 +14,10 @@ def client() -> TestClient:
 
 @pytest.fixture
 def no_db() -> Iterator[None]:
-    """Thay kết nối DB bằng đối tượng giả: test chạy được cả khi không có PostgreSQL (vd: CI).
+    """Replace the DB connection with a fake: tests run even without PostgreSQL (e.g. CI).
 
-    FastAPI chạy dependency (mở kết nối) TRƯỚC khi validate query param,
-    nên test validation phải override dependency này.
+    FastAPI runs dependencies (opening the connection) BEFORE validating query params,
+    so validation tests must override this dependency.
     """
 
     def fake_connection() -> Iterator[object]:

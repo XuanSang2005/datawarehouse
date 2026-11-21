@@ -1,15 +1,15 @@
-"""Mảnh SQL dùng chung cho các truy vấn trên gold.fact_booking (chỉ SELECT, quy tắc 1).
+"""Shared SQL fragments for queries on gold.fact_booking (SELECT only, rule 1).
 
-- `BOOKING_FROM`: fact_booking JOIN các dimension hay dùng để lọc/nhóm.
-- `KPI_SUMS`: các TỔNG cộng được. Tỉ lệ/ADR KHÔNG tính ở đây mà ở services/kpi_math.py
-  từ chính các tổng này (quy tắc 8: sum/sum, không trung bình của trung bình).
-- `build_where`: dựng mệnh đề WHERE từ BookingFilter, giá trị luôn là bind parameter.
+- `BOOKING_FROM`: fact_booking JOINed with the dimensions commonly used for filtering/grouping.
+- `KPI_SUMS`: additive TOTALS. Rates/ADR are NOT computed here but in services/kpi_math.py
+  from these totals (rule 8: sum/sum, never an average of averages).
+- `build_where`: builds the WHERE clause from a BookingFilter; values are always bind parameters.
 """
 
 from app.schemas.common import BookingFilter
 
-# Thành viên "Unknown" của dim_country (country_key = -1) có country_code NULL.
-# API dùng mã 'UNK' (không trùng mã ISO nào) để frontend chọn/lọc được nhóm này.
+# The "Unknown" member of dim_country (country_key = -1) has a NULL country_code.
+# The API uses the code 'UNK' (not a real ISO code) so the frontend can select/filter this group.
 UNKNOWN_COUNTRY_CODE = "UNK"
 COUNTRY_CODE_SQL = f"coalesce(co.country_code, '{UNKNOWN_COUNTRY_CODE}')"
 
@@ -33,7 +33,7 @@ KPI_SUMS = """
     sum(f.total_nights)::BIGINT      AS sum_total_nights
 """
 
-# Nhóm lead time: PHẢI khớp database/gold/53_kpi_cancellation_profile.sql
+# Lead time bands: MUST match database/gold/53_kpi_cancellation_profile.sql
 LEAD_TIME_BAND_ORDER = """
     CASE
         WHEN f.lead_time <= 7   THEN 1
@@ -50,7 +50,7 @@ LEAD_TIME_BAND_LABEL = (
 
 
 def build_where(flt: BookingFilter, extra: list[str] | None = None) -> tuple[str, dict]:
-    """Trả về (mệnh đề 'WHERE ...' hoặc '', dict tham số). Không nối chuỗi giá trị vào SQL."""
+    """Return ('WHERE ...' clause or '', params dict). Values are never concatenated into SQL."""
     clauses: list[str] = list(extra or [])
     params: dict = {}
     if flt.hotel_key is not None:

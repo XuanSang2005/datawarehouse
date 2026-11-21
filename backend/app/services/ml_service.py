@@ -1,4 +1,4 @@
-"""Logic dùng chung cho kết quả ML: kiểm tra bảng đã có dữ liệu, gom metric theo model."""
+"""Shared logic for ML results: check that tables have data, group metrics by model."""
 
 from sqlalchemy import Connection
 
@@ -20,13 +20,13 @@ def require_table(conn: Connection, qualified_name: str) -> None:
 
 def not_ready(qualified_name: str) -> DataNotReadyError:
     return DataNotReadyError(
-        f"Chưa có kết quả ML trong {qualified_name}",
-        hint=f"Chạy từ thư mục gốc repo: {TRAIN_COMMANDS.get(qualified_name, 'script trong ml/')}",
+        f"No ML results in {qualified_name} yet",
+        hint=f"Run from the repo root: {TRAIN_COMMANDS.get(qualified_name, 'the scripts in ml/')}",
     )
 
 
 def group_metrics(rows: list[dict]) -> list[ModelMetrics]:
-    """Gom các dòng (model × version × dataset × metric) thành 1 object mỗi model × version."""
+    """Group rows (model × version × dataset × metric) into 1 object per model × version."""
     grouped: dict[tuple[str, str], ModelMetrics] = {}
     for r in rows:
         key = (r["model_name"], r["model_version"])
@@ -45,7 +45,7 @@ def group_metrics(rows: list[dict]) -> list[ModelMetrics]:
 
 
 def get_model_metrics(conn: Connection, name_prefix: str, source_table: str) -> list[ModelMetrics]:
-    """Metric của các model có tên bắt đầu bằng `name_prefix`. Lỗi 404 rõ ràng nếu chưa train."""
+    """Metrics of the models whose name starts with `name_prefix`. Clear 404 if not trained yet."""
     require_table(conn, "gold.ml_model_metrics")
     models = group_metrics(ml_repo.fetch_model_metrics(conn, name_prefix))
     if not models:

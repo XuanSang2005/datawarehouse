@@ -1,64 +1,64 @@
 # backend/: FastAPI
 
-API đọc dữ liệu từ schema `gold` và `meta`, xử lý logic (what-if, khuyến nghị), trả JSON cho frontend.
+The API reads data from the `gold` and `meta` schemas, applies the logic (what-if, recommendations) and returns JSON to the frontend.
 
 ```
 backend/
 ├── app/
-│   ├── main.py              Khởi tạo app, bắt lỗi DB tập trung (→ HTTP 503)
+│   ├── main.py              App setup, centralized DB error handling (→ HTTP 503)
 │   ├── api/
-│   │   ├── router.py        Gom router, prefix /api
-│   │   └── routes/          Endpoint HTTP: KHÔNG chứa SQL
-│   ├── services/            Logic nghiệp vụ, tính toán
-│   ├── repositories/        CHỈ câu SQL (đọc gold/meta)
-│   ├── schemas/             Pydantic models (hợp đồng với frontend)
+│   │   ├── router.py        Collects the routers, prefix /api
+│   │   └── routes/          HTTP endpoints: NO SQL here
+│   ├── services/            Business logic, calculations
+│   ├── repositories/        SQL ONLY (reads gold/meta)
+│   ├── schemas/             Pydantic models (contract with the frontend)
 │   └── core/                config (.env), db (engine), logging
 ├── tests/
 ├── requirements.txt
 └── Dockerfile
 ```
 
-## Chạy
+## Run
 ```bash
 cd backend && uvicorn app.main:app --reload --port 8000
 ```
-Swagger UI để thử API: http://localhost:8000/docs
+Swagger UI to try the API: http://localhost:8000/docs
 
-## Endpoint hiện có
-Chi tiết tham số và kiểu trả về: Swagger UI `/docs`. Kiểu TypeScript tương ứng: `frontend/src/types/api.ts`.
+## Available endpoints
+Parameter and response details: Swagger UI `/docs`. Matching TypeScript types: `frontend/src/types/api.ts`.
 
-**Bộ lọc dùng chung** (endpoint có dấu ✓ ở cột Lọc): `hotel_key`, `date_from`, `date_to` (theo **ngày đến**),
-`channel_group` (vd `OTA`), `country_code` (ISO alpha-3, `UNK` = không rõ quốc gia).
+**Shared filters** (endpoints marked ✓ in the Filter column): `hotel_key`, `date_from`, `date_to` (by **arrival date**),
+`channel_group` (e.g. `OTA`), `country_code` (ISO alpha-3, `UNK` = unknown country).
 
-| Method | Path | Lọc | Mô tả | Mục tiêu |
+| Method | Path | Filter | Description | Goal |
 |---|---|---|---|---|
-| GET | `/api/health` | | Trạng thái API và kết nối DB | |
-| GET | `/api/pipeline/runs?limit=50` | | Log các bước ETL gần nhất | |
-| GET | `/api/filters` | | Danh mục cho FilterBar: khách sạn (kèm `peak_rooms_occupied`), nhóm kênh, phân khúc, quốc gia, khoảng ngày | |
-| GET | `/api/kpi/summary` | ✓ | KPI tổng + tách theo khách sạn (City vs Resort) | G1 |
-| GET | `/api/kpi/timeseries?grain=year\|quarter\|month\|week&by_hotel=` | ✓ | Chuỗi KPI để drill-down | G1 |
-| GET | `/api/cancellation/breakdown?by=lead_time\|channel\|deposit_type\|country\|market_segment\|customer_type&top_n=` | ✓ | Tỉ lệ hủy theo chiều | G2 |
-| GET | `/api/cancellation/high-risk?risk_band=High\|Medium\|Low\|All&min_probability=&test_set_only=true&sort=probability\|expected_loss&page=&page_size=` | ✓ | Booking rủi ro hủy cao, phân trang; kèm `total`, `booked_revenue_total`, `expected_loss_total` của mọi trang | G2 |
-| GET | `/api/cancellation/model-metrics` | | AUC, precision, recall, F1, ngưỡng của model hủy | G2 |
-| GET | `/api/forecast?hotel_key=&model_version=` | | Room-nights tuần: dự báo, khoảng 80%, thực tế, lịch sử | G3 |
-| GET | `/api/forecast/metrics` | | MAPE model chính và baseline | G3 |
-| POST | `/api/what-if` | | Mô phỏng overbooking + đặt cọc theo rủi ro, đường cong lợi ích, mức gợi ý | G4 |
-| GET | `/api/channels/ranking?sort_by=&top_n=&min_bookings=` | ✓ | Xếp hạng nhóm kênh | G5 |
-| GET | `/api/markets/ranking?sort_by=&top_n=&min_bookings=100` | ✓ | Xếp hạng quốc gia | G5 |
+| GET | `/api/health` | | API status and DB connection | |
+| GET | `/api/pipeline/runs?limit=50` | | Most recent ETL step logs | |
+| GET | `/api/filters` | | Options for the FilterBar: hotels (with `peak_rooms_occupied`), channel groups, segments, countries, date range | |
+| GET | `/api/kpi/summary` | ✓ | Overall KPIs + split by hotel (City vs Resort) | G1 |
+| GET | `/api/kpi/timeseries?grain=year\|quarter\|month\|week&by_hotel=` | ✓ | KPI series for drill-down | G1 |
+| GET | `/api/cancellation/breakdown?by=lead_time\|channel\|deposit_type\|country\|market_segment\|customer_type&top_n=` | ✓ | Cancellation rate by dimension | G2 |
+| GET | `/api/cancellation/high-risk?risk_band=High\|Medium\|Low\|All&min_probability=&test_set_only=true&sort=probability\|expected_loss&page=&page_size=` | ✓ | High cancellation-risk bookings, paginated; includes `total`, `booked_revenue_total`, `expected_loss_total` across all pages | G2 |
+| GET | `/api/cancellation/model-metrics` | | AUC, precision, recall, F1, thresholds of the cancellation model | G2 |
+| GET | `/api/forecast?hotel_key=&model_version=` | | Weekly room-nights: forecast, 80% interval, actuals, history | G3 |
+| GET | `/api/forecast/metrics` | | MAPE of the main model and the baseline | G3 |
+| POST | `/api/what-if` | | Overbooking + risk-based deposit simulation, benefit curve, recommended level | G4 |
+| GET | `/api/channels/ranking?sort_by=&top_n=&min_bookings=` | ✓ | Channel group ranking | G5 |
+| GET | `/api/markets/ranking?sort_by=&top_n=&min_bookings=100` | ✓ | Country ranking | G5 |
 
-**Mã lỗi**: `404` + `hint` khi dữ liệu chưa có (vd chưa chạy script ML), `422` khi tham số sai, `503` khi lỗi DB.
+**Error codes**: `404` + `hint` when data is not available yet (e.g. the ML script has not been run), `422` for invalid parameters, `503` on DB errors.
 
-**Quy ước số liệu**: tiền là EUR; tỉ lệ trả dạng 0–1; tỉ lệ/ADR tính từ tổng (`sum/sum`), `null` nếu mẫu số = 0.
+**Number conventions**: money is in EUR; rates are returned as 0–1; rates/ADR are computed from totals (`sum/sum`), `null` when the denominator is 0.
 
-### Ví dụ what-if
+### What-if example
 ```bash
 curl -s -X POST localhost:8000/api/what-if -H 'Content-Type: application/json' \
   -d '{"hotel_key": 1, "capacity": 230, "overbooking_pct": 0.05, "walk_cost": 150, "ota_commission": 0.15}'
 ```
-Mặc định mô phỏng trên năm 2017 (tập test của model hủy, điểm rủi ro ngoài mẫu). Ngưỡng cọc mặc định là ngưỡng
-`High` của model (`gold.ml_model_metrics`), tỉ lệ cọc mặc định lấy từ `gold.business_assumptions`.
-Công thức: docstring của `app/services/what_if_service.py`.
+By default the simulation runs on 2017 (the cancellation model's test set, out-of-sample risk scores). The default deposit
+threshold is the model's `High` threshold (`gold.ml_model_metrics`); the default deposit rate comes from `gold.business_assumptions`.
+Formulas: the docstring of `app/services/what_if_service.py`.
 
-## Thêm endpoint
-`schemas/` → `repositories/` → `services/` → `api/routes/` → include trong `api/router.py` → `tests/`.
-Nhớ cập nhật `frontend/src/types/api.ts` cho khớp schema.
+## Adding an endpoint
+`schemas/` → `repositories/` → `services/` → `api/routes/` → include in `api/router.py` → `tests/`.
+Remember to update `frontend/src/types/api.ts` to match the schema.

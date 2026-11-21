@@ -1,4 +1,4 @@
-"""Xếp hạng kênh / thị trường (G5): tổng theo nhóm từ gold.fact_booking. Xếp hạng làm ở service."""
+"""Channel / market ranking (G5): totals by group from gold.fact_booking. Ranked in the service."""
 
 from sqlalchemy import Connection, text
 

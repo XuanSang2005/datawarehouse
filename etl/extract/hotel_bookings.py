@@ -1,8 +1,8 @@
-"""Nguồn 1: Hotel Booking Demand dataset (~119k booking, 2 khách sạn ở Bồ Đào Nha, 2015-2017).
+"""Source 1: Hotel Booking Demand dataset (~119k bookings, 2 hotels in Portugal, 2015-2017).
 
-Bài báo gốc: Antonio, Almeida & Nunes (2019), Data in Brief 22.
-Tải từ bản mirror công khai của TidyTuesday (giống hệt file `hotel_bookings.csv` trên Kaggle,
-nhưng không cần tài khoản Kaggle).
+Original paper: Antonio, Almeida & Nunes (2019), Data in Brief 22.
+Downloaded from the public TidyTuesday mirror (identical to `hotel_bookings.csv` on Kaggle,
+but no Kaggle account required).
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ SOURCE_URL = (
 
 
 def extract(target: Path) -> None:
-    log.info("Đang tải %s", SOURCE_URL)
+    log.info("Downloading %s", SOURCE_URL)
     resp = requests.get(SOURCE_URL, timeout=60)
     resp.raise_for_status()
     target.write_bytes(resp.content)
-    log.info("Đã lưu %s (%.1f MB)", target, len(resp.content) / 1e6)
+    log.info("Saved %s (%.1f MB)", target, len(resp.content) / 1e6)

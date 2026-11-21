@@ -10,9 +10,9 @@ router = APIRouter(tags=["ranking"])
 
 SortParam = Annotated[
     RankingSort,
-    Query(description="Tiêu chí xếp hạng; cancellation_rate xếp tăng dần, còn lại giảm dần"),
+    Query(description="Ranking metric; cancellation_rate sorts ascending, the others descending"),
 ]
-TopN = Annotated[int, Query(ge=1, le=200, description="Số nhóm trả về")]
+TopN = Annotated[int, Query(ge=1, le=200, description="Number of groups returned")]
 
 
 @router.get("/channels/ranking", response_model=RankingResponse)
@@ -23,7 +23,7 @@ def rank_channels(
     top_n: TopN = 10,
     min_bookings: Annotated[int, Query(ge=0)] = 0,
 ) -> RankingResponse:
-    """Xếp hạng nhóm kênh bán theo doanh thu thực (sau hủy), ADR, tỉ lệ hủy, số booking."""
+    """Rank channel groups by realized revenue (after cancellations), ADR, cancel rate, bookings."""
     return ranking_service.get_ranking(conn, flt, "channel", sort_by, min_bookings, top_n)
 
 
@@ -34,8 +34,9 @@ def rank_markets(
     sort_by: SortParam = "realized_revenue",
     top_n: TopN = 10,
     min_bookings: Annotated[
-        int, Query(ge=0, description="Bỏ quốc gia có ít booking (ADR/tỉ lệ của nhóm nhỏ rất nhiễu)")
+        int,
+        Query(ge=0, description="Skip countries with few bookings (noisy ADR/rates)"),
     ] = 100,
 ) -> RankingResponse:
-    """Xếp hạng thị trường (quốc gia) theo doanh thu thực (sau hủy), ADR, tỉ lệ hủy, số booking."""
+    """Rank markets (countries) by realized revenue (after cancellations), ADR, cancel rate."""
     return ranking_service.get_ranking(conn, flt, "market", sort_by, min_bookings, top_n)

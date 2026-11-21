@@ -7,13 +7,13 @@ from app.schemas.ml import ModelMetrics
 
 class ForecastPoint(BaseModel):
     week_start_date: date = Field(
-        description="Thứ Hai đầu tuần (khớp gold.dim_date.week_start_date)"
+        description="Monday starting the week (matches gold.dim_date.week_start_date)"
     )
     predicted_room_nights: float
-    lower_bound: float = Field(description="Cận dưới khoảng dự báo 80%")
-    upper_bound: float = Field(description="Cận trên khoảng dự báo 80%")
-    actual_room_nights: int | None = Field(description="NULL với tuần tương lai")
-    horizon_weeks: int = Field(description="Dự báo trước bao nhiêu tuần (1 = tuần kế tiếp)")
+    lower_bound: float = Field(description="Lower bound of the 80% forecast interval")
+    upper_bound: float = Field(description="Upper bound of the 80% forecast interval")
+    actual_room_nights: int | None = Field(description="NULL for future weeks")
+    horizon_weeks: int = Field(description="Forecast horizon in weeks (1 = next week)")
     is_future: bool
 
 
@@ -25,9 +25,9 @@ class WeeklyActual(BaseModel):
 class HotelForecast(BaseModel):
     hotel_key: int
     hotel_name: str
-    points: list[ForecastPoint] = Field(description="Giai đoạn backtest 2017 + các tuần tương lai")
+    points: list[ForecastPoint] = Field(description="2017 backtest period + future weeks")
     history: list[WeeklyActual] = Field(
-        description="Room-nights thực tế mọi tuần đủ 7 ngày, để vẽ nền lịch sử"
+        description="Actual room-nights of every full 7-day week, for the history background"
     )
 
 
@@ -38,5 +38,5 @@ class ForecastResponse(BaseModel):
 
 
 class ForecastMetricsResponse(BaseModel):
-    main_model_version: str | None = Field(description="Phiên bản model chính (forecast_gbm_*)")
+    main_model_version: str | None = Field(description="Main model version (forecast_gbm_*)")
     models: list[ModelMetrics]

@@ -1,4 +1,4 @@
-"""Phân tích hủy (G2): tổng theo chiều (fact_booking), booking rủi ro (gold.ml_booking_risk)."""
+"""Cancellation analysis (G2): totals by dimension, at-risk bookings (gold.ml_booking_risk)."""
 
 from dataclasses import dataclass
 
@@ -13,7 +13,7 @@ from app.repositories.booking_sql import (
 )
 from app.schemas.common import BookingFilter
 
-# (biểu thức key, biểu thức label, biểu thức thứ tự hoặc None = sắp theo số booking). Whitelist.
+# (key expression, label expression, order expression or None = sort by bookings). Whitelist.
 DIMENSION_SQL: dict[str, tuple[str, str, str | None]] = {
     "lead_time": (LEAD_TIME_BAND_LABEL, LEAD_TIME_BAND_LABEL, LEAD_TIME_BAND_ORDER),
     "channel": ("ch.channel_group", "ch.channel_group", None),
@@ -50,7 +50,7 @@ def fetch_breakdown(conn: Connection, flt: BookingFilter, by: str) -> list[dict]
 
 @dataclass(frozen=True)
 class RiskSelection:
-    """Điều kiện chọn booking theo kết quả model (ngoài bộ lọc booking chung)."""
+    """Booking selection by model output (on top of the shared booking filter)."""
 
     model_version: str
     risk_band: str | None = None
@@ -83,7 +83,7 @@ RISK_FROM = f"""
 
 
 def summarize_high_risk(conn: Connection, flt: BookingFilter, sel: RiskSelection) -> dict:
-    """Số booking và tổng doanh thu của TOÀN BỘ booking khớp điều kiện (mọi trang)."""
+    """Count and revenue totals of ALL matching bookings (all pages)."""
     where, params = _risk_where(flt, sel)
     query = text(
         f"""

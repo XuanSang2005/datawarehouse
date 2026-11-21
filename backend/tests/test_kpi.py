@@ -1,4 +1,4 @@
-"""KPI: phép tính từ tổng (quy tắc 8), bộ lọc SQL, validate tham số. Không cần DB."""
+"""KPIs: calculations from totals (rule 8), SQL filter, parameter validation. No DB needed."""
 
 from datetime import date
 
@@ -44,12 +44,12 @@ def test_kpi_from_sums_handles_empty_group():
 
 
 def test_total_is_sum_over_sum_not_average_of_averages():
-    # Nhóm A: ADR 100 trên 10 đêm; nhóm B: ADR 200 trên 90 đêm.
+    # Group A: ADR 100 over 10 nights; group B: ADR 200 over 90 nights.
     a = sums(room_nights_sold=10, realized_revenue=1000, bookings=1, canceled_bookings=1)
     b = sums(room_nights_sold=90, realized_revenue=18000, bookings=9, canceled_bookings=0)
     total = kpi_from_sums(kpi_service.combine_sums([a, b]))
-    assert total.adr == pytest.approx(190.0)  # trung bình của trung bình sẽ ra 150
-    assert total.cancellation_rate == pytest.approx(0.1)  # 1/10, không phải (1 + 0)/2
+    assert total.adr == pytest.approx(190.0)  # an average of averages would give 150
+    assert total.cancellation_rate == pytest.approx(0.1)  # 1/10, not (1 + 0)/2
 
 
 def test_ratio_zero_denominator():
@@ -67,7 +67,7 @@ def test_build_where_uses_bind_parameters_only():
     )
     where, params = build_where(flt)
     assert where.startswith("WHERE ")
-    assert "DROP" not in where  # giá trị không bao giờ nằm trong chuỗi SQL
+    assert "DROP" not in where  # values never end up in the SQL string
     assert params == {
         "hotel_key": 1,
         "date_from": date(2017, 1, 1),

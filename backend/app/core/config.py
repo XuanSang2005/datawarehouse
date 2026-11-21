@@ -1,4 +1,4 @@
-"""Cấu hình backend, đọc từ biến môi trường hoặc file .env ở thư mục gốc repo."""
+"""Backend settings, read from environment variables or the .env file at the repo root."""
 
 from functools import lru_cache
 from pathlib import Path

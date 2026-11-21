@@ -1,10 +1,10 @@
-"""Đọc các bảng kết quả ML (gold.ml_*). Bảng do script trong ml/ tạo, có thể CHƯA tồn tại."""
+"""Read the ML result tables (gold.ml_*). Created by the scripts in ml/, they may NOT exist yet."""
 
 from sqlalchemy import Connection, text
 
 
 def table_exists(conn: Connection, qualified_name: str) -> bool:
-    """Kiểm tra bảng tồn tại mà không làm hỏng transaction (to_regclass trả NULL thay vì lỗi)."""
+    """Check a table exists without aborting the transaction (to_regclass returns NULL)."""
     return bool(
         conn.execute(
             text("SELECT to_regclass(:name) IS NOT NULL"), {"name": qualified_name}
@@ -27,7 +27,7 @@ def fetch_model_metrics(conn: Connection, name_prefix: str) -> list[dict]:
 def fetch_metric_value(
     conn: Connection, model_name: str, metric_name: str, dataset: str
 ) -> float | None:
-    """1 giá trị metric của phiên bản mới nhất (vd ngưỡng threshold_high của cancellation_gbm)."""
+    """One metric value of the latest version (e.g. the threshold_high of cancellation_gbm)."""
     query = text(
         """
         SELECT metric_value
@@ -44,7 +44,7 @@ def fetch_metric_value(
 
 
 def fetch_risk_versions(conn: Connection) -> list[str]:
-    """Các phiên bản đã chấm điểm trong gold.ml_booking_risk, mới nhất trước."""
+    """Versions scored in gold.ml_booking_risk, newest first."""
     query = text(
         """
         SELECT model_version

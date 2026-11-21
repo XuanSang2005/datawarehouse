@@ -1,4 +1,4 @@
-"""Dữ liệu cho mô phỏng what-if (G4). Chỉ SELECT trên gold."""
+"""Data for the what-if simulation (G4). SELECT on gold only."""
 
 from datetime import date
 
@@ -21,7 +21,7 @@ def fetch_assumption(conn: Connection, param_name: str) -> float | None:
 
 
 def fetch_nights(conn: Connection, hotel_key: int, date_from: date, date_to: date) -> list[dict]:
-    """1 dòng / đêm: phòng có khách, phòng bị hủy, doanh thu thực của đêm đó."""
+    """1 row per night: occupied rooms, canceled rooms, realized revenue of that night."""
     query = text(
         """
         SELECT d.full_date AS stay_date, o.rooms_occupied, o.rooms_canceled, o.realized_revenue
@@ -38,7 +38,7 @@ def fetch_nights(conn: Connection, hotel_key: int, date_from: date, date_to: dat
 def fetch_revenue_by_channel(
     conn: Connection, hotel_key: int, date_from: date, date_to: date
 ) -> dict:
-    """Doanh thu thực tổng và qua OTA của booking đến trong giai đoạn (để tính tỉ trọng OTA)."""
+    """Total and OTA realized revenue of bookings arriving in the period (for the OTA share)."""
     query = text(
         """
         SELECT coalesce(sum(f.realized_revenue), 0) AS realized_revenue,
@@ -62,7 +62,7 @@ def fetch_deposit_aggregates(
     threshold: float,
     model_version: str,
 ) -> dict:
-    """Tổng theo nhóm 'bị yêu cầu cọc' (xác suất hủy >= ngưỡng và chưa phải Non Refund)."""
+    """Totals for the 'deposit requested' group (probability >= threshold, not yet Non Refund)."""
     query = text(
         """
         WITH b AS (

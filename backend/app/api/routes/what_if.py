@@ -9,10 +9,10 @@ router = APIRouter(prefix="/what-if", tags=["what-if"])
 
 @router.post("", response_model=WhatIfResponse)
 def run_what_if(conn: DbConn, req: WhatIfRequest) -> WhatIfResponse:
-    """Mô phỏng overbooking và chính sách đặt cọc theo rủi ro hủy (G4).
+    """Simulate overbooking and a cancellation-risk-based deposit policy (G4).
 
-    Trả về doanh thu cứu được, số đêm có nguy cơ hết phòng, chi phí đền bù ước tính, lợi ích ròng,
-    đường cong lợi ích theo mức overbooking và mức gợi ý. Công thức: docstring của
-    `app/services/what_if_service.py`. Chỉ đọc dữ liệu, không ghi gì vào DB.
+    Returns recovered revenue, nights at risk of overselling, estimated walk cost, net benefit,
+    the benefit curve by overbooking level and the recommended level. Formulas: the docstring of
+    `app/services/what_if_service.py`. Read-only: nothing is written to the DB.
     """
     return what_if_service.run_what_if(conn, req)

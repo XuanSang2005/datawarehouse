@@ -1,4 +1,4 @@
-"""Kết nối PostgreSQL và chạy file SQL."""
+"""PostgreSQL connection and SQL file execution."""
 
 from __future__ import annotations
 
@@ -22,20 +22,20 @@ def connect(autocommit: bool = False) -> psycopg.Connection:
         return psycopg.connect(settings.conninfo, autocommit=autocommit)
     except psycopg.OperationalError as exc:
         raise DatabaseConnectionError(
-            f"Không kết nối được DB {settings.describe()}. "
-            "Kiểm tra: (1) DB đã chạy chưa? `docker compose up -d db` "
-            "(2) thông tin trong .env có đúng không? "
-            f"Chi tiết: {exc}"
+            f"Could not connect to DB {settings.describe()}. "
+            "Check: (1) is the DB running? `docker compose up -d db` "
+            "(2) are the settings in .env correct? "
+            f"Details: {exc}"
         ) from exc
 
 
 def run_sql_file(conn: psycopg.Connection, path: Path) -> None:
-    """Chạy toàn bộ nội dung 1 file SQL (có thể nhiều câu lệnh)."""
+    """Run the whole content of one SQL file (may contain multiple statements)."""
     sql_text = path.read_text(encoding="utf-8")
     with conn.cursor() as cur:
         cur.execute(sql_text)
 
 
 def list_sql_files(directory: Path) -> list[Path]:
-    """Các file .sql trong thư mục, sắp xếp theo tên (vì vậy phải đánh số 01_, 02_...)."""
+    """The .sql files in a directory, sorted by name (hence the 01_, 02_... numbering)."""
     return sorted(p for p in directory.glob("*.sql") if p.is_file())

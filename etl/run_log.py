@@ -1,6 +1,6 @@
-"""Ghi log từng bước pipeline vào bảng meta.etl_run_log.
+"""Log each pipeline step to the meta.etl_run_log table.
 
-Dùng kết nối autocommit riêng để log vẫn được lưu kể cả khi bước chính bị rollback.
+Uses a separate autocommit connection so the log is kept even if the main step is rolled back.
 """
 
 from __future__ import annotations

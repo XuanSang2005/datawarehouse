@@ -1,49 +1,50 @@
-"""Mô phỏng what-if cho quyết định overbooking và chính sách đặt cọc (G4).
+"""What-if simulation for overbooking and deposit policy decisions (G4).
 
-Dataset không có số phòng, chi phí đền bù hay hoa hồng, nên các giá trị này là THAM SỐ người
-dùng nhập (quy tắc 10). Các hàm tính toán (`simulate_overbooking`, `simulate_deposit`,
-`build_curve`) là hàm thuần, không đọc DB, để unit test với dữ liệu giả và dùng lại công thức
-trong báo cáo.
+The dataset has no room count, walk cost or commission, so these values are user-entered
+PARAMETERS (rule 10). The calculation functions (`simulate_overbooking`, `simulate_deposit`,
+`build_curve`) are pure functions that do not read the DB, so they can be unit tested with fake
+data and their formulas reused in the report.
 
-Ký hiệu (cho 1 khách sạn, 1 đêm d trong giai đoạn mô phỏng):
-    C      = capacity (số phòng, người dùng nhập)
+Notation (for 1 hotel, 1 night d in the simulation period):
+    C      = capacity (number of rooms, user-entered)
     p      = overbooking_pct
-    occ_d  = số phòng có khách thực tế (gold.fact_daily_occupancy.rooms_occupied)
-    can_d  = số phòng của booking đã hủy cho đêm d (rooms_canceled)
-    rev_d  = doanh thu thực của đêm d (realized_revenue)
+    occ_d  = actual occupied rooms (gold.fact_daily_occupancy.rooms_occupied)
+    can_d  = rooms of canceled bookings for night d (rooms_canceled)
+    rev_d  = realized revenue of night d (realized_revenue)
 
 1. Overbooking (`simulate_overbooking`)
-    booked_d = occ_d + can_d                      đặt phòng trên sổ cho đêm d
-    r_d      = can_d / booked_d                   tỉ lệ hủy đêm d (0 nếu booked_d = 0)
-    extra_d  = C × p   nếu booked_d >= C, ngược lại 0
-               Giả định: chỉ đêm "kín trên sổ" (booked_d >= C) mới có nhu cầu bị từ chối
-               để nhận thêm.
-    show_d   = extra_d × (1 − r_d)                 số đặt thêm đến ở thật
-    spare_d  = max(C − occ_d, 0)                   phòng trống thực tế
-    fill_d   = min(show_d, spare_d)                phòng trống được lấp
-    walk_d   = show_d − fill_d                     khách phải chuyển đi (hết phòng)
-    adr_d    = rev_d / occ_d  (đêm không có khách: ADR cả giai đoạn)
-    Doanh thu cứu được = Σ fill_d × adr_d × (1 − s_OTA × k)
-                         (s_OTA = tỉ trọng doanh thu OTA, k = hoa hồng OTA)
-    Chi phí đền bù     = Σ walk_d × walk_cost
-    Lợi ích ròng       = doanh thu cứu được − chi phí đền bù
-    Đêm có nguy cơ hết phòng = số đêm có walk_d > 0
-    Dùng r_d thực tế của từng đêm (kỳ vọng theo đêm); không mô hình hóa biến động ngẫu nhiên
-    trong đêm, nên rủi ro hết phòng có thể bị đánh giá thấp: nên chọn mức overbooking thấp hơn
-    mức tối ưu một chút.
+    booked_d = occ_d + can_d                      reservations on the books for night d
+    r_d      = can_d / booked_d                   cancellation rate of night d (0 if booked_d = 0)
+    extra_d  = C × p   if booked_d >= C, otherwise 0
+               Assumption: only nights "full on the books" (booked_d >= C) have turned-away
+               demand that could be accepted.
+    show_d   = extra_d × (1 − r_d)                 extra reservations that actually show up
+    spare_d  = max(C − occ_d, 0)                   actual empty rooms
+    fill_d   = min(show_d, spare_d)                empty rooms filled
+    walk_d   = show_d − fill_d                     guests walked (hotel full)
+    adr_d    = rev_d / occ_d  (nights with no guests: ADR of the whole period)
+    Revenue recovered = Σ fill_d × adr_d × (1 − s_OTA × k)
+                        (s_OTA = OTA revenue share, k = OTA commission)
+    Walk cost         = Σ walk_d × walk_cost
+    Net benefit       = revenue recovered − walk cost
+    Nights at risk of overselling = number of nights with walk_d > 0
+    Uses the actual r_d of each night (expected value per night); random variation within a
+    night is not modelled, so the overselling risk may be underestimated: choose an overbooking
+    level slightly below the optimum.
 
-2. Đặt cọc theo rủi ro (`simulate_deposit`), trên booking ĐẾN trong giai đoạn
-    flagged    = cancel_probability >= ngưỡng VÀ deposit_type <> 'Non Refund' (đã có cọc thì bỏ qua)
-    Tiền cọc giữ lại  = deposit_rate × Σ booked_revenue (flagged VÀ hủy)
-    Mất do khách bỏ   = attrition × Σ realized_revenue_sau_hoa_hong (flagged VÀ không hủy)
-                        (booking OTA tính sau hoa hồng: × (1 − k))
-    Lợi ích ròng      = tiền cọc giữ lại − mất do khách bỏ
+2. Risk-based deposit (`simulate_deposit`), on bookings ARRIVING in the period
+    flagged    = cancel_probability >= threshold AND deposit_type <> 'Non Refund' (skip if
+                 a deposit is already taken)
+    Deposit retained = deposit_rate × Σ booked_revenue (flagged AND canceled)
+    Attrition loss   = attrition × Σ realized_revenue_net_of_commission (flagged AND not canceled)
+                       (OTA bookings are counted net of commission: × (1 − k))
+    Net benefit      = deposit retained − attrition loss
 
-3. Tổng lợi ích ròng = (1) + (2). Mức overbooking gợi ý = mức có lợi ích ròng (1) lớn nhất trên lưới
-   0%, 1%, ..., max_curve_pct (hòa thì chọn mức thấp hơn, ít rủi ro hơn).
+3. Total net benefit = (1) + (2). Recommended overbooking level = the level with the highest
+   net benefit (1) on the grid 0%, 1%, ..., max_curve_pct (ties go to the lower, less risky level).
 
-Occupancy = room_nights / (C × số đêm)
-RevPAR    = doanh thu phòng (gộp, trước hoa hồng) / (C × số đêm)
+Occupancy = room_nights / (C × number of nights)
+RevPAR    = room revenue (gross, before commission) / (C × number of nights)
 """
 
 from collections.abc import Sequence
@@ -89,7 +90,7 @@ class DepositAggregates:
 
 
 def revenue_factor(ota_revenue_share: float | None, ota_commission: float) -> float:
-    """Phần doanh thu khách sạn giữ lại sau hoa hồng: 1 − s_OTA × k."""
+    """Share of revenue the hotel keeps after commission: 1 − s_OTA × k."""
     return 1.0 - (ota_revenue_share or 0.0) * ota_commission
 
 
@@ -106,7 +107,7 @@ def simulate_overbooking(
     walk_cost: float,
     net_factor: float,
 ) -> OverbookingResult:
-    """Mục 1 của docstring module."""
+    """Section 1 of the module docstring."""
     fallback_adr = period_adr(nights)
     extra_total = shows_total = filled_total = walked_total = gross_recovered = 0.0
     nights_extra = nights_at_risk = 0
@@ -156,7 +157,7 @@ def build_curve(
     net_factor: float,
     max_pct: float,
 ) -> tuple[list[CurvePoint], float]:
-    """Mục 3: lợi ích ròng ở từng mức overbooking trên lưới, và mức tốt nhất."""
+    """Section 3: net benefit at each overbooking level on the grid, and the best level."""
     steps = round(max_pct / CURVE_STEP)
     curve: list[CurvePoint] = []
     best_pct, best_value = 0.0, float("-inf")
@@ -185,7 +186,7 @@ def simulate_deposit(
     attrition_pct: float,
     ota_commission: float,
 ) -> DepositResult:
-    """Mục 2 của docstring module."""
+    """Section 2 of the module docstring."""
     retained = deposit_rate * agg.flagged_canceled_booked_revenue
     kept_net = agg.flagged_kept_direct_revenue + agg.flagged_kept_ota_revenue * (
         1.0 - ota_commission
@@ -235,16 +236,16 @@ def build_baseline(
 def _resolve_deposit(
     conn: Connection, req: WhatIfRequest, warnings: list[str]
 ) -> tuple[DepositAggregates | None, float | None, str | None]:
-    """Đọc dữ liệu cọc nếu đã có kết quả model hủy; nếu chưa thì bỏ qua phần cọc kèm cảnh báo."""
+    """Read deposit data if cancellation model results exist; otherwise skip it with a warning."""
     if not ml_repo.table_exists(conn, RISK_TABLE):
         warnings.append(
-            "Chưa có gold.ml_booking_risk: bỏ qua mô phỏng đặt cọc "
-            "(chạy python -m ml.cancellation.train)."
+            "gold.ml_booking_risk is not available: deposit simulation skipped "
+            "(run python -m ml.cancellation.train)."
         )
         return None, None, None
     versions = ml_repo.fetch_risk_versions(conn)
     if not versions:
-        warnings.append("gold.ml_booking_risk đang rỗng: bỏ qua mô phỏng đặt cọc.")
+        warnings.append("gold.ml_booking_risk is empty: deposit simulation skipped.")
         return None, None, None
     version = versions[0]
     threshold = req.deposit_risk_threshold
@@ -254,7 +255,7 @@ def _resolve_deposit(
         )
     if threshold is None:
         threshold = 0.5
-        warnings.append("Không tìm thấy ngưỡng High của model; dùng ngưỡng cọc mặc định 0.5.")
+        warnings.append("Model High threshold not found; using the default deposit threshold 0.5.")
     row = what_if_repo.fetch_deposit_aggregates(
         conn, req.hotel_key, req.date_from, req.date_to, threshold, version
     )
@@ -269,9 +270,9 @@ def _resolve_deposit(
     )
     if agg.in_sample_bookings:
         warnings.append(
-            f"{agg.in_sample_bookings} booking trong giai đoạn có điểm rủi ro in-sample "
-            "(đến trước 2017, model đã thấy khi train): lợi ích đặt cọc bị đánh giá lạc quan. "
-            "Nên mô phỏng trên năm 2017."
+            f"{agg.in_sample_bookings} bookings in the period have in-sample risk scores "
+            "(arrival before 2017, seen by the model in training): the deposit benefit is "
+            "optimistic. Simulate on 2017 instead."
         )
     return agg, threshold, version
 
@@ -279,7 +280,7 @@ def _resolve_deposit(
 def run_what_if(conn: Connection, req: WhatIfRequest) -> WhatIfResponse:
     hotel_name = what_if_repo.fetch_hotel_name(conn, req.hotel_key)
     if hotel_name is None:
-        raise InvalidParameterError(f"Không có khách sạn hotel_key={req.hotel_key}")
+        raise InvalidParameterError(f"No hotel with hotel_key={req.hotel_key}")
     nights = [
         Night(
             rooms_occupied=float(r["rooms_occupied"]),
@@ -290,7 +291,7 @@ def run_what_if(conn: Connection, req: WhatIfRequest) -> WhatIfResponse:
     ]
     if not nights:
         raise InvalidParameterError(
-            "Không có dữ liệu đêm nào trong giai đoạn đã chọn (dữ liệu: 2015-07-01 → 2017-08-31)"
+            "No nights with data in the selected period (data: 2015-07-01 → 2017-08-31)"
         )
 
     warnings: list[str] = []
@@ -305,9 +306,9 @@ def run_what_if(conn: Connection, req: WhatIfRequest) -> WhatIfResponse:
     if baseline.nights_over_capacity:
         peak = int(max(n.rooms_occupied for n in nights))
         warnings.append(
-            f"capacity = {req.capacity} nhỏ hơn số phòng có khách thực tế ở "
-            f"{baseline.nights_over_capacity} đêm "
-            f"(cao nhất {peak}). Nên nhập capacity >= {peak}."
+            f"capacity = {req.capacity} is below the actual occupied rooms on "
+            f"{baseline.nights_over_capacity} nights "
+            f"(peak {peak}). Enter capacity >= {peak}."
         )
 
     net_factor = revenue_factor(baseline.ota_revenue_share, req.ota_commission)

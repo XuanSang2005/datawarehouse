@@ -1,7 +1,7 @@
-"""Điểm khởi động FastAPI.
+"""FastAPI entry point.
 
-Chạy dev (từ thư mục backend/):  uvicorn app.main:app --reload --port 8000
-Tài liệu API tự sinh:            http://localhost:8000/docs
+Dev run (from backend/):         uvicorn app.main:app --reload --port 8000
+Auto-generated API docs:         http://localhost:8000/docs
 """
 
 import logging
@@ -25,8 +25,8 @@ app.include_router(api_router)
 
 @app.exception_handler(SQLAlchemyError)
 async def database_error_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
-    # Lỗi SQL/DB -> log đầy đủ ở terminal backend, trả 503 gọn cho frontend.
-    log.exception("Lỗi database tại %s %s", request.method, request.url.path)
+    # SQL/DB error -> full log in the backend terminal, a concise 503 for the frontend.
+    log.exception("Database error at %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=503,
         content={"detail": "Database error", "error_type": exc.__class__.__name__},
@@ -35,7 +35,7 @@ async def database_error_handler(request: Request, exc: SQLAlchemyError) -> JSON
 
 @app.exception_handler(DataNotReadyError)
 async def data_not_ready_handler(request: Request, exc: DataNotReadyError) -> JSONResponse:
-    # Thiếu dữ liệu (vd bảng gold.ml_* chưa có): 404 kèm gợi ý cách tạo dữ liệu.
+    # Missing data (e.g. gold.ml_* tables not created yet): 404 with a hint on how to produce it.
     return JSONResponse(
         status_code=404,
         content={"detail": exc.message, "hint": exc.hint, "error_type": "DataNotReady"},

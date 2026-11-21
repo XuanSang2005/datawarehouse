@@ -11,9 +11,9 @@ router = APIRouter(prefix="/kpi", tags=["kpi"])
 
 @router.get("/summary", response_model=KpiSummary)
 def get_summary(conn: DbConn, flt: Filters) -> KpiSummary:
-    """KPI tổng quan (G1): doanh thu, room-nights, ADR, tỉ lệ hủy, lead time; tách theo khách sạn.
+    """Overview KPIs (G1): revenue, room-nights, ADR, cancellation rate, lead time; split by hotel.
 
-    Lọc theo ngày đến. ADR và tỉ lệ hủy tính lại từ tổng (sum/sum).
+    Filtered by arrival date. ADR and cancellation rate are recomputed from totals (sum/sum).
     """
     return kpi_service.get_summary(conn, flt)
 
@@ -23,9 +23,9 @@ def get_timeseries(
     conn: DbConn,
     flt: Filters,
     grain: Annotated[
-        Grain, Query(description="Mức drill-down: year → quarter → month → week (ISO)")
+        Grain, Query(description="Drill-down level: year → quarter → month → week (ISO)")
     ] = "month",
-    by_hotel: Annotated[bool, Query(description="Tách mỗi kỳ theo từng khách sạn")] = False,
+    by_hotel: Annotated[bool, Query(description="Split each period by hotel")] = False,
 ) -> KpiTimeseries:
-    """Chuỗi KPI theo kỳ (ngày đến) để drill-down Năm → Quý → Tháng → Tuần."""
+    """KPI series by period (arrival date) for drill-down Year → Quarter → Month → Week."""
     return kpi_service.get_timeseries(conn, flt, grain, by_hotel)

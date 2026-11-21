@@ -14,7 +14,7 @@ class HotelKpi(KpiValues):
 
 
 class KpiSummary(BaseModel):
-    """KPI tổng (theo bộ lọc) và tách theo từng khách sạn để so sánh City vs Resort."""
+    """Overall KPIs (for the filter) and split by hotel to compare City vs Resort."""
 
     filters: BookingFilter
     total: KpiValues
@@ -22,9 +22,9 @@ class KpiSummary(BaseModel):
 
 
 class KpiPoint(KpiValues):
-    period: str = Field(description="Nhãn kỳ: 2016 | 2016-Q3 | 2016-07 | 2016-W27 (tuần ISO)")
-    period_start: date = Field(description="Ngày đầu kỳ, dùng làm trục x")
-    hotel_key: int | None = Field(None, description="Chỉ có khi by_hotel=true")
+    period: str = Field(description="Period label: 2016 | 2016-Q3 | 2016-07 | 2016-W27 (ISO week)")
+    period_start: date = Field(description="First day of the period, used as the x axis")
+    hotel_key: int | None = Field(None, description="Only present when by_hotel=true")
     hotel_name: str | None = None
 
 
@@ -32,4 +32,4 @@ class KpiTimeseries(BaseModel):
     grain: Grain
     by_hotel: bool
     filters: BookingFilter
-    points: list[KpiPoint] = Field(description="Sắp xếp theo period_start, rồi hotel_key")
+    points: list[KpiPoint] = Field(description="Sorted by period_start, then hotel_key")

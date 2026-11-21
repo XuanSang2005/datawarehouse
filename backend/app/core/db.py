@@ -1,4 +1,4 @@
-"""Kết nối database (SQLAlchemy engine dùng chung cho cả app)."""
+"""Database connection (one SQLAlchemy engine shared by the whole app)."""
 
 from collections.abc import Iterator
 from functools import lru_cache
@@ -18,6 +18,6 @@ def get_engine() -> Engine:
 
 
 def get_connection() -> Iterator[Connection]:
-    """FastAPI dependency: mỗi request mượn 1 connection từ pool."""
+    """FastAPI dependency: each request borrows one connection from the pool."""
     with get_engine().connect() as conn:
         yield conn
