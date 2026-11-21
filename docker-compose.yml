@@ -1,0 +1,44 @@
+# Cách dùng:
+#   docker compose up -d db                 # Dev hằng ngày: chỉ chạy PostgreSQL
+#   docker compose --profile app up -d      # Demo: chạy cả db + backend + frontend
+#   docker compose down                     # Dừng (giữ dữ liệu)
+#   docker compose down -v                  # Dừng + XÓA dữ liệu DB (reset sạch)
+name: tourism-dss
+
+services:
+  db:
+    image: postgres:16-alpine
+    env_file: .env
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    profiles: ["app"]
+    build: ./backend
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db          # trong mạng Docker, DB có hostname là "db"
+      POSTGRES_PORT: 5432
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

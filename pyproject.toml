@@ -1,0 +1,19 @@
+# File này CHỈ chứa cấu hình công cụ (ruff, pytest) cho toàn bộ code Python.
+# Dependencies nằm trong requirements.txt của từng thành phần (etl/, ml/, backend/).
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["frontend", "ml/notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["etl/tests", "backend/tests"]
+pythonpath = [".", "backend"]
+addopts = "-q"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "etl", "ml"]
