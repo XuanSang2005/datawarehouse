@@ -1,14 +1,14 @@
 -- =============================================================================
--- gold.fact_daily_occupancy — Periodic snapshot: số phòng có khách mỗi đêm ở mỗi khách sạn
--- Nguồn : gold.fact_booking "nở" theo từng đêm lưu trú (generate_series), gom theo khách sạn × đêm.
---         Lưới dày đặc dim_hotel × dim_date: đêm không có khách vẫn có dòng (giá trị 0).
--- Grain : 1 dòng = 1 khách sạn × 1 đêm lưu trú. PK (hotel_key, stay_date_key)
--- Phạm vi: từ ngày đến sớm nhất đến ngày đến muộn nhất trong fact_booking (2015-07-01 → 2017-08-31).
---   Sau đó bị thiếu (không có booking đến từ 09/2017). Các đêm đầu 07/2015 hơi thấp vì thiếu khách
---   đến trước 2015-07-01 mà ở vắt sang.
--- Giả định: 1 booking = 1 phòng.
--- Occupancy / RevPAR tính ở backend từ công suất người dùng nhập (không lưu ở đây).
--- lost_revenue ở đây là thiệt hại GỘP theo đêm (chưa trừ tiền cọc giữ lại).
+-- gold.fact_daily_occupancy — Periodic snapshot: occupied rooms per night at each hotel
+-- Source: gold.fact_booking "exploded" into individual stay nights (generate_series), grouped by hotel × night.
+--         Dense dim_hotel × dim_date grid: nights with no guests still have a row (value 0).
+-- Grain : 1 row = 1 hotel × 1 stay night. PK (hotel_key, stay_date_key)
+-- Range : from the earliest to the latest arrival date in fact_booking (2015-07-01 → 2017-08-31).
+--   Data after that is incomplete (no arrivals from 09/2017). The first nights of 07/2015 are slightly low because
+--   guests who arrived before 2015-07-01 and stayed over are missing.
+-- Assumption: 1 booking = 1 room.
+-- Occupancy / RevPAR are computed in the backend from the capacity the user enters (not stored here).
+-- lost_revenue here is the GROSS loss per night (retained deposits not yet deducted).
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.fact_daily_occupancy CASCADE;
@@ -25,7 +25,7 @@ period AS (
     SELECT min(arrival_date) AS first_night, max(arrival_date) AS last_night FROM bookings
 ),
 nights AS (
-    -- Mỗi booking sinh total_nights dòng; booking 0 đêm không sinh dòng nào.
+    -- Each booking produces total_nights rows; 0-night bookings produce none.
     SELECT b.hotel_key, b.arrival_date + i AS stay_date, b.is_canceled, b.guests, b.adr
     FROM bookings AS b
     CROSS JOIN LATERAL generate_series(0, b.total_nights - 1) AS i

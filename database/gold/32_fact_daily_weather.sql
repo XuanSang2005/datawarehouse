@@ -1,17 +1,17 @@
 -- =============================================================================
--- gold.fact_daily_weather — Thời tiết theo khách sạn × ngày (periodic snapshot)
--- Nguồn : silver.weather_daily (Open-Meteo) nối dim_hotel qua dim_hotel.weather_location
+-- gold.fact_daily_weather — Weather per hotel × day (periodic snapshot)
+-- Source: silver.weather_daily (Open-Meteo) joined to dim_hotel via dim_hotel.weather_location
 --         (City Hotel -> Lisbon, Resort Hotel -> Faro).
--- Grain : 1 dòng = 1 khách sạn × 1 ngày lịch. PK (hotel_key, date_key)
--- Phạm vi: 2015-01-01 → 2017-12-31 (2 × 1.096 = 2.192 dòng), phủ trọn fact_daily_occupancy.
--- Cách dùng (KHÔNG nhân bản dòng fact, vì PK = đúng khóa nối):
---   * fact_daily_occupancy: JOIN 1:1 theo (hotel_key, stay_date_key = date_key)
---   * fact_booking        : JOIN N:1 theo (hotel_key, arrival_date_key = date_key) -> thời tiết ngày đến
--- Biến đổi chính:
---   * weather_group: gom mã WMO thành 7 nhóm dễ đọc
---   * is_rainy_day = 1 khi lượng mưa >= 1 mm (ngưỡng "ngày mưa" thông dụng), SMALLINT để SUM ra số ngày mưa
--- Lưu ý ML: thời tiết thực tế của ngày đến KHÔNG biết được lúc đặt phòng -> không dùng làm feature
--- dự đoán hủy (xem STAR_SCHEMA.md mục 5.3).
+-- Grain : 1 row = 1 hotel × 1 calendar day. PK (hotel_key, date_key)
+-- Range : 2015-01-01 → 2017-12-31 (2 × 1,096 = 2,192 rows), fully covering fact_daily_occupancy.
+-- Usage (does NOT duplicate fact rows, because the PK is exactly the join key):
+--   * fact_daily_occupancy: 1:1 JOIN on (hotel_key, stay_date_key = date_key)
+--   * fact_booking        : N:1 JOIN on (hotel_key, arrival_date_key = date_key) -> weather on the arrival day
+-- Main transformations:
+--   * weather_group: groups WMO codes into 7 readable groups
+--   * is_rainy_day = 1 when precipitation >= 1 mm (the usual "rainy day" threshold), SMALLINT so SUM gives rainy-day counts
+-- ML note: the actual weather on the arrival day is NOT known at booking time -> do not use it as a feature
+-- for cancellation prediction (see STAR_SCHEMA.md section 5.3).
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.fact_daily_weather CASCADE;

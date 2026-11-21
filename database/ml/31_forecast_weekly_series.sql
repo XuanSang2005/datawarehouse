@@ -1,16 +1,16 @@
 -- =============================================================================
--- Chuỗi tuần cho dự báo nhu cầu (E4) — chỉ SELECT, đọc bởi ml/forecast/train.py
--- Grain : 1 dòng = 1 khách sạn × 1 tuần lịch (Thứ Hai đầu tuần = gold.dim_date.week_start_date)
--- Phạm vi: từ tuần chứa đêm dữ liệu đầu tiên đến tuần đầy đủ cuối cùng của dim_date (2018-12),
---   để có sẵn đặc trưng lịch (tuần trong năm, ngày lễ) cho các tuần tương lai.
--- Cột:
---   room_nights   : tổng rooms_occupied (booking không hủy) trong các đêm CÓ dữ liệu của tuần;
---                   NULL nếu tuần nằm ngoài phạm vi fact_daily_occupancy.
---   days_observed : số đêm của tuần có trong fact_daily_occupancy. < 7 ở tuần biên
---                   (2015-06-29 chỉ có 5 đêm, 2017-08-28 chỉ có 4 đêm) → Python loại khỏi train
---                   và không dùng làm actual.
---   n_holidays    : số ngày lễ Bồ Đào Nha trong tuần (dim_date.is_holiday).
---   iso_week      : tuần ISO của Thứ Hai đầu tuần (1..53).
+-- Weekly series for demand forecasting (E4) — SELECT only, read by ml/forecast/train.py
+-- Grain : 1 row = 1 hotel × 1 calendar week (Monday starting the week = gold.dim_date.week_start_date)
+-- Range : from the week containing the first night of data to the last complete week of dim_date (2018-12),
+--   so calendar features (week of year, holidays) are available for future weeks.
+-- Columns:
+--   room_nights   : sum of rooms_occupied (non-canceled bookings) over the nights of the week that HAVE data;
+--                   NULL if the week is outside the range of fact_daily_occupancy.
+--   days_observed : number of nights of the week present in fact_daily_occupancy. < 7 for edge weeks
+--                   (2015-06-29 has only 5 nights, 2017-08-28 only 4 nights) → Python excludes them from training
+--                   and does not use them as actuals.
+--   n_holidays    : number of Portuguese holidays in the week (dim_date.is_holiday).
+--   iso_week      : ISO week of the week's Monday (1..53).
 -- =============================================================================
 
 WITH weeks AS (

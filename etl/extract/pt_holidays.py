@@ -1,4 +1,4 @@
-"""Nguồn 2: Ngày lễ quốc gia Bồ Đào Nha, sinh offline bằng thư viện `holidays`."""
+"""Source 2: Portuguese national holidays, generated offline with the `holidays` library."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import holidays
 
 log = logging.getLogger("etl.extract.pt_holidays")
 
-# Dataset booking có ngày đặt từ 2013 (lead_time tối đa ~2 năm) đến ngày đến 2017-08.
+# Booking dates in the dataset start in 2013 (max lead_time ~2 years); arrivals end in 2017-08.
 YEARS = range(2013, 2019)
 
 
@@ -22,4 +22,4 @@ def extract(target: Path) -> None:
         writer.writerow(["holiday_date", "holiday_name"])
         for day, name in rows:
             writer.writerow([day.isoformat(), name])
-    log.info("Đã sinh %d ngày lễ vào %s", len(rows), target)
+    log.info("Generated %d holidays into %s", len(rows), target)

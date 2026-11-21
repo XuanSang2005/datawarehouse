@@ -1,7 +1,7 @@
-// Mô phỏng What-if (G4) — người dùng: Revenue Manager.
-// Quyết định hỗ trợ: nên overbooking bao nhiêu %, có nên đòi cọc booking rủi ro cao không.
-// Toàn bộ phép tính ở backend (POST /api/what-if, công thức: backend/app/services/what_if_service.py).
-// Frontend chỉ gửi tham số người dùng nhập (công suất, chi phí không có trong dataset — quy tắc 10) và hiển thị.
+// What-if simulation (G4) — user: Revenue Manager.
+// Decisions supported: how much to overbook (%), and whether to ask high-risk bookings for a deposit.
+// All calculations happen in the backend (POST /api/what-if, formulas: backend/app/services/what_if_service.py).
+// The frontend only sends the user's inputs (capacity and costs are not in the dataset — rule 10) and displays the result.
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Area, ReferenceDot } from 'recharts'
 import { runWhatIf } from '../api/endpoints'
@@ -13,7 +13,7 @@ import { useApi, useDebounced } from '../hooks/useApi'
 import { useToast } from '../hooks/useToast'
 import { dateLabel, eur, num, num1, pct } from '../lib/format'
 
-/** +€1.234 / −€1.234 / €0 */
+/** +€1,234 / −€1,234 / €0 */
 const signedEur = (v: number) => `${v < 0 ? '−' : v > 0 ? '+' : ''}${eur(Math.abs(v))}`
 import { COLORS, FONT_UI } from '../lib/theme'
 import type { WhatIfRequest, WhatIfResponse } from '../types/api'
@@ -88,7 +88,7 @@ export default function WhatIfPage() {
   const [inputs, setInputs] = useState<Inputs | null>(null)
   const [toast, showToast] = useToast()
 
-  // Khởi tạo / đổi khách sạn: công suất mặc định = đêm đông nhất thực tế + 5%
+  // On init / hotel change: default capacity = actual busiest night + 5%
   useEffect(() => {
     if (!hotel) return
     setInputs((cur) => ({
@@ -130,11 +130,11 @@ export default function WhatIfPage() {
   return (
     <>
       <PageHead
-        title="Overbooking đến mức nào?"
+        title="How far can you overbook?"
         aside={
           filters.hotelKey == null && hotels.length > 0 ? (
             <Segmented<number | null>
-              label="Khách sạn mô phỏng"
+              label="Hotel to simulate"
               value={hotelKey}
               onChange={setLocalHotel}
               options={hotels.map((h) => ({ value: h.hotel_key, label: h.hotel_name }))}
@@ -149,14 +149,14 @@ export default function WhatIfPage() {
             <>
               <Slider
                 id="wi-cap"
-                label="Số phòng mỗi đêm"
+                label="Rooms per night"
                 value={inputs.capacity}
                 display={num(inputs.capacity)}
                 min={roundUp(peak * 0.6, 10)}
                 max={roundUp(peak * 2, 10)}
                 step={5}
                 onChange={(v) => set({ capacity: v })}
-                note={`Bạn nhập · dataset không có · đêm đông nhất ${num(peak)} phòng`}
+                note={`Your input · not in dataset · busiest night ${num(peak)} rooms`}
               />
               <Slider
                 id="wi-ob"
@@ -170,7 +170,7 @@ export default function WhatIfPage() {
               />
               <Slider
                 id="wi-walk"
-                label="Chi phí mỗi đêm phải chuyển khách"
+                label="Cost per walked room-night"
                 value={inputs.walkCost}
                 display={eur(inputs.walkCost)}
                 min={50}
@@ -180,7 +180,7 @@ export default function WhatIfPage() {
               />
               <Slider
                 id="wi-ota"
-                label="Hoa hồng OTA"
+                label="OTA commission"
                 value={inputs.otaCommission * 100}
                 display={pct(inputs.otaCommission, 0)}
                 min={0}
@@ -189,7 +189,7 @@ export default function WhatIfPage() {
                 onChange={(v) => set({ otaCommission: v / 100 })}
               />
               <label htmlFor="wi-dep" className="flex cursor-pointer items-center justify-between gap-3.5 text-[14.5px] font-semibold">
-                Đòi cọc khi rủi ro ≥ {pct(threshold, 0)}
+                Deposit when risk ≥ {pct(threshold, 0)}
                 <input
                   id="wi-dep"
                   type="checkbox"
@@ -206,7 +206,7 @@ export default function WhatIfPage() {
                 <>
                   <Slider
                     id="wi-thr"
-                    label="Ngưỡng xác suất hủy để đòi cọc"
+                    label="Deposit risk threshold"
                     value={Math.round(threshold * 100)}
                     display={pct(threshold, 0)}
                     min={10}
@@ -216,7 +216,7 @@ export default function WhatIfPage() {
                   />
                   <Slider
                     id="wi-attr"
-                    label="Khách bỏ đặt vì bị đòi cọc"
+                    label="Attrition when asked for deposit"
                     value={inputs.attrition * 100}
                     display={pct(inputs.attrition, 0)}
                     min={0}
@@ -232,22 +232,22 @@ export default function WhatIfPage() {
                 onClick={() => {
                   if (!r) return
                   set({ overbooking: r.recommended_overbooking_pct })
-                  showToast(`Đã đặt overbooking ${pct(r.recommended_overbooking_pct)}`)
+                  showToast(`Overbooking set to ${pct(r.recommended_overbooking_pct)}`)
                 }}
                 className="cursor-pointer border border-rifle bg-rifle px-5 py-3 text-sm font-semibold text-merino transition hover:border-cedar hover:bg-cedar active:scale-[0.97] disabled:opacity-50"
               >
-                Dùng mức tốt nhất{r ? ` (${pct(r.recommended_overbooking_pct)})` : ''}
+                Use the best level{r ? ` (${pct(r.recommended_overbooking_pct)})` : ''}
               </button>
             </>
           ) : (
-            <Cap>Đang tải danh mục khách sạn…</Cap>
+            <Cap>Loading hotels…</Cap>
           )}
         </div>
 
         <div className="flex min-w-0 flex-col gap-11">
           <Focal className="grid items-end gap-7 p-[22px] sm:p-[30px_34px] md:grid-cols-[minmax(0,1fr)_minmax(0,260px)]">
             <div>
-              <Cap className="text-kangaroo">Lợi ích ròng mỗi đêm</Cap>
+              <Cap className="text-kangaroo">Net gain per night</Cap>
               <BigNumber className="mt-3.5 text-[clamp(64px,8.5vw,132px)]">
                 {perNight != null ? <Money value={Math.round(perNight)} signed /> : '—'}
               </BigNumber>
@@ -255,7 +255,7 @@ export default function WhatIfPage() {
                 {r && total != null ? (
                   <>
                     <b className="font-semibold text-merino">{signedEur(total)}</b>{' '}
-                    trong {num(r.baseline.nights)} đêm ({dateLabel(r.assumptions.date_from)}–
+                    over {num(r.baseline.nights)} nights ({dateLabel(r.assumptions.date_from)}–
                     {dateLabel(r.assumptions.date_to)})
                   </>
                 ) : (
@@ -266,14 +266,14 @@ export default function WhatIfPage() {
             <div className="flex flex-col">
               {(
                 [
-                  ['Lấp phòng sau overbooking', pct(r?.overbooking.occupancy_rate_after ?? null)],
-                  ['Đêm phòng phải chuyển khách', num1(r?.overbooking.rooms_walked ?? null)],
-                  ['Đêm có nguy cơ hết phòng', r ? `${r.overbooking.nights_at_risk}/${r.baseline.nights}` : '—'],
+                  ['Rooms filled', pct(r?.overbooking.occupancy_rate_after ?? null)],
+                  ['Walked room-nights', num1(r?.overbooking.rooms_walked ?? null)],
+                  ['Nights at risk of a walk', r ? `${r.overbooking.nights_at_risk}/${r.baseline.nights}` : '—'],
                 ] as [string, string][]
               ).map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between gap-3 border-t border-merino/25 py-2.5">
                   <span className="text-sm text-kangaroo">{k}</span>
-                  <b className="font-display text-[30px] font-medium tabular-nums">{v}</b>
+                  <b className="font-display text-[30px] font-bold tabular-nums">{v}</b>
                 </div>
               ))}
             </div>
@@ -288,13 +288,13 @@ export default function WhatIfPage() {
             </ul>
           )}
 
-          <Section title="Lợi ích theo mức overbooking">
+          <Section title="Gain by overbooking level">
             <DataState state={result} minHeight={280} isEmpty={(d) => !d}>
               {(d) => d && <CurveChart data={d} current={inputs?.overbooking ?? 0} />}
             </DataState>
           </Section>
 
-          <Section title="Tách lợi ích">
+          <Section title="Where the gain comes from">
             <DataState state={result} isEmpty={(d) => !d}>
               {(d) => d && <Breakdown data={d} depositOn={inputs?.deposit ?? false} total={total ?? 0} />}
             </DataState>
@@ -328,19 +328,19 @@ function CurveChart({ data, current }: { data: WhatIfResponse; current: number }
   const money = (v: number) => `${v < 0 ? '−' : ''}€${num(Math.abs(v) / 1000)}K`
   return (
     <LedgerLineChart
-      label="Lợi ích ròng theo mức overbooking"
+      label="Net gain by overbooking level"
       data={rows}
       xKey="x"
-      series={[{ key: 'net', name: 'Lợi ích ròng', color: COLORS.rifle }]}
+      series={[{ key: 'net', name: 'Net gain', color: COLORS.rifle }]}
       height={280}
       zeroLine
       yFormat={money}
       tooltip={(row) => (
         <>
           <b className="font-semibold">Overbooking {String(row.x)}</b>
-          <TipRow label="Lợi ích ròng" value={eur(Number(row.net))} />
-          <TipRow label="Đêm phòng chuyển khách" value={num1(Number(row.walked))} />
-          <TipRow label="Đêm có nguy cơ" value={String(row.risk)} />
+          <TipRow label="Net gain" value={eur(Number(row.net))} />
+          <TipRow label="Walked room-nights" value={num1(Number(row.walked))} />
+          <TipRow label="Nights at risk" value={String(row.risk)} />
         </>
       )}
     >
@@ -355,7 +355,7 @@ function CurveChart({ data, current }: { data: WhatIfResponse; current: number }
           stroke={COLORS.rifle}
           strokeWidth={2}
           label={{
-            value: `Tốt nhất ${best.x}`,
+            value: `Best ${best.x}`,
             position: 'top',
             offset: 14,
             fill: COLORS.cedar,
@@ -377,13 +377,13 @@ function Breakdown({ data, depositOn, total }: { data: WhatIfResponse; depositOn
   const d = data.deposit
   const b = data.baseline
   const rows: [string, number | null, string][] = [
-    ['Doanh thu cứu được nhờ overbooking', o.revenue_recovered, `${num1(o.rooms_filled)} đêm phòng trống được lấp, sau hoa hồng OTA`],
-    ['Chi phí chuyển khách', -o.walk_cost_total, `${num1(o.rooms_walked)} đêm phòng × ${eur(data.assumptions.walk_cost)}`],
+    ['Revenue recovered by overbooking', o.revenue_recovered, `${num1(o.rooms_filled)} empty room-nights filled, after OTA commission`],
+    ['Walk cost', -o.walk_cost_total, `${num1(o.rooms_walked)} walked room-nights × ${eur(data.assumptions.walk_cost)}`],
   ]
   if (d && depositOn) {
     rows.push(
-      ['Tiền cọc giữ lại', d.deposit_retained, `${num(d.flagged_bookings)} booking bị đòi cọc, ${pct(d.flagged_precision, 0)} trong đó thực tế hủy · cọc ${pct(d.deposit_rate, 0)}`],
-      ['Mất do khách bỏ đặt', -d.attrition_loss, `${pct(d.attrition_pct, 0)} khách không hủy bỏ đặt vì bị đòi cọc`],
+      ['Deposits retained', d.deposit_retained, `${num(d.flagged_bookings)} bookings asked for a deposit, ${pct(d.flagged_precision, 0)} of them actually cancelled · deposit ${pct(d.deposit_rate, 0)}`],
+      ['Lost to attrition', -d.attrition_loss, `${pct(d.attrition_pct, 0)} of guests who would have stayed drop out when asked for a deposit`],
     )
   }
   return (
@@ -402,7 +402,7 @@ function Breakdown({ data, depositOn, total }: { data: WhatIfResponse; depositOn
             </tr>
           ))}
           <tr>
-            <td className="border-t border-cedar py-3.5 font-semibold">Tổng lợi ích ròng</td>
+            <td className="border-t border-cedar py-3.5 font-semibold">Total net gain</td>
             <td className={`border-t border-cedar py-3.5 text-right font-mono font-semibold tabular-nums ${total < 0 ? 'text-rust' : ''}`}>
               {signedEur(total)}
             </td>
@@ -412,21 +412,22 @@ function Breakdown({ data, depositOn, total }: { data: WhatIfResponse; depositOn
       <div className="grid grid-cols-2 gap-y-5 sm:grid-cols-4">
         {(
           [
-            ['Occupancy hiện tại', pct(b.occupancy_rate)],
-            ['RevPAR hiện tại', eur(b.revpar)],
+            ['Current occupancy', pct(b.occupancy_rate)],
+            ['Current RevPAR', eur(b.revpar)],
             ['ADR', eur(b.adr)],
-            ['Tỉ trọng doanh thu OTA', pct(b.ota_revenue_share, 0)],
+            ['OTA revenue share', pct(b.ota_revenue_share, 0)],
           ] as [string, string][]
         ).map(([k, v], i) => (
           <div key={k} className={`flex flex-col gap-1 ${i % 2 ? 'border-l border-kangaroo pl-5' : ''} ${i === 2 ? 'sm:border-l sm:border-kangaroo sm:pl-5' : ''}`}>
             <Cap>{k}</Cap>
-            <b className="font-display text-[30px] font-medium tabular-nums">{v}</b>
+            <b className="font-display text-[30px] font-bold tabular-nums">{v}</b>
           </div>
         ))}
       </div>
       <p className="text-[13px] text-oyster-ink">
-        Occupancy và RevPAR tính theo số phòng bạn nhập. Giả định: chỉ nhận thêm đặt phòng ở đêm đã kín trên sổ; tỉ lệ
-        hủy lấy theo thực tế từng đêm, nên rủi ro hết phòng có thể bị đánh giá thấp. Công thức chi tiết:{' '}
+        Occupancy and RevPAR use the room count you entered. Assumptions: extra bookings are only taken on nights that are
+        full on the books; cancellation rates are each night's actual rates, so the risk of running out of rooms may be
+        underestimated. Full formulas:{' '}
         <code className="font-mono">backend/app/services/what_if_service.py</code>.
       </p>
     </div>

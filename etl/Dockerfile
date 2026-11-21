@@ -1,5 +1,5 @@
-# Image chạy pipeline ETL một lần (service `etl` trong docker-compose.yml).
-# Build context là THƯ MỤC GỐC repo vì pipeline cần cả etl/ lẫn database/.
+# Image that runs the ETL pipeline once (service `etl` in docker-compose.yml).
+# The build context is the REPO ROOT because the pipeline needs both etl/ and database/.
 FROM python:3.12-slim
 
 WORKDIR /app

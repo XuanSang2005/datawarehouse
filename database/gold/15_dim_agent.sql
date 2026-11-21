@@ -1,10 +1,10 @@
 -- =============================================================================
--- gold.dim_agent — Dimension đại lý (SCD Type 2-ready)
--- Nguồn : DISTINCT silver.hotel_bookings.agent_id
--- Grain : 1 dòng = 1 phiên bản của 1 đại lý + dòng agent_key = 0 "No agent" (booking không qua đại lý)
--- SCD   : full load nên hiện mỗi đại lý chỉ có 1 phiên bản (valid_from 1900-01-01, valid_to 9999-12-31).
---         Khi nạp incremental: đóng dòng cũ (valid_to, is_current = false), thêm dòng mới với agent_key mới,
---         và fact tra key theo booking_date BETWEEN valid_from AND valid_to.
+-- gold.dim_agent — Agent dimension (SCD Type 2-ready)
+-- Source: DISTINCT silver.hotel_bookings.agent_id
+-- Grain : 1 row = 1 version of 1 agent + an agent_key = 0 "No agent" row (bookings not made through an agent)
+-- SCD   : full load, so each agent currently has only 1 version (valid_from 1900-01-01, valid_to 9999-12-31).
+--         With incremental loads: close the old row (valid_to, is_current = false), insert a new row with a new agent_key,
+--         and the fact looks up the key by booking_date BETWEEN valid_from AND valid_to.
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.dim_agent CASCADE;

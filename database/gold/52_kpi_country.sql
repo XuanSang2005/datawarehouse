@@ -1,9 +1,9 @@
 -- =============================================================================
--- gold.kpi_country — KPI theo khách sạn × quốc gia × năm đến (Sales & Marketing, mục tiêu G5)
--- Nguồn : gold.fact_booking + dim_hotel + dim_country + dim_date (vai ngày đến)
--- Grain : 1 dòng = 1 khách sạn × 1 quốc gia × 1 năm đến
--- Measure non-additive (cancellation_rate, adr, avg_los) tính lại từ tổng (quy tắc 8).
--- Cột chung: bookings, canceled_bookings, cancellation_rate, room_nights_sold, realized_revenue,
+-- gold.kpi_country — KPIs per hotel × country × arrival year (Sales & Marketing, goal G5)
+-- Source: gold.fact_booking + dim_hotel + dim_country + dim_date (arrival date role)
+-- Grain : 1 row = 1 hotel × 1 country × 1 arrival year
+-- Non-additive measures (cancellation_rate, adr, avg_los) are recomputed from totals (rule 8).
+-- Common columns: bookings, canceled_bookings, cancellation_rate, room_nights_sold, realized_revenue,
 --            lost_revenue, net_lost_revenue, adr, avg_lead_time, avg_los
 -- =============================================================================
 

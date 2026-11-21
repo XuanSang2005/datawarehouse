@@ -1,4 +1,4 @@
-// Màu dùng trong SVG/Recharts (thuộc tính stroke/fill cần giá trị cụ thể). PHẢI khớp @theme trong styles/global.css.
+// Colours used in SVG/Recharts (stroke/fill attributes need literal values). MUST match @theme in styles/global.css.
 export const COLORS = {
   merino: '#f1f1ec',
   kangaroo: '#d0c7b3',
@@ -10,7 +10,7 @@ export const COLORS = {
   brass: '#9c7a3c',
 } as const
 
-/** Màu theo loại khách sạn: City = Rifle, Resort = Brass (như prototype). */
+/** Colour per hotel type: City = Rifle, Resort = Brass (as in the prototype). */
 export function hotelColor(hotelType: string | undefined | null): string {
   return hotelType === 'Resort' ? COLORS.brass : COLORS.rifle
 }

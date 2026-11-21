@@ -1,4 +1,4 @@
-// Bộ lọc dùng chung cho mọi trang (khách sạn ở thanh trên cùng; ngày/kênh/quốc gia ở FilterBar).
+// Filters shared by every page (hotel in the top bar; dates/channel/country in FilterBar).
 import { createContext, useContext } from 'react'
 import type { FilterParams } from '../api/endpoints'
 import type { FilterOptions, HotelOption } from '../types/api'
@@ -23,12 +23,12 @@ export interface FiltersContextValue {
   filters: FiltersState
   setFilters: (patch: Partial<FiltersState>) => void
   resetFilters: () => void
-  /** Danh mục từ GET /api/filters (null khi đang tải hoặc lỗi) */
+  /** Options from GET /api/filters (null while loading or on error) */
   options: FilterOptions | null
   optionsError: Error | null
-  /** Khách sạn đang chọn (null = cả hai) */
+  /** Selected hotel (null = both) */
   hotel: HotelOption | null
-  /** Tham số query gửi backend */
+  /** Query parameters sent to the backend */
   params: FilterParams
 }
 
@@ -36,7 +36,7 @@ export const FiltersContext = createContext<FiltersContextValue | null>(null)
 
 export function useFilters(): FiltersContextValue {
   const ctx = useContext(FiltersContext)
-  if (!ctx) throw new Error('useFilters phải nằm trong <FiltersProvider>')
+  if (!ctx) throw new Error('useFilters must be used inside <FiltersProvider>')
   return ctx
 }
 

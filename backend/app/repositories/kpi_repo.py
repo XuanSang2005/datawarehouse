@@ -1,6 +1,6 @@
-"""KPI tổng quan từ gold.fact_booking (thời gian = ngày đến).
+"""Overview KPIs from gold.fact_booking (time = arrival date).
 
-Chỉ trả về các TỔNG; tỉ lệ tính ở service.
+Returns TOTALS only; rates are computed in the service.
 """
 
 from sqlalchemy import Connection, text
@@ -8,7 +8,7 @@ from sqlalchemy import Connection, text
 from app.repositories.booking_sql import BOOKING_FROM, KPI_SUMS, build_where
 from app.schemas.common import BookingFilter
 
-# Biểu thức kỳ theo grain (whitelist: không bao giờ nối chuỗi từ input người dùng vào SQL).
+# Period expressions by grain (whitelist: user input is never concatenated into SQL).
 PERIOD_SQL: dict[str, tuple[str, str]] = {
     "year": ("ad.year::TEXT", "make_date(ad.year, 1, 1)"),
     "quarter": ("ad.year || '-Q' || ad.quarter", "make_date(ad.year, (ad.quarter - 1) * 3 + 1, 1)"),

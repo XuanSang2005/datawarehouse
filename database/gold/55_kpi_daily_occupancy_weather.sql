@@ -1,10 +1,10 @@
 -- =============================================================================
--- gold.kpi_daily_occupancy_weather — Phòng có khách + lịch (lễ, cuối tuần) + thời tiết theo khách sạn × đêm
--- Nguồn : gold.fact_daily_occupancy JOIN 1:1 gold.fact_daily_weather (drill-across qua hotel_key + ngày)
+-- gold.kpi_daily_occupancy_weather — Occupied rooms + calendar (holidays, weekends) + weather per hotel × night
+-- Source: gold.fact_daily_occupancy 1:1 JOIN gold.fact_daily_weather (drill-across via hotel_key + date)
 --         + dim_hotel + dim_date
--- Grain : 1 dòng = 1 khách sạn × 1 đêm lưu trú (giữ nguyên số dòng của fact_daily_occupancy: 1.586)
--- Dùng cho: phân tích ảnh hưởng thời tiết / ngày lễ đến nhu cầu, feature cho dự báo nhu cầu.
--- ADR tính lại từ tổng (quy tắc 8).
+-- Grain : 1 row = 1 hotel × 1 stay night (same row count as fact_daily_occupancy: 1,586)
+-- Used for: analysing the effect of weather / holidays on demand, features for demand forecasting.
+-- ADR is recomputed from totals (rule 8).
 -- =============================================================================
 
 DROP VIEW IF EXISTS gold.kpi_daily_occupancy_weather;

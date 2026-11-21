@@ -1,52 +1,52 @@
-# Lối tắt cho các lệnh hay dùng. Windows không có `make` -> xem lệnh gốc trong README.md.
-# Yêu cầu: đã activate venv (source .venv/bin/activate).
+# Shortcuts for frequently used commands. Windows has no `make` -> see the raw commands in README.md.
+# Requirement: the venv is activated (source .venv/bin/activate).
 
 .PHONY: help install db-up db-down db-reset db-shell etl etl-docker backend frontend app-up app-reset test lint format
 
-help:            ## Liệt kê các lệnh
+help:            ## List the commands
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
 
-install:         ## Cài dependency Python + Node
+install:         ## Install Python + Node dependencies
 	pip install -r requirements-dev.txt
 	cd frontend && npm install
 
-db-up:           ## Bật PostgreSQL (Docker)
+db-up:           ## Start PostgreSQL (Docker)
 	docker compose up -d db
 
-db-down:         ## Tắt PostgreSQL (giữ dữ liệu)
+db-down:         ## Stop PostgreSQL (keep data)
 	docker compose down
 
-db-reset:        ## XÓA toàn bộ dữ liệu DB rồi bật lại
+db-reset:        ## DELETE all DB data, then start again
 	docker compose down -v && docker compose up -d db
 
-db-shell:        ## Mở psql vào DB
+db-shell:        ## Open psql on the DB
 	docker compose exec db sh -c 'psql -U $$POSTGRES_USER -d $$POSTGRES_DB'
 
-etl:             ## Chạy toàn bộ pipeline ETL
+etl:             ## Run the full ETL pipeline
 	python -m etl.run_pipeline
 
-etl-docker:      ## Chạy pipeline ETL trong Docker (không cần venv)
+etl-docker:      ## Run the ETL pipeline in Docker (no venv needed)
 	docker compose run --rm etl
 
-backend:         ## Chạy backend dev (port 8000)
+backend:         ## Run the dev backend (port 8000)
 	cd backend && uvicorn app.main:app --reload --port 8000
 
-frontend:        ## Chạy frontend dev (port 5173)
+frontend:        ## Run the dev frontend (port 5173)
 	cd frontend && npm run dev
 
-app-up:          ## Chạy cả hệ thống bằng Docker (demo): db + etl + backend + frontend
+app-up:          ## Run the whole system in Docker (demo): db + etl + backend + frontend
 	docker compose --profile app up -d --build
 
-app-reset:       ## XÓA dữ liệu rồi chạy lại demo Docker từ DB rỗng
+app-reset:       ## DELETE data, then rerun the Docker demo from an empty DB
 	docker compose --profile app down -v && docker compose --profile app up -d --build
 
-test:            ## Chạy test Python
+test:            ## Run Python tests
 	pytest
 
-lint:            ## Kiểm tra code style (Python + TS)
+lint:            ## Check code style (Python + TS)
 	ruff check .
 	cd frontend && npm run lint
 
-format:          ## Tự sửa format Python
+format:          ## Auto-fix Python formatting
 	ruff check . --fix
 	ruff format .

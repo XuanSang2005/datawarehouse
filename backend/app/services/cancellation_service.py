@@ -1,4 +1,4 @@
-"""Phân tích hủy (G2): tỉ lệ hủy theo chiều, danh sách booking rủi ro cao, metric model."""
+"""Cancellation analysis (G2): cancellation rate by dimension, high-risk bookings, model metrics."""
 
 from sqlalchemy import Connection
 
@@ -22,9 +22,9 @@ RISK_TABLE = "gold.ml_booking_risk"
 
 
 def build_breakdown(rows: list[dict], top_n: int | None) -> tuple[list[BreakdownItem], int, int]:
-    """Tính tỉ lệ từ tổng, sắp xếp, cắt top N.
+    """Compute rates from totals, sort, cut to top N.
 
-    Trả về (items, tổng booking, tổng hủy); hai tổng tính trên TOÀN BỘ nhóm, không chỉ top N.
+    Returns (items, total bookings, total canceled); both totals cover ALL groups, not just top N.
     """
     total_bookings = sum(int(r["bookings"]) for r in rows)
     total_canceled = sum(int(r["canceled_bookings"]) for r in rows)
@@ -70,7 +70,7 @@ def get_breakdown(
 
 
 def resolve_risk_version(conn: Connection, model_version: str | None) -> str:
-    """Phiên bản được yêu cầu, hoặc mới nhất. 404 nếu bảng rỗng hay phiên bản không tồn tại."""
+    """The requested version, or the latest. 404 if the table is empty or the version is unknown."""
     ml_service.require_table(conn, RISK_TABLE)
     versions = ml_repo.fetch_risk_versions(conn)
     if not versions:
@@ -79,8 +79,8 @@ def resolve_risk_version(conn: Connection, model_version: str | None) -> str:
         return versions[0]
     if model_version not in versions:
         raise DataNotReadyError(
-            f"Không có điểm rủi ro cho model_version '{model_version}'",
-            hint=f"Các phiên bản hiện có: {', '.join(versions)}",
+            f"No risk scores for model_version '{model_version}'",
+            hint=f"Available versions: {', '.join(versions)}",
         )
     return model_version
 

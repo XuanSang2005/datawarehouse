@@ -1,55 +1,55 @@
-# Từ điển dữ liệu (Data Dictionary)
+# Data Dictionary
 
-> **Quy tắc:** thêm hoặc sửa bảng nào thì cập nhật file này trong **cùng PR**.
+> **Rule:** whenever you add or modify a table, update this file in the **same PR**.
 
-## 1. Nguồn: `hotel_bookings.csv` → `bronze.hotel_bookings`
+## 1. Source: `hotel_bookings.csv` → `bronze.hotel_bookings`
 
-Nguồn: Antonio, Almeida & Nunes (2019), *Hotel booking demand datasets*, Data in Brief 22, 41–49.
-Grain: **1 dòng = 1 booking**. 119.390 dòng, 32 cột. Ở bronze, mọi cột là `TEXT`.
+Source: Antonio, Almeida & Nunes (2019), *Hotel booking demand datasets*, Data in Brief 22, 41–49.
+Grain: **1 row = 1 booking**. 119,390 rows, 32 columns. In bronze, every column is `TEXT`.
 
-| Cột | Ý nghĩa | Giá trị / ghi chú |
+| Column | Meaning | Values / notes |
 |---|---|---|
-| `hotel` | Khách sạn | `City Hotel`, `Resort Hotel` |
-| `is_canceled` | Booking có bị hủy không | `1` = hủy, `0` = không |
-| `lead_time` | Số ngày từ lúc đặt đến ngày đến | |
-| `arrival_date_year` / `_month` / `_week_number` / `_day_of_month` | Ngày đến | Tháng ghi bằng chữ tiếng Anh (`July`) |
-| `stays_in_weekend_nights` | Số đêm cuối tuần (T7, CN) ở hoặc đã đặt | |
-| `stays_in_week_nights` | Số đêm trong tuần (T2–T6) | |
-| `adults`, `children`, `babies` | Số người lớn / trẻ em / em bé | `children` có giá trị `NA` |
-| `meal` | Gói ăn | `BB` bed & breakfast, `HB` half board, `FB` full board, `SC`/`Undefined` không ăn |
-| `country` | Quốc gia của khách | Mã ISO 3166-1 alpha-3; có giá trị `NULL` |
-| `market_segment` | Phân khúc thị trường | `TA` = travel agents, `TO` = tour operators, `Direct`, `Corporate`, `Groups`… |
-| `distribution_channel` | Kênh phân phối | `TA/TO`, `Direct`, `Corporate`, `GDS` |
-| `is_repeated_guest` | Khách quay lại | `1` / `0` |
-| `previous_cancellations` | Số lần hủy trước đó của khách | |
-| `previous_bookings_not_canceled` | Số booking trước đó không hủy | |
-| `reserved_room_type` | Loại phòng đặt | Mã đã ẩn danh (A, B, C…) |
-| `assigned_room_type` | Loại phòng được xếp thực tế | ⚠ Có thể chứa thông tin sau khi đặt (rủi ro leakage) |
-| `booking_changes` | Số lần sửa booking đến lúc check-in/hủy | ⚠ Rủi ro leakage |
-| `deposit_type` | Loại đặt cọc | `No Deposit`, `Non Refund`, `Refundable` |
-| `agent` | Mã đại lý | Có `NULL` |
-| `company` | Mã công ty đặt/thanh toán | Phần lớn `NULL` |
-| `days_in_waiting_list` | Số ngày trong danh sách chờ trước khi được xác nhận | |
-| `customer_type` | Loại khách | `Transient`, `Transient-Party`, `Contract`, `Group` |
-| `adr` | Average Daily Rate = tổng tiền lưu trú / số đêm | EUR |
-| `required_car_parking_spaces` | Số chỗ đỗ xe yêu cầu | |
-| `total_of_special_requests` | Số yêu cầu đặc biệt | |
-| `reservation_status` | Trạng thái cuối | `Canceled`, `Check-Out`, `No-Show`. ⛔ **Leakage**: không dùng làm feature |
-| `reservation_status_date` | Ngày của trạng thái cuối | ⛔ **Leakage** |
+| `hotel` | Hotel | `City Hotel`, `Resort Hotel` |
+| `is_canceled` | Whether the booking was cancelled | `1` = cancelled, `0` = not cancelled |
+| `lead_time` | Number of days from booking to arrival | |
+| `arrival_date_year` / `_month` / `_week_number` / `_day_of_month` | Arrival date | Month written as an English word (`July`) |
+| `stays_in_weekend_nights` | Number of weekend nights (Sat, Sun) stayed or booked | |
+| `stays_in_week_nights` | Number of weeknights (Mon–Fri) | |
+| `adults`, `children`, `babies` | Number of adults / children / babies | `children` contains `NA` values |
+| `meal` | Meal plan | `BB` bed & breakfast, `HB` half board, `FB` full board, `SC`/`Undefined` no meal |
+| `country` | Guest's country | ISO 3166-1 alpha-3 code; contains `NULL` values |
+| `market_segment` | Market segment | `TA` = travel agents, `TO` = tour operators, `Direct`, `Corporate`, `Groups`… |
+| `distribution_channel` | Distribution channel | `TA/TO`, `Direct`, `Corporate`, `GDS` |
+| `is_repeated_guest` | Returning guest | `1` / `0` |
+| `previous_cancellations` | Number of the guest's previous cancellations | |
+| `previous_bookings_not_canceled` | Number of previous bookings not cancelled | |
+| `reserved_room_type` | Reserved room type | Anonymized code (A, B, C…) |
+| `assigned_room_type` | Room type actually assigned | ⚠ May contain information known only after booking (leakage risk) |
+| `booking_changes` | Number of changes to the booking until check-in/cancellation | ⚠ Leakage risk |
+| `deposit_type` | Deposit type | `No Deposit`, `Non Refund`, `Refundable` |
+| `agent` | Agent ID | Contains `NULL` |
+| `company` | ID of the company that booked/paid | Mostly `NULL` |
+| `days_in_waiting_list` | Days on the waiting list before confirmation | |
+| `customer_type` | Customer type | `Transient`, `Transient-Party`, `Contract`, `Group` |
+| `adr` | Average Daily Rate = total lodging amount / number of nights | EUR |
+| `required_car_parking_spaces` | Number of car parking spaces requested | |
+| `total_of_special_requests` | Number of special requests | |
+| `reservation_status` | Final status | `Canceled`, `Check-Out`, `No-Show`. ⛔ **Leakage**: never use as a feature |
+| `reservation_status_date` | Date of the final status | ⛔ **Leakage** |
 
-Cột kỹ thuật thêm ở bronze: `_source_row` (số dòng trong file), `_source_file`, `_loaded_at`.
+Technical columns added in bronze: `_source_row` (row number in the file), `_source_file`, `_loaded_at`.
 
 ## 2. `silver.hotel_bookings`
 
-Grain: **1 dòng = 1 booking**. Khóa chính: `booking_id`.
+Grain: **1 row = 1 booking**. Primary key: `booking_id`.
 
-| Cột | Kiểu | Lấy từ / cách tính |
+| Column | Type | Source / derivation |
 |---|---|---|
-| `booking_id` | BIGINT | `_source_row` (dataset gốc không có ID) |
+| `booking_id` | BIGINT | `_source_row` (the original dataset has no ID) |
 | `hotel_name` | TEXT | `hotel` |
 | `is_canceled` | BOOLEAN | `is_canceled = '1'` |
 | `lead_time` | INT | |
-| `arrival_date` | DATE | ghép year + month + day_of_month |
+| `arrival_date` | DATE | combines year + month + day_of_month |
 | `booking_date` | DATE | `arrival_date - lead_time` |
 | `arrival_week_number` | INT | |
 | `weekend_nights`, `week_nights` | INT | |
@@ -57,9 +57,9 @@ Grain: **1 dòng = 1 booking**. Khóa chính: `booking_id`.
 | `departure_date` | DATE | `arrival_date + total_nights` |
 | `adults`, `children`, `babies` | INT | `children`: `NA` → 0 |
 | `total_guests` | INT | `adults + children + babies` |
-| `party_type` | TEXT | `Other` (0 người lớn) / `Family` (có trẻ em, em bé) / `Solo` (1 người lớn) / `Couple` (2) / `Group` (≥ 3) |
+| `party_type` | TEXT | `Other` (0 adults) / `Family` (with children or babies) / `Solo` (1 adult) / `Couple` (2) / `Group` (≥ 3) |
 | `meal` | TEXT | `Undefined` → `SC` |
-| `country_code` | TEXT | `NULL`/`NA` → NULL; `CN` → `CAN` (Canada), `TMP` → `TLS` (Đông Timor) |
+| `country_code` | TEXT | `NULL`/`NA` → NULL; `CN` → `CAN` (Canada), `TMP` → `TLS` (East Timor) |
 | `market_segment`, `distribution_channel` | TEXT | `Undefined` → NULL |
 | `is_repeated_guest` | BOOLEAN | |
 | `previous_cancellations`, `previous_bookings_not_canceled` | INT | |
@@ -72,189 +72,189 @@ Grain: **1 dòng = 1 booking**. Khóa chính: `booking_id`.
 | `reservation_status` | TEXT | ⛔ leakage |
 | `reservation_status_date` | DATE | ⛔ leakage |
 
-**Vấn đề chất lượng đã phát hiện** (`database/checks/`, chưa lọc ở silver):
+**Data quality issues found** (`database/checks/`, not filtered in silver):
 
-| Check | Số dòng | Xử lý ở gold (đã chốt) |
+| Check | Rows | Handling in gold (agreed) |
 |---|---|---|
-| Không có khách (0 người lớn, 0 trẻ em, 0 em bé) | 180 | Loại khỏi `fact_booking` |
-| ADR âm | 1 | Loại khỏi `fact_booking` |
-| 0 đêm lưu trú | 715 | Giữ; ADR tính từ tổng nên không bị ảnh hưởng |
-| `country_code` NULL | 488 | Gán `country_key = -1` (Unknown) trong `dim_country` |
+| No guests (0 adults, 0 children, 0 babies) | 180 | Removed from `fact_booking` |
+| Negative ADR | 1 | Removed from `fact_booking` |
+| 0 nights stayed | 715 | Kept; ADR is computed from totals, so it is unaffected |
+| `country_code` NULL | 488 | Assigned `country_key = -1` (Unknown) in `dim_country` |
 
 ## 3. `bronze.pt_holidays` → `silver.pt_holidays`
 
-Grain: **1 dòng = 1 ngày lễ** (gộp tên nếu trùng ngày). Năm 2013–2018. Sinh bằng thư viện `holidays` (mã quốc gia `PT`).
+Grain: **1 row = 1 public holiday** (names are merged when two holidays fall on the same date). Years 2013–2018. Generated with the `holidays` library (country code `PT`).
 
-| Cột | Kiểu (silver) | Ý nghĩa |
+| Column | Type (silver) | Meaning |
 |---|---|---|
-| `holiday_date` | DATE (PK) | Ngày lễ |
-| `holiday_name` | TEXT | Tên ngày lễ (tiếng Bồ Đào Nha) |
+| `holiday_date` | DATE (PK) | Holiday date |
+| `holiday_name` | TEXT | Holiday name (in Portuguese) |
 
 ## 4. `bronze.countries` → `silver.countries`
 
-Nguồn: [lukes/ISO-3166-Countries-with-Regional-Codes](https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes) (`all/all.csv`, CC BY-SA 4.0).
-Grain: **1 dòng = 1 quốc gia/vùng lãnh thổ** (249 dòng). Bronze giữ nguyên tên cột CSV (có dấu gạch ngang).
+Source: [lukes/ISO-3166-Countries-with-Regional-Codes](https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes) (`all/all.csv`, CC BY-SA 4.0).
+Grain: **1 row = 1 country/territory** (249 rows). Bronze keeps the CSV column names as is (with hyphens).
 
-| Cột (silver) | Kiểu | Lấy từ |
+| Column (silver) | Type | Source |
 |---|---|---|
 | `country_code` | TEXT (PK) | `alpha-3` |
 | `country_code_alpha2` | TEXT | `alpha-2` |
 | `country_name` | TEXT | `name` |
-| `region` | TEXT | `region` (châu lục UN M49); bổ sung TWN → Asia, ATA → Antarctica |
+| `region` | TEXT | `region` (UN M49 continent); TWN → Asia, ATA → Antarctica added |
 | `sub_region` | TEXT | `sub-region` |
 
 ## 5. `bronze.weather_daily` → `silver.weather_daily`
 
-Nguồn: [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) (mô hình ERA5, CC BY 4.0), tải bằng `etl/extract/weather.py`.
-Grain: **1 dòng = 1 điểm đo × 1 ngày**, PK `(location, weather_date)`. 2 điểm đo × 1.096 ngày (2015-01-01 → 2017-12-31) = **2.192 dòng**.
-Bronze giữ nguyên tên biến của API (mọi cột TEXT, giá trị null của API là chuỗi rỗng). Ngày tính theo giờ `Europe/Lisbon`.
+Source: [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) (ERA5 model, CC BY 4.0), downloaded by `etl/extract/weather.py`.
+Grain: **1 row = 1 location × 1 day**, PK `(location, weather_date)`. 2 locations × 1,096 days (2015-01-01 → 2017-12-31) = **2,192 rows**.
+Bronze keeps the API variable names as is (every column TEXT; API null values are empty strings). Dates follow `Europe/Lisbon` time.
 
-| Cột (silver) | Kiểu | Lấy từ (bronze) | Ý nghĩa |
+| Column (silver) | Type | Source (bronze) | Meaning |
 |---|---|---|---|
-| `location` | TEXT (PK) | `location` | `Lisbon` (City Hotel) hoặc `Faro` (Resort Hotel) |
-| `weather_date` | DATE (PK) | `weather_date` | Ngày |
-| `latitude`, `longitude` | NUMERIC(8,5) | `latitude`, `longitude` | Tâm ô lưới mà API trả về (lệch vài km so với tọa độ yêu cầu) |
-| `weather_code` | SMALLINT | `weather_code` | Mã thời tiết WMO |
-| `temp_max_c`, `temp_min_c`, `temp_mean_c` | NUMERIC(4,1) | `temperature_2m_max/min/mean` | Nhiệt độ ở 2 m (°C) |
-| `precipitation_mm` | NUMERIC(6,1) | `precipitation_sum` | Tổng lượng mưa + tuyết (mm) |
-| `rain_mm` | NUMERIC(6,1) | `rain_sum` | Lượng mưa (mm) |
-| `precipitation_hours` | NUMERIC(4,1) | `precipitation_hours` | Số giờ có mưa |
-| `wind_speed_max_kmh` | NUMERIC(5,1) | `wind_speed_10m_max` | Gió mạnh nhất ở 10 m (km/h) |
-| `sunshine_hours` | NUMERIC(5,2) | `sunshine_duration` (giây) ÷ 3600 | Số giờ nắng |
+| `location` | TEXT (PK) | `location` | `Lisbon` (City Hotel) or `Faro` (Resort Hotel) |
+| `weather_date` | DATE (PK) | `weather_date` | Date |
+| `latitude`, `longitude` | NUMERIC(8,5) | `latitude`, `longitude` | Center of the grid cell returned by the API (a few km from the requested coordinates) |
+| `weather_code` | SMALLINT | `weather_code` | WMO weather code |
+| `temp_max_c`, `temp_min_c`, `temp_mean_c` | NUMERIC(4,1) | `temperature_2m_max/min/mean` | Temperature at 2 m (°C) |
+| `precipitation_mm` | NUMERIC(6,1) | `precipitation_sum` | Total rain + snow (mm) |
+| `rain_mm` | NUMERIC(6,1) | `rain_sum` | Rainfall (mm) |
+| `precipitation_hours` | NUMERIC(4,1) | `precipitation_hours` | Hours with precipitation |
+| `wind_speed_max_kmh` | NUMERIC(5,1) | `wind_speed_10m_max` | Maximum wind speed at 10 m (km/h) |
+| `sunshine_hours` | NUMERIC(5,2) | `sunshine_duration` (seconds) ÷ 3600 | Sunshine hours |
 
 ## 6. Gold
 
-Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). Quy ước: `-1` = Unknown, `0` = không áp dụng; FK trong fact không bao giờ NULL.
+Full design (rationale, formulas, ERD): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). Convention: `-1` = Unknown, `0` = not applicable; FKs in facts are never NULL.
 
-### `gold.business_assumptions`: tham số giả định (1 dòng = 1 tham số)
-| Cột | Ý nghĩa |
+### `gold.business_assumptions`: assumed parameters (1 row = 1 parameter)
+| Column | Meaning |
 |---|---|
-| `param_name` (PK) | Tên tham số. Hiện có `non_refund_deposit_rate` = 0.20 |
-| `param_value`, `unit`, `description` | Giá trị, đơn vị, mô tả |
+| `param_name` (PK) | Parameter name. Currently `non_refund_deposit_rate` = 0.20 |
+| `param_value`, `unit`, `description` | Value, unit, description |
 
-### Dimension
+### Dimensions
 
-| Bảng | Grain (số dòng) | Cột |
+| Table | Grain (row count) | Columns |
 |---|---|---|
-| `dim_date` | 1 ngày, 2013–2018 (2.191) | `date_key` (PK, YYYYMMDD), `full_date`, `day_of_month`, `day_of_week` (ISO 1–7), `day_name`, `is_weekend`, `iso_week`, `iso_year`, `week_start_date`, `month`, `month_name`, `quarter`, `year`, `year_month`, `season` (High/Shoulder/Low), `is_holiday`, `holiday_name` |
-| `dim_hotel` | 1 khách sạn (2) | `hotel_key` (PK), `hotel_name`, `hotel_type`, `city`, `country_code`, `latitude`, `longitude`, `weather_location` (`Lisbon` / `Faro`, khóa nối `silver.weather_daily`) |
-| `dim_country` | 1 mã quốc gia + Unknown (178) | `country_key` (PK, -1 = Unknown), `country_code`, `country_name`, `region`, `sub_region`, `is_domestic`, `market_group` (Domestic / Core Europe / Other Europe / Rest of World / Unknown) |
-| `dim_channel` | 1 tổ hợp segment × channel (26) | `channel_key` (PK), `market_segment`, `distribution_channel`, `channel_group` (OTA / Offline TA/TO / Direct / Corporate / Groups / Other), `is_intermediated` |
-| `dim_room_type` | 1 mã phòng (12) | `room_type_key` (PK), `room_type_code`, `room_type_label` |
-| `dim_agent` | 1 đại lý + "No agent" (334) | `agent_key` (PK, 0 = không qua đại lý), `agent_id`, `agent_label`, `has_agent`, `valid_from`, `valid_to`, `is_current` |
-| `dim_booking_profile` | 1 tổ hợp junk (154) | `booking_profile_key` (PK), `meal`, `meal_name`, `deposit_type`, `customer_type`, `is_repeated_guest`, `party_type` |
+| `dim_date` | 1 day, 2013–2018 (2,191) | `date_key` (PK, YYYYMMDD), `full_date`, `day_of_month`, `day_of_week` (ISO 1–7), `day_name`, `is_weekend`, `iso_week`, `iso_year`, `week_start_date`, `month`, `month_name`, `quarter`, `year`, `year_month`, `season` (High/Shoulder/Low), `is_holiday`, `holiday_name` |
+| `dim_hotel` | 1 hotel (2) | `hotel_key` (PK), `hotel_name`, `hotel_type`, `city`, `country_code`, `latitude`, `longitude`, `weather_location` (`Lisbon` / `Faro`, join key to `silver.weather_daily`) |
+| `dim_country` | 1 country code + Unknown (178) | `country_key` (PK, -1 = Unknown), `country_code`, `country_name`, `region`, `sub_region`, `is_domestic`, `market_group` (Domestic / Core Europe / Other Europe / Rest of World / Unknown) |
+| `dim_channel` | 1 segment × channel combination (26) | `channel_key` (PK), `market_segment`, `distribution_channel`, `channel_group` (OTA / Offline TA/TO / Direct / Corporate / Groups / Other), `is_intermediated` |
+| `dim_room_type` | 1 room code (12) | `room_type_key` (PK), `room_type_code`, `room_type_label` |
+| `dim_agent` | 1 agent + "No agent" (334) | `agent_key` (PK, 0 = no agent), `agent_id`, `agent_label`, `has_agent`, `valid_from`, `valid_to`, `is_current` |
+| `dim_booking_profile` | 1 junk combination (154) | `booking_profile_key` (PK), `meal`, `meal_name`, `deposit_type`, `customer_type`, `is_repeated_guest`, `party_type` |
 
-### `gold.fact_booking`: 1 dòng = 1 booking (119.209 dòng)
+### `gold.fact_booking`: 1 row = 1 booking (119,209 rows)
 
-| Nhóm | Cột |
+| Group | Columns |
 |---|---|
-| Khóa | `booking_id` (PK, degenerate), `hotel_key`, `booking_date_key`, `arrival_date_key`, `departure_date_key`, `status_date_key` ⛔, `country_key`, `channel_key`, `agent_key`, `reserved_room_type_key`, `assigned_room_type_key` ⚠, `booking_profile_key` |
+| Keys | `booking_id` (PK, degenerate), `hotel_key`, `booking_date_key`, `arrival_date_key`, `departure_date_key`, `status_date_key` ⛔, `country_key`, `channel_key`, `agent_key`, `reserved_room_type_key`, `assigned_room_type_key` ⚠, `booking_profile_key` |
 | Degenerate | `company_id`, `reservation_status` ⛔ |
-| Đếm | `booking_count` (=1), `is_canceled` (0/1), `lead_time`, `weekend_nights`, `week_nights`, `total_nights`, `room_nights_sold` ⛔, `adults`, `children`, `babies`, `guests` |
-| Tiền (EUR) | `adr` (non-additive), `booked_revenue` = adr × total_nights, `realized_revenue` ⛔ (không hủy), `lost_revenue` ⛔ (hủy, gộp), `deposit_retained` ⛔ (hủy + Non Refund × tỉ lệ cọc), `net_lost_revenue` ⛔ = lost − deposit |
-| Hành vi | `days_in_waiting_list`, `previous_cancellations`, `previous_bookings_not_canceled`, `total_of_special_requests`, `required_car_parking_spaces`, `booking_changes` ⚠, `is_room_changed` ⚠, `cancel_lead_days` ⛔ |
+| Counts | `booking_count` (=1), `is_canceled` (0/1), `lead_time`, `weekend_nights`, `week_nights`, `total_nights`, `room_nights_sold` ⛔, `adults`, `children`, `babies`, `guests` |
+| Money (EUR) | `adr` (non-additive), `booked_revenue` = adr × total_nights, `realized_revenue` ⛔ (not cancelled), `lost_revenue` ⛔ (cancelled, gross), `deposit_retained` ⛔ (cancelled + Non Refund × deposit rate), `net_lost_revenue` ⛔ = lost − deposit |
+| Behavior | `days_in_waiting_list`, `previous_cancellations`, `previous_bookings_not_canceled`, `total_of_special_requests`, `required_car_parking_spaces`, `booking_changes` ⚠, `is_room_changed` ⚠, `cancel_lead_days` ⛔ |
 
-⛔ = suy ra từ kết quả hủy, cấm dùng làm feature ML. ⚠ = cân nhắc (chỉ biết sau khi đặt).
+⛔ = derived from the cancellation outcome, must never be used as an ML feature. ⚠ = use with caution (known only after booking).
 
-### `gold.fact_daily_occupancy`: 1 dòng = 1 khách sạn × 1 đêm (1.586 dòng, 2015-07-01 → 2017-08-31)
+### `gold.fact_daily_occupancy`: 1 row = 1 hotel × 1 night (1,586 rows, 2015-07-01 → 2017-08-31)
 
-| Cột | Ý nghĩa |
+| Column | Meaning |
 |---|---|
 | `hotel_key`, `stay_date_key` | PK, FK |
-| `rooms_occupied` | Số booking không hủy có đêm này |
-| `rooms_canceled` | Số booking đã hủy lẽ ra có đêm này |
+| `rooms_occupied` | Number of non-cancelled bookings that include this night |
+| `rooms_canceled` | Number of cancelled bookings that would have included this night |
 | `rooms_booked` | `rooms_occupied + rooms_canceled` |
-| `guests_in_house` | Số khách lưu trú đêm này |
-| `arrivals`, `departures` | Lượt đến / trả phòng (booking không hủy) |
-| `realized_revenue`, `lost_revenue` | Tổng `adr` của booking không hủy / đã hủy ở đêm này |
+| `guests_in_house` | Number of guests staying this night |
+| `arrivals`, `departures` | Arrivals / check-outs (non-cancelled bookings) |
+| `realized_revenue`, `lost_revenue` | Sum of `adr` of non-cancelled / cancelled bookings on this night |
 
-### `gold.fact_daily_weather`: 1 dòng = 1 khách sạn × 1 ngày (2.192 dòng, 2015-01-01 → 2017-12-31)
+### `gold.fact_daily_weather`: 1 row = 1 hotel × 1 day (2,192 rows, 2015-01-01 → 2017-12-31)
 
-Nối 1:1 với `fact_daily_occupancy` (`hotel_key`, `stay_date_key = date_key`) và N:1 từ `fact_booking` (`hotel_key`, `arrival_date_key = date_key`), không nhân bản dòng fact.
+Joins 1:1 with `fact_daily_occupancy` (`hotel_key`, `stay_date_key = date_key`) and N:1 from `fact_booking` (`hotel_key`, `arrival_date_key = date_key`), without duplicating fact rows.
 
-| Cột | Ý nghĩa |
+| Column | Meaning |
 |---|---|
 | `hotel_key`, `date_key` | PK, FK |
-| `weather_code`, `weather_group` | Mã WMO và nhóm: `Clear`, `Cloudy`, `Fog`, `Drizzle`, `Rain`, `Snow`, `Thunderstorm`, `Unknown` |
-| `temp_max_c`, `temp_min_c`, `temp_mean_c` | Nhiệt độ (°C), non-additive |
-| `precipitation_mm`, `rain_mm`, `precipitation_hours` | Lượng mưa (mm), số giờ mưa |
-| `wind_speed_max_kmh`, `sunshine_hours` | Gió mạnh nhất (km/h), số giờ nắng |
-| `is_rainy_day` | 0/1, `precipitation_mm >= 1`. ⛔ không dùng làm feature dự đoán hủy (chưa biết lúc đặt) |
+| `weather_code`, `weather_group` | WMO code and group: `Clear`, `Cloudy`, `Fog`, `Drizzle`, `Rain`, `Snow`, `Thunderstorm`, `Unknown` |
+| `temp_max_c`, `temp_min_c`, `temp_mean_c` | Temperature (°C), non-additive |
+| `precipitation_mm`, `rain_mm`, `precipitation_hours` | Precipitation (mm), hours of precipitation |
+| `wind_speed_max_kmh`, `sunshine_hours` | Maximum wind speed (km/h), sunshine hours |
+| `is_rainy_day` | 0/1, `precipitation_mm >= 1`. ⛔ not to be used as a cancellation prediction feature (unknown at booking time) |
 
-### View KPI
+### KPI views
 
-| View | Grain | Cột riêng (ngoài bộ cột chung) |
+| View | Grain | Specific columns (besides the common set) |
 |---|---|---|
-| `kpi_monthly_hotel` | khách sạn × tháng đến | `year`, `quarter`, `month`, `year_month` |
-| `kpi_channel` | khách sạn × `channel_group` × tháng đến | `channel_group`, `year`, `month`, `year_month` |
-| `kpi_country` | khách sạn × quốc gia × năm đến | `country_code`, `country_name`, `region`, `market_group`, `year` |
-| `kpi_cancellation_profile` | khách sạn × nhóm lead time × `deposit_type` × `channel_group` | `lead_time_band`, `lead_time_band_order`, `deposit_type`, `channel_group` |
-| `kpi_daily_occupancy_weather` | khách sạn × đêm (1.586) | `stay_date`, `day_of_week`, `is_weekend`, `is_holiday`, `holiday_name`, `season`, các measure của `fact_daily_occupancy`, `adr`, `weather_group`, `temp_max_c`, `temp_mean_c`, `precipitation_mm`, `sunshine_hours`, `wind_speed_max_kmh`, `is_rainy_day` |
-| `kpi_weekly_occupancy` | khách sạn × tuần ISO | `iso_year`, `iso_week`, `week_start_date`, `days_in_week`, `is_complete_week`, `room_nights_sold`, `room_nights_canceled`, `room_nights_booked`, `guest_nights`, `arrivals`, `realized_revenue`, `lost_revenue`, `adr`, `night_cancellation_rate` |
+| `kpi_monthly_hotel` | hotel × arrival month | `year`, `quarter`, `month`, `year_month` |
+| `kpi_channel` | hotel × `channel_group` × arrival month | `channel_group`, `year`, `month`, `year_month` |
+| `kpi_country` | hotel × country × arrival year | `country_code`, `country_name`, `region`, `market_group`, `year` |
+| `kpi_cancellation_profile` | hotel × lead time band × `deposit_type` × `channel_group` | `lead_time_band`, `lead_time_band_order`, `deposit_type`, `channel_group` |
+| `kpi_daily_occupancy_weather` | hotel × night (1,586) | `stay_date`, `day_of_week`, `is_weekend`, `is_holiday`, `holiday_name`, `season`, the measures of `fact_daily_occupancy`, `adr`, `weather_group`, `temp_max_c`, `temp_mean_c`, `precipitation_mm`, `sunshine_hours`, `wind_speed_max_kmh`, `is_rainy_day` |
+| `kpi_weekly_occupancy` | hotel × ISO week | `iso_year`, `iso_week`, `week_start_date`, `days_in_week`, `is_complete_week`, `room_nights_sold`, `room_nights_canceled`, `room_nights_booked`, `guest_nights`, `arrivals`, `realized_revenue`, `lost_revenue`, `adr`, `night_cancellation_rate` |
 
-Bộ cột chung của 4 view đầu: `bookings`, `canceled_bookings`, `cancellation_rate`, `room_nights_sold`, `realized_revenue`,
-`lost_revenue`, `net_lost_revenue`, `adr`, `avg_lead_time`, `avg_los`. Tỉ lệ và ADR đều tính lại từ tổng.
+Common column set of the first 4 views: `bookings`, `canceled_bookings`, `cancellation_rate`, `room_nights_sold`, `realized_revenue`,
+`lost_revenue`, `net_lost_revenue`, `adr`, `avg_lead_time`, `avg_los`. Rates and ADR are all recomputed from totals.
 
-### Bảng kết quả ML (`ml_*`)
+### ML result tables (`ml_*`)
 
-Do script trong `ml/` tạo (DDL ở `database/ml/`, idempotent, không chạy bởi `etl/run_pipeline.py`) và ghi.
-Giao kèo cột: [`STAR_SCHEMA.md`](STAR_SCHEMA.md) mục 7. Chi tiết mô hình: [`ml/README.md`](../ml/README.md).
+Created (DDL in `database/ml/`, idempotent, not run by `etl/run_pipeline.py`) and written by the scripts in `ml/`.
+Column contract: [`STAR_SCHEMA.md`](STAR_SCHEMA.md) section 7. Model details: [`ml/README.md`](../ml/README.md).
 
-#### `gold.ml_booking_risk`: 1 dòng = 1 booking × 1 phiên bản model (119.209 dòng với `cancellation_v1`)
-Ghi bởi `python -m ml.cancellation.train` (xóa dòng cùng `model_version` rồi ghi lại).
+#### `gold.ml_booking_risk`: 1 row = 1 booking × 1 model version (119,209 rows with `cancellation_v1`)
+Written by `python -m ml.cancellation.train` (deletes the rows with the same `model_version`, then writes them again).
 
-| Cột | Kiểu | Ý nghĩa |
+| Column | Type | Meaning |
 |---|---|---|
-| `booking_id` | BIGINT (PK) | = `gold.fact_booking.booking_id`. Không khai báo FK (gold dùng DROP CASCADE), ghép bằng `JOIN ... USING (booking_id)` |
-| `model_version` | TEXT (PK) | Phiên bản model chấm điểm, vd `cancellation_v1` (model `cancellation_gbm`) |
-| `cancel_probability` | NUMERIC(5,4) | Xác suất hủy dự đoán, 0–1 |
-| `risk_band` | TEXT | `Low` / `Medium` / `High` theo ngưỡng `threshold_medium`, `threshold_high` trong `ml_model_metrics` (v1: 0,17 và 0,31) |
-| `is_test_set` | BOOLEAN | TRUE nếu `arrival_date` ≥ 2017-01-01 (model chưa thấy khi train). FALSE: điểm in-sample, lạc quan hơn thực tế |
-| `scored_at` | TIMESTAMPTZ | Thời điểm chấm điểm |
+| `booking_id` | BIGINT (PK) | = `gold.fact_booking.booking_id`. No FK declared (gold uses DROP CASCADE); join with `JOIN ... USING (booking_id)` |
+| `model_version` | TEXT (PK) | Version of the scoring model, e.g. `cancellation_v1` (model `cancellation_gbm`) |
+| `cancel_probability` | NUMERIC(5,4) | Predicted cancellation probability, 0–1 |
+| `risk_band` | TEXT | `Low` / `Medium` / `High` based on the `threshold_medium`, `threshold_high` thresholds in `ml_model_metrics` (v1: 0.17 and 0.31) |
+| `is_test_set` | BOOLEAN | TRUE if `arrival_date` ≥ 2017-01-01 (not seen by the model during training). FALSE: in-sample score, more optimistic than reality |
+| `scored_at` | TIMESTAMPTZ | Scoring timestamp |
 
-#### `gold.ml_model_metrics`: 1 dòng = 1 phiên bản × 1 model × 1 metric × 1 tập (dùng chung E3, E4)
-Mỗi script chỉ xóa/ghi dòng có `model_name` của chính nó; không DROP bảng.
+#### `gold.ml_model_metrics`: 1 row = 1 version × 1 model × 1 metric × 1 dataset (shared by E3, E4)
+Each script only deletes/writes rows with its own `model_name`; it never DROPs the table.
 
-| Cột | Ý nghĩa |
+| Column | Meaning |
 |---|---|
 | `model_version`, `model_name`, `metric_name`, `dataset` | PK. `dataset`: `train` / `validation` / `test` / `backtest`... |
 | `metric_value` | NUMERIC(12,6) |
-| `trained_at` | Thời điểm train |
+| `trained_at` | Training timestamp |
 
-Metric của mô hình hủy (`model_name` = `cancellation_logreg`, `cancellation_gbm`, `cancellation_gbm_no_country`):
-`auc`, `pr_auc`, `brier`, `precision`, `recall`, `f1`, `accuracy`, `tn`, `fp`, `fn`, `tp` (tại ngưỡng High),
-`precision_at_medium`, `recall_at_medium`, `f1_at_medium` (tại ngưỡng Medium, chỉ tập test), `n_rows`, `positive_rate`;
-`threshold_medium`, `threshold_high` (dataset `validation`); riêng `cancellation_gbm` trên test:
-`{low,medium,high}_{bookings,share,cancel_rate}` (phân bố risk band và tỉ lệ hủy thực tế từng band).
+Metrics of the cancellation models (`model_name` = `cancellation_logreg`, `cancellation_gbm`, `cancellation_gbm_no_country`):
+`auc`, `pr_auc`, `brier`, `precision`, `recall`, `f1`, `accuracy`, `tn`, `fp`, `fn`, `tp` (at the High threshold),
+`precision_at_medium`, `recall_at_medium`, `f1_at_medium` (at the Medium threshold, test set only), `n_rows`, `positive_rate`;
+`threshold_medium`, `threshold_high` (dataset `validation`); and for `cancellation_gbm` on test only:
+`{low,medium,high}_{bookings,share,cancel_rate}` (risk band distribution and actual cancellation rate of each band).
 
-#### `gold.ml_demand_forecast`: 1 dòng = 1 khách sạn × 1 tuần × 1 phiên bản model (252 dòng)
+#### `gold.ml_demand_forecast`: 1 row = 1 hotel × 1 week × 1 model version (252 rows)
 
-Ghi bởi `python -m ml.forecast.train` (DDL: `database/ml/03_ml_demand_forecast.sql`), không do pipeline ETL tạo.
-Chi tiết phương pháp: [`ml/README.md`](../ml/README.md#e4-dự-báo-nhu-cầu-theo-tuần).
+Written by `python -m ml.forecast.train` (DDL: `database/ml/03_ml_demand_forecast.sql`), not created by the ETL pipeline.
+Method details: [`ml/README.md`](../ml/README.md#e4-weekly-demand-forecasting).
 
-| Cột | Ý nghĩa |
+| Column | Meaning |
 |---|---|
-| `hotel_key`, `week_start_date`, `model_version` | PK. `week_start_date` = Thứ Hai đầu tuần (khớp `dim_date.week_start_date`) |
-| `model_version` | `forecast_gbm_v1` (model chính), `forecast_seasonal_naive_v1`, `forecast_moving_avg_v1` (baseline). Khớp `ml_model_metrics.model_version` |
-| `predicted_room_nights` | Room-nights bán được (booking không hủy) dự báo cho tuần đó |
-| `lower_bound`, `upper_bound` | Khoảng dự báo 80% (từ phân phối sai số backtest theo horizon) |
-| `actual_room_nights` | Thực tế; NULL với tuần tương lai và tuần 2017-08-28 (chỉ có 4/7 đêm dữ liệu) |
-| `horizon_weeks` | Dự báo trước bao nhiêu tuần: 1 cho các tuần backtest 2017, 1..8 cho 8 tuần tương lai |
-| `created_at` | Thời điểm ghi |
+| `hotel_key`, `week_start_date`, `model_version` | PK. `week_start_date` = the Monday that starts the week (matches `dim_date.week_start_date`) |
+| `model_version` | `forecast_gbm_v1` (main model), `forecast_seasonal_naive_v1`, `forecast_moving_avg_v1` (baselines). Matches `ml_model_metrics.model_version` |
+| `predicted_room_nights` | Forecast room-nights sold (non-cancelled bookings) for that week |
+| `lower_bound`, `upper_bound` | 80% prediction interval (from the backtest error distribution by horizon) |
+| `actual_room_nights` | Actual value; NULL for future weeks and for the week of 2017-08-28 (only 4/7 nights of data) |
+| `horizon_weeks` | How many weeks ahead the forecast is: 1 for the 2017 backtest weeks, 1..8 for the 8 future weeks |
+| `created_at` | Write timestamp |
 
-Mỗi model có 84 dòng: 2 khách sạn × (34 tuần backtest 2017-01-02 → 2017-08-21 + 8 tuần tương lai 2017-08-28 → 2017-10-16).
-Metric tương ứng nằm trong `gold.ml_model_metrics` với `model_name` bắt đầu bằng `forecast_`
-(`mape`, `mape_h1`…`mape_h8`, `mape_<hotel>`, `mape_h1_<hotel>`, `interval_coverage_80`; `dataset` = `backtest` hoặc
-`calibration`). MAPE lưu dạng tỉ lệ (0.0857 = 8,57%).
+Each model has 84 rows: 2 hotels × (34 backtest weeks 2017-01-02 → 2017-08-21 + 8 future weeks 2017-08-28 → 2017-10-16).
+The corresponding metrics are in `gold.ml_model_metrics` with `model_name` starting with `forecast_`
+(`mape`, `mape_h1`…`mape_h8`, `mape_<hotel>`, `mape_h1_<hotel>`, `interval_coverage_80`; `dataset` = `backtest` or
+`calibration`). MAPE is stored as a ratio (0.0857 = 8.57%).
 
 ## 7. `meta.etl_run_log`
 
-| Cột | Ý nghĩa |
+| Column | Meaning |
 |---|---|
-| `log_id` | Khóa tự tăng |
-| `run_id` | UUID của một lần chạy pipeline |
-| `step` | Tên bước, ví dụ `silver/01_hotel_bookings.sql` |
+| `log_id` | Auto-increment key |
+| `run_id` | UUID of one pipeline run |
+| `step` | Step name, e.g. `silver/01_hotel_bookings.sql` |
 | `status` | `running`, `success`, `warning`, `failed` |
-| `rows_affected` | Số dòng nạp, hoặc số dòng vi phạm (với check) |
-| `message` | Thông báo lỗi hoặc cảnh báo |
-| `started_at`, `finished_at` | Thời gian |
+| `rows_affected` | Rows loaded, or number of violating rows (for checks) |
+| `message` | Error or warning message |
+| `started_at`, `finished_at` | Timestamps |

@@ -1,10 +1,10 @@
 ## Issue
-Closes #<!-- số issue, bắt buộc: tạo issue trước khi làm -->
+Closes #<!-- issue number, required: create the issue before starting work -->
 
-## Thay đổi gì?
-<!-- 1–3 câu. -->
+## What changed?
+<!-- 1–3 sentences. -->
 
-## Thành phần bị ảnh hưởng
+## Affected components
 - [ ] database/ (SQL)
 - [ ] etl/
 - [ ] ml/
@@ -12,10 +12,10 @@ Closes #<!-- số issue, bắt buộc: tạo issue trước khi làm -->
 - [ ] frontend/
 - [ ] docs/
 
-## Đã kiểm tra
-- [ ] `ruff check .` và `pytest` đạt
-- [ ] `npm run lint` và `npm run build` đạt (nếu sửa frontend)
-- [ ] Chạy lại `python -m etl.run_pipeline` thành công (nếu sửa database/ hoặc etl/)
-- [ ] Đã cập nhật docs liên quan (DATA_DICTIONARY, ARCHITECTURE…)
+## Checks
+- [ ] `ruff check .` and `pytest` pass
+- [ ] `npm run lint` and `npm run build` pass (if frontend changed)
+- [ ] `python -m etl.run_pipeline` re-runs successfully (if database/ or etl/ changed)
+- [ ] Related docs updated (DATA_DICTIONARY, ARCHITECTURE…)
 
-## Ảnh chụp màn hình (nếu sửa giao diện)
+## Screenshots (if the UI changed)

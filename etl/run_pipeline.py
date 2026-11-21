@@ -1,18 +1,18 @@
-"""Điểm chạy chính của pipeline.
+"""Main entry point of the pipeline.
 
-Cách dùng (chạy từ thư mục gốc repo, đã activate venv):
-    python -m etl.run_pipeline                       # chạy tất cả các bước
-    python -m etl.run_pipeline --steps silver gold   # chỉ chạy một số bước
-    python -m etl.run_pipeline --from silver         # chạy từ bước silver trở đi
-    python -m etl.run_pipeline --refresh-sources     # tải lại file nguồn dù đã có
+Usage (from the repo root, with the venv activated):
+    python -m etl.run_pipeline                       # run all steps
+    python -m etl.run_pipeline --steps silver gold   # run only some steps
+    python -m etl.run_pipeline --from silver         # run from the silver step onwards
+    python -m etl.run_pipeline --refresh-sources     # re-download source files even if present
 
-Thứ tự các bước:
-    init     -> database/init/*.sql      (tạo schema + bảng meta)
-    extract  -> etl/extract/             (tải/sinh file vào data/raw/)
-    bronze   -> database/bronze/*.sql + etl/load/  (tạo bảng thô và nạp CSV)
-    silver   -> database/silver/*.sql    (làm sạch, ép kiểu)
-    gold     -> database/gold/*.sql      (star schema, KPI)
-    checks   -> database/checks/*.sql    (kiểm tra chất lượng dữ liệu)
+Step order:
+    init     -> database/init/*.sql      (create schemas + meta tables)
+    extract  -> etl/extract/             (download/generate files into data/raw/)
+    bronze   -> database/bronze/*.sql + etl/load/  (create raw tables and load CSVs)
+    silver   -> database/silver/*.sql    (cleaning, type casting)
+    gold     -> database/gold/*.sql      (star schema, KPIs)
+    checks   -> database/checks/*.sql    (data quality checks)
 """
 
 from __future__ import annotations
@@ -41,14 +41,14 @@ class StepFailed(RuntimeError):
 
 
 def _tracked(logger: RunLogger | None, step: str, fn: Callable[[], int | None]) -> int | None:
-    """Chạy fn, ghi log vào meta.etl_run_log (nếu có), ném StepFailed khi lỗi."""
+    """Run fn, log to meta.etl_run_log (if available), raise StepFailed on error."""
     log_id = logger.start(step) if logger else None
     try:
         rows = fn()
     except Exception as exc:
         if logger and log_id is not None:
             logger.finish(log_id, "failed", message=str(exc)[:2000])
-        raise StepFailed(f"Bước '{step}' lỗi: {exc}") from exc
+        raise StepFailed(f"Step '{step}' failed: {exc}") from exc
     if logger and log_id is not None:
         logger.finish(log_id, "success", rows=rows)
     return rows
@@ -57,7 +57,7 @@ def _tracked(logger: RunLogger | None, step: str, fn: Callable[[], int | None]) 
 def _run_sql_layer(conn: psycopg.Connection, logger: RunLogger | None, layer: str) -> None:
     files = list_sql_files(DATABASE_DIR / layer)
     if not files:
-        log.info("[%s] Không có file SQL nào trong database/%s/ -> bỏ qua", layer, layer)
+        log.info("[%s] No SQL files in database/%s/ -> skipped", layer, layer)
         return
     for path in files:
         step = f"{layer}/{path.name}"
@@ -74,13 +74,13 @@ def _run_sql_layer(conn: psycopg.Connection, logger: RunLogger | None, layer: st
 
 
 def step_init(conn: psycopg.Connection) -> None:
-    # Bước init không ghi meta log vì bảng log được tạo chính trong bước này.
+    # The init step does not write the meta log because the log table is created in this step.
     for path in list_sql_files(DATABASE_DIR / "init"):
         try:
             with conn.transaction():
                 run_sql_file(conn, path)
         except psycopg.Error as exc:
-            raise StepFailed(f"Bước 'init/{path.name}' lỗi: {exc}") from exc
+            raise StepFailed(f"Step 'init/{path.name}' failed: {exc}") from exc
         log.info("[init] ✔ %s", path.name)
 
 
@@ -89,7 +89,7 @@ def step_extract(logger: RunLogger, refresh: bool) -> None:
     for src in SOURCES:
         target = DATA_RAW_DIR / src.filename
         if target.exists() and not refresh:
-            log.info("[extract] %s đã có sẵn -> bỏ qua (dùng --refresh-sources để tải lại)",
+            log.info("[extract] %s exists -> skipped (use --refresh-sources to re-download)",
                      src.filename)
             continue
         _tracked(logger, f"extract/{src.name}", lambda s=src, t=target: s.extract(t))
@@ -97,12 +97,12 @@ def step_extract(logger: RunLogger, refresh: bool) -> None:
 
 
 def step_bronze(conn: psycopg.Connection, logger: RunLogger) -> None:
-    _run_sql_layer(conn, logger, "bronze")  # tạo lại bảng bronze (full load)
+    _run_sql_layer(conn, logger, "bronze")  # recreate the bronze tables (full load)
     for src in SOURCES:
         path = DATA_RAW_DIR / src.filename
         if not path.exists():
             raise StepFailed(
-                f"Thiếu file {path}. Chạy bước extract trước: python -m etl.run_pipeline "
+                f"Missing file {path}. Run the extract step first: python -m etl.run_pipeline "
                 "--steps extract"
             )
 
@@ -111,7 +111,7 @@ def step_bronze(conn: psycopg.Connection, logger: RunLogger) -> None:
                 return load_csv(conn, p, s.bronze_table)
 
         rows = _tracked(logger, f"bronze/load_{src.name}", work)
-        log.info("[bronze] ✔ %s -> %s (%s dòng)", src.filename, src.bronze_table, rows)
+        log.info("[bronze] ✔ %s -> %s (%s rows)", src.filename, src.bronze_table, rows)
 
 
 def step_checks(conn: psycopg.Connection, logger: RunLogger) -> None:
@@ -128,23 +128,23 @@ def step_checks(conn: psycopg.Connection, logger: RunLogger) -> None:
             status, icon = "failed", "✘"
             errors.append(result.name)
         logger.finish(log_id, status, rows=result.violations,
-                      message=None if result.passed else f"{result.violations} dòng vi phạm")
-        log.info("[checks] %s %-45s %s vi phạm (%s)", icon, result.name, result.violations,
+                      message=None if result.passed else f"{result.violations} violating rows")
+        log.info("[checks] %s %-45s %s violations (%s)", icon, result.name, result.violations,
                  result.severity)
     if errors:
-        raise StepFailed(f"Kiểm tra chất lượng thất bại: {errors}. Xem database/checks/.")
+        raise StepFailed(f"Data quality checks failed: {errors}. See database/checks/.")
 
 
 # ----------------------------------------------------------------------------- main
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Chạy ETL pipeline Tourism DSS")
+    parser = argparse.ArgumentParser(description="Run the Tourism DSS ETL pipeline")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--steps", nargs="+", choices=STEPS, help="Chỉ chạy các bước này")
-    group.add_argument("--from", dest="from_step", choices=STEPS, help="Chạy từ bước này trở đi")
+    group.add_argument("--steps", nargs="+", choices=STEPS, help="Run only these steps")
+    group.add_argument("--from", dest="from_step", choices=STEPS, help="Run from this step onwards")
     parser.add_argument("--refresh-sources", action="store_true",
-                        help="Tải lại file nguồn dù đã tồn tại trong data/raw/")
+                        help="Re-download source files even if they exist in data/raw/")
     return parser.parse_args(argv)
 
 
@@ -161,13 +161,13 @@ def main(argv: list[str] | None = None) -> int:
                         datefmt="%H:%M:%S")
     args = parse_args(argv)
     steps = resolve_steps(args)
-    log.info("Pipeline bắt đầu | DB: %s | Các bước: %s", get_db_settings().describe(),
+    log.info("Pipeline started | DB: %s | Steps: %s", get_db_settings().describe(),
              " -> ".join(steps))
 
     logger: RunLogger | None = None
     try:
         with connect() as conn:
-            step_init(conn)  # luôn chạy: idempotent, đảm bảo schema + bảng log tồn tại
+            step_init(conn)  # always runs: idempotent, ensures schemas + log table exist
             logger = RunLogger()
             if "extract" in steps:
                 step_extract(logger, args.refresh_sources)
@@ -181,14 +181,14 @@ def main(argv: list[str] | None = None) -> int:
     except (DatabaseConnectionError, StepFailed) as exc:
         log.error("✘ %s", exc)
         if logger:
-            log.error("Xem chi tiết: SELECT * FROM meta.etl_run_log WHERE run_id = '%s';",
+            log.error("Details: SELECT * FROM meta.etl_run_log WHERE run_id = '%s';",
                       logger.run_id)
         return 1
     finally:
         if logger:
             logger.close()
 
-    log.info("✔ Pipeline hoàn tất (run_id=%s)", logger.run_id if logger else "-")
+    log.info("✔ Pipeline finished (run_id=%s)", logger.run_id if logger else "-")
     return 0
 
 

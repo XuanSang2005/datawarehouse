@@ -1,21 +1,21 @@
-/* Tailwind CSS v4. Giao diện viết bằng utility class trong TSX; file này chỉ chứa:
-   - token thiết kế (màu, font) lấy từ prototype docs/design/prototype/ → sinh class bg-rifle, font-display...
-   - vài style nền không viết được bằng utility (lớp nhiễu giấy, thanh trượt range, keyframes).
-   Phong cách: "sổ cái khách sạn" — một mặt phẳng, không card, không bóng đổ; các phần ngăn bằng đường kẻ;
-   mỗi trang có đúng một khối xanh Rifle làm điểm nhấn. Theme sáng cố định (chủ ý). */
+/* Tailwind CSS v4. The UI is written with utility classes in TSX; this file only holds:
+   - design tokens (colours, fonts) from the prototype docs/design/prototype/ → generates bg-rifle, font-display...
+   - a few base styles that utilities cannot express (paper-grain overlay, range slider, keyframes).
+   Style: "hotel ledger" — one flat surface, no cards, no shadows; sections separated by rules;
+   each page has exactly one Rifle-green focal block. Fixed light theme (on purpose). */
 @import 'tailwindcss';
 
 @theme {
-  --color-merino: #f1f1ec; /* nền */
-  --color-kangaroo: #d0c7b3; /* mặt phụ, đường kẻ */
-  --color-oyster: #939474; /* trang trí */
-  --color-oyster-ink: #6f7052; /* chữ phụ, tương phản 4.5:1 trên nền */
-  --color-rifle: #43442b; /* điểm nhấn chính, City Hotel */
-  --color-cedar: #29272b; /* chữ */
-  --color-rust: #a3442a; /* CHỈ dùng cho hủy phòng / giá trị âm */
-  --color-brass: #9c7a3c; /* Resort Hotel, cảnh báo */
+  --color-merino: #f1f1ec; /* background */
+  --color-kangaroo: #d0c7b3; /* secondary surface, rules */
+  --color-oyster: #939474; /* decoration */
+  --color-oyster-ink: #6f7052; /* secondary text, 4.5:1 contrast on background */
+  --color-rifle: #43442b; /* main accent, City Hotel */
+  --color-cedar: #29272b; /* text */
+  --color-rust: #a3442a; /* ONLY for cancellations / negative values */
+  --color-brass: #9c7a3c; /* Resort Hotel, warnings */
 
-  --font-display: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
+  --font-display: 'Archivo', 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; /* thick, low-contrast strokes for legible numbers */
   --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
@@ -47,7 +47,7 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
-  /* Lớp nhiễu giấy như prototype */
+  /* Paper-grain overlay as in the prototype */
   body::after {
     content: '';
     position: fixed;
@@ -61,7 +61,7 @@
   h1,
   h2,
   h3 {
-    font-weight: 400;
+    font-weight: 700;
     text-wrap: balance;
   }
   :focus-visible {
@@ -70,7 +70,7 @@
   }
 }
 
-/* Thanh trượt: rãnh mảnh, phần đã kéo tô màu (biến --p do component đặt). */
+/* Slider: thin track, filled up to the thumb (the --p variable is set by the component). */
 @utility range-ledger {
   -webkit-appearance: none;
   appearance: none;
@@ -106,14 +106,14 @@
     border: 2px solid var(--fill);
   }
 }
-/* Biến thể đặt trên khối xanh Rifle */
+/* Variant for use on the Rifle-green block */
 @utility range-on-focal {
   --fill: var(--color-merino);
   --rest: rgb(241 241 236 / 0.28);
   --knob: var(--color-rifle);
 }
 
-/* Biểu đồ Recharts: chữ trục dùng font mono như prototype */
+/* Recharts charts: axis text uses the mono font as in the prototype */
 .recharts-cartesian-axis-tick-value {
   font-family: var(--font-mono);
   font-size: 11.5px;

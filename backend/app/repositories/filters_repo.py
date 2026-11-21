@@ -1,4 +1,4 @@
-"""Danh mục giá trị cho bộ lọc (chỉ đọc gold)."""
+"""Value lists for the filters (reads gold only)."""
 
 from sqlalchemy import Connection, text
 

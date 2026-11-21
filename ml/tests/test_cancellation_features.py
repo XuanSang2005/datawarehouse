@@ -1,4 +1,4 @@
-"""Kiểm tra chống data leakage của mô hình dự đoán hủy (không cần DB)."""
+"""Data leakage tests for the cancellation prediction model (no DB needed)."""
 
 import re
 from datetime import date
@@ -20,7 +20,7 @@ from ml.cancellation.features import (
     in_validation_period,
 )
 
-# Cột cấm theo comment đầu database/gold/30_fact_booking.sql và quy tắc 7 CLAUDE.md.
+# Forbidden columns per the header of database/gold/30_fact_booking.sql and rule 7 of CLAUDE.md.
 MUST_EXCLUDE = {
     "reservation_status",
     "reservation_status_date",
@@ -40,7 +40,7 @@ MUST_EXCLUDE = {
 
 
 def _sample_raw(n: int = 4) -> pd.DataFrame:
-    """Dữ liệu giả có đủ cột của SELECT + thêm toàn bộ cột cấm."""
+    """Fake data with every column of the SELECT + all the forbidden columns."""
     data = {
         ID_COLUMN: range(1, n + 1),
         TARGET: [0, 1] * (n // 2),
@@ -81,9 +81,9 @@ def _sample_raw(n: int = 4) -> pd.DataFrame:
 
 
 def test_no_leakage_column_in_feature_set():
-    assert MUST_EXCLUDE <= set(LEAKAGE_COLUMNS), "Thiếu lý do loại bỏ cho cột cấm"
+    assert MUST_EXCLUDE <= set(LEAKAGE_COLUMNS), "Missing exclusion reason for a forbidden column"
     leaked = set(FEATURES) & set(LEAKAGE_COLUMNS)
-    assert not leaked, f"Cột leakage nằm trong feature set: {leaked}"
+    assert not leaked, f"Leakage column in the feature set: {leaked}"
     assert TARGET not in FEATURES and ID_COLUMN not in FEATURES
     assert SPLIT_DATE_COLUMN not in FEATURES
 
@@ -106,19 +106,19 @@ def test_build_features_handles_missing_and_derived_values():
     assert out["agent_id"].tolist() == ["9", "None", "240", "None"]
     assert out["country_code"].iloc[2] == "Unknown"
     assert out["market_segment"].iloc[2] == "Unknown"
-    # booking_month = tháng của (arrival_date - lead_time): 2016-03-01 - 10 ngày = tháng 2
+    # booking_month = month of (arrival_date - lead_time): 2016-03-01 - 10 days = February
     assert out["booking_month"].tolist() == [2.0, 8.0, 6.0, 3.0]
-    # adr_per_person: không có người trả tiền (adults + children = 0) thì chia cho 1
+    # adr_per_person: with no paying guests (adults + children = 0), divide by 1
     assert out["adr_per_person"].tolist() == [50.0, 80.0, 0.0, 40.0]
     assert out[CATEGORICAL_FEATURES].isna().sum().sum() == 0
 
 
 def test_features_sql_does_not_select_leakage_columns():
     sql = FEATURES_SQL.read_text(encoding="utf-8")
-    code = "\n".join(line.split("--", 1)[0] for line in sql.splitlines())  # bỏ comment
+    code = "\n".join(line.split("--", 1)[0] for line in sql.splitlines())  # strip comments
     tokens = set(re.findall(r"[a-z_]+", code.lower()))
     selected_leakage = (set(LEAKAGE_COLUMNS) - {TARGET, ID_COLUMN, SPLIT_DATE_COLUMN}) & tokens
-    assert not selected_leakage, f"File SQL nhắc tới cột cấm: {selected_leakage}"
+    assert not selected_leakage, f"SQL file mentions a forbidden column: {selected_leakage}"
 
 
 def test_time_split():

@@ -1,24 +1,24 @@
-# Kiến trúc hệ thống
+# System Architecture
 
-## 1. Tổng quan
+## 1. Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   NGUỒN DỮ LIỆU                                         │
+│                                   DATA SOURCES                                          │
 │   hotel_bookings.csv  pt_holidays (holidays)  countries (ISO 3166)  weather (Open-Meteo) │
 └───────────────┬─────────────────────────────────────────────────────────────────────────┘
                 │  etl/extract/*.py  ->  data/raw/
                 ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                          POSTGRESQL (lakehouse, kiến trúc Medallion)                     │
+│                         POSTGRESQL (lakehouse, medallion architecture)                   │
 │                                                                                          │
 │   ┌──────────┐  etl/load  ┌──────────┐  database/  ┌──────────┐  database/  ┌──────────┐ │
 │   │ data/raw │ ─────────▶ │  BRONZE  │ ──silver──▶ │  SILVER  │ ───gold───▶ │   GOLD   │ │
-│   │  (file)  │   COPY     │ thô, TEXT│   *.sql     │ sạch,kiểu│   *.sql     │ star     │ │
+│   │  (file)  │   COPY     │ raw, TEXT│   *.sql     │ cleaned  │   *.sql     │ star     │ │
 │   └──────────┘            └──────────┘             └──────────┘             │ schema   │ │
 │                                                         │                   │ + KPI    │ │
 │   ┌──────────┐                                          │ ml/ (train)       │ + ml_*   │ │
-│   │   META   │  log mỗi bước pipeline                    └──────────────────▶│          │ │
+│   │   META   │  log of every pipeline step               └──────────────────▶│          │ │
 │   └──────────┘                                                              └────┬─────┘ │
 └──────────────────────────────────────────────────────────────────────────────────┼───────┘
                                                                                    │ SELECT
@@ -29,45 +29,45 @@
                                                                                    │ JSON /api/*
                                                          ┌─────────────────────────▼──────┐
                                                          │ FRONTEND: React + Vite (:5173) │
-                                                         │ Dashboard, what-if, dự báo     │
+                                                         │ Dashboard, what-if, forecast   │
                                                          └────────────────────────────────┘
                                                                   ▲
-                                                       Người ra quyết định
+                                                         Decision makers
 ```
 
-## 2. Thành phần và trách nhiệm
+## 2. Components and responsibilities
 
-| Thành phần | Thư mục | Làm gì | KHÔNG làm gì |
+| Component | Directory | Does | Does NOT do |
 |---|---|---|---|
-| **Database** | `database/` | Định nghĩa schema, bảng; biến đổi bằng SQL; kiểm tra chất lượng | — |
-| **ETL** | `etl/` | Tải nguồn, nạp bronze, chạy SQL theo thứ tự, ghi log | Không biến đổi dữ liệu bằng pandas |
-| **ML** | `ml/` | Khám phá dữ liệu, train mô hình, ghi kết quả vào `gold.ml_*` | Không phục vụ request web |
-| **Backend** | `backend/` | Đọc `gold`/`meta`, tính toán what-if, trả JSON | Không đọc bronze/silver, không train |
-| **Frontend** | `frontend/` | Hiển thị, tương tác (lọc, drill-down, thanh trượt) | Không tự tính KPI phức tạp |
+| **Database** | `database/` | Defines schemas and tables; transforms data in SQL; runs quality checks | — |
+| **ETL** | `etl/` | Downloads sources, loads bronze, runs SQL in order, writes logs | No data transformations in pandas |
+| **ML** | `ml/` | Explores data, trains models, writes results to `gold.ml_*` | Does not serve web requests |
+| **Backend** | `backend/` | Reads `gold`/`meta`, computes what-if, returns JSON | Does not read bronze/silver, does not train |
+| **Frontend** | `frontend/` | Display and interaction (filters, drill-down, sliders) | Does not compute complex KPIs itself |
 
-## 3. Luồng dữ liệu: kiến trúc Medallion
+## 3. Data flow: medallion architecture
 
-| Layer | Schema | Quy tắc | Ví dụ |
+| Layer | Schema | Rules | Example |
 |---|---|---|---|
-| **Raw files** | `data/raw/` | File tải về, không sửa tay | `hotel_bookings.csv` |
-| **Bronze** | `bronze` | Giữ nguyên 100% nguồn, mọi cột `TEXT`, thêm `_source_row`, `_source_file`, `_loaded_at` | `bronze.hotel_bookings` |
-| **Silver** | `silver` | Ép kiểu, chuẩn hóa NULL, tạo cột dẫn xuất đơn giản, **không lọc dòng** | `silver.hotel_bookings` (`arrival_date`, `booking_date`, `total_nights`) |
-| **Gold** | `gold` | Star schema, surrogate key, quyết định lọc dữ liệu bất thường, bảng KPI | `gold.fact_booking`, `gold.dim_date` |
-| **Meta** | `meta` | Log vận hành pipeline | `meta.etl_run_log` |
+| **Raw files** | `data/raw/` | Downloaded files, never edited by hand | `hotel_bookings.csv` |
+| **Bronze** | `bronze` | Keeps 100% of the source as is, every column `TEXT`, adds `_source_row`, `_source_file`, `_loaded_at` | `bronze.hotel_bookings` |
+| **Silver** | `silver` | Casts types, normalizes NULLs, adds simple derived columns, **does not filter rows** | `silver.hotel_bookings` (`arrival_date`, `booking_date`, `total_nights`) |
+| **Gold** | `gold` | Star schema, surrogate keys, decisions on filtering anomalous data, KPI tables | `gold.fact_booking`, `gold.dim_date` |
+| **Meta** | `meta` | Pipeline operations log | `meta.etl_run_log` |
 
-**Chiến lược nạp:** *full load*. Mỗi lần chạy sẽ tạo lại bảng, vì dataset là tĩnh.
-Nếu triển khai thật với dữ liệu mới hằng ngày thì chuyển sang *incremental load* theo `reservation_status_date`,
-và dùng SCD Type 2 cho các dimension thay đổi (ví dụ agent).
+**Load strategy:** *full load*. Every run recreates the tables, because the dataset is static.
+A real deployment with new data every day would switch to an *incremental load* on `reservation_status_date`
+and use SCD Type 2 for changing dimensions (e.g. agent).
 
-**Các bước pipeline** (`etl/run_pipeline.py`):
+**Pipeline steps** (`etl/run_pipeline.py`):
 ```
 init → extract → bronze → silver → gold → checks
 ```
-Mỗi bước, và mỗi file SQL, được ghi một dòng vào `meta.etl_run_log` (trạng thái, số dòng, lỗi).
+Each step, and each SQL file, writes one row to `meta.etl_run_log` (status, row count, error).
 
-## 4. Mô hình dữ liệu Gold: star schema
+## 4. Gold data model: star schema
 
-> Thiết kế chi tiết (từng cột, grain, công thức measure, quyết định đã chốt): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). SQL: `database/gold/`.
+> Detailed design (every column, grain, measure formulas, agreed decisions): [`STAR_SCHEMA.md`](STAR_SCHEMA.md). SQL: `database/gold/`.
 
 ```
                          ┌──────────────┐
@@ -83,122 +83,122 @@ Mỗi bước, và mỗi file SQL, được ghi một dòng vào `meta.etl_run_l
      │dim_booking_  ├───┘       │       └───┤  dim_agent   │ (SCD2-ready)
      │profile (junk)│           │           └──────────────┘
      └──────────────┘   ┌───────▼──────────────┐
-                        │ fact_daily_occupancy │ (periodic snapshot: 1 dòng = 1 khách sạn × 1 đêm)
+                        │ fact_daily_occupancy │ (periodic snapshot: 1 row = 1 hotel × 1 night)
                         └──────────┬───────────┘
-                                   │ 1 : 1 (hotel_key + ngày, không nhân bản dòng)
+                                   │ 1 : 1 (hotel_key + date, no row duplication)
                         ┌──────────▼───────────┐
-                        │  fact_daily_weather  │ (1 dòng = 1 khách sạn × 1 ngày, Open-Meteo)
+                        │  fact_daily_weather  │ (1 row = 1 hotel × 1 day, Open-Meteo)
                         └──────────────────────┘
 ```
 
-- **`fact_booking`**: grain = 1 booking (~119.209 dòng sau khi loại 181 dòng bất thường).
+- **`fact_booking`**: grain = 1 booking (~119,209 rows after removing 181 anomalous rows).
   Measures: `booking_count`, `is_canceled`, `lead_time`, `total_nights`, `room_nights_sold`, `guests`, `adr` (non-additive),
   `booked_revenue`, `realized_revenue`, `lost_revenue`, `deposit_retained`, `net_lost_revenue`, `cancel_lead_days`.
-- **`fact_daily_occupancy`**: grain = 1 khách sạn × 1 đêm (1.586 dòng, 2015-07-01 → 2017-08-31).
-  Measures: `rooms_occupied`, `rooms_canceled`, `rooms_booked`, `guests_in_house`, `arrivals`, `departures`, `realized_revenue`, `lost_revenue`. Dùng cho dự báo nhu cầu và what-if overbooking.
-- **`fact_daily_weather`**: grain = 1 khách sạn × 1 ngày (2.192 dòng, 2015–2017; Lisbon cho City Hotel, Faro cho Resort Hotel).
-  Measures: nhiệt độ, lượng mưa, giờ nắng, gió, `is_rainy_day`. PK trùng khóa nối nên ghép với `fact_daily_occupancy` (1:1)
-  và `fact_booking` (N:1 theo ngày đến) không nhân bản dòng.
-- **Ngày lễ**: thuộc tính `is_holiday`, `holiday_name` của `dim_date` (lễ quốc gia Bồ Đào Nha).
-- **`kpi_*`** (view): tổng hợp sẵn cho từng trang dashboard. `kpi_daily_occupancy_weather` ghép occupancy + lịch + thời tiết theo đêm.
-- **`business_assumptions`**: tham số giả định mà dataset không có (tỉ lệ cọc Non Refund giữ lại, mặc định 20%).
-- **`ml_booking_risk`**, **`ml_demand_forecast`**, **`ml_model_metrics`**: do `ml/` ghi.
+- **`fact_daily_occupancy`**: grain = 1 hotel × 1 night (1,586 rows, 2015-07-01 → 2017-08-31).
+  Measures: `rooms_occupied`, `rooms_canceled`, `rooms_booked`, `guests_in_house`, `arrivals`, `departures`, `realized_revenue`, `lost_revenue`. Used for demand forecasting and the overbooking what-if.
+- **`fact_daily_weather`**: grain = 1 hotel × 1 day (2,192 rows, 2015–2017; Lisbon for City Hotel, Faro for Resort Hotel).
+  Measures: temperature, precipitation, sunshine hours, wind, `is_rainy_day`. The PK equals the join key, so joining with `fact_daily_occupancy` (1:1)
+  and `fact_booking` (N:1 on arrival date) does not duplicate rows.
+- **Public holidays**: the `is_holiday`, `holiday_name` attributes of `dim_date` (Portuguese national holidays).
+- **`kpi_*`** (views): pre-aggregated for each dashboard page. `kpi_daily_occupancy_weather` combines occupancy + calendar + weather per night.
+- **`business_assumptions`**: assumed parameters that the dataset lacks (share of the Non Refund deposit retained, default 20%).
+- **`ml_booking_risk`**, **`ml_demand_forecast`**, **`ml_model_metrics`**: written by `ml/`.
 
-## 5. Backend: phân tầng
+## 5. Backend: layering
 
 ```
 HTTP request
    │
    ▼
-api/routes/*.py      ← nhận tham số, validate (Pydantic), gọi service. KHÔNG có SQL.
+api/routes/*.py      ← receives parameters, validates (Pydantic), calls services. NO SQL.
    │
    ▼
-services/*.py        ← logic nghiệp vụ: tính what-if, khuyến nghị overbooking, gộp dữ liệu.
+services/*.py        ← business logic: what-if calculations, overbooking recommendations, data merging.
    │
    ▼
-repositories/*.py    ← CHỈ câu SQL SELECT trên gold/meta, trả list[dict].
+repositories/*.py    ← ONLY SQL SELECT statements on gold/meta, returns list[dict].
    │
    ▼
 PostgreSQL
 ```
-- `core/config.py`: đọc `.env`. `core/db.py`: engine SQLAlchemy dùng chung.
-- Lỗi DB được bắt tập trung trong `main.py`, trả **HTTP 503** cho FE và log đầy đủ ở terminal backend.
-- Lỗi nghiệp vụ (`core/errors.py`) cũng được bắt tập trung: `DataNotReadyError` → **HTTP 404** kèm `hint`
-  (vd bảng `gold.ml_*` chưa có → lệnh chạy script ML); `InvalidParameterError` → **HTTP 422**.
-- Bộ lọc dùng chung (`hotel_key`, `date_from`, `date_to` theo ngày đến, `channel_group`, `country_code`):
-  `api/deps.py` đọc query string, `repositories/booking_sql.py` dựng `WHERE` bằng bind parameter.
-- Measure non-additive: repository chỉ trả TỔNG, `services/kpi_math.py` tính tỉ lệ/ADR từ tổng (quy tắc 8).
-- What-if (`services/what_if_service.py`): hàm thuần, công thức ghi trong docstring; công suất, chi phí
-  đền bù, hoa hồng OTA là tham số người dùng nhập (quy tắc 10). Danh sách endpoint: `backend/README.md`.
+- `core/config.py`: reads `.env`. `core/db.py`: shared SQLAlchemy engine.
+- DB errors are caught centrally in `main.py`, which returns **HTTP 503** to the FE and logs full details in the backend terminal.
+- Business errors (`core/errors.py`) are also caught centrally: `DataNotReadyError` → **HTTP 404** with a `hint`
+  (e.g. a `gold.ml_*` table does not exist yet → the command to run the ML script); `InvalidParameterError` → **HTTP 422**.
+- Shared filters (`hotel_key`, `date_from`, `date_to` on arrival date, `channel_group`, `country_code`):
+  `api/deps.py` reads the query string, `repositories/booking_sql.py` builds the `WHERE` clause with bind parameters.
+- Non-additive measures: repositories return only TOTALS; `services/kpi_math.py` computes rates/ADR from the totals (rule 8).
+- What-if (`services/what_if_service.py`): pure functions, formulas documented in the docstrings; capacity, compensation
+  cost and OTA commission are user-entered parameters (rule 10). Endpoint list: `backend/README.md`.
 
 ## 6. Frontend
 
 ```
-pages/*.tsx ──dùng──▶ hooks/useApi.ts ──gọi──▶ api/endpoints.ts ──▶ api/client.ts ──fetch /api/*──▶ Vite proxy ──▶ backend
+pages/*.tsx ──use──▶ hooks/useApi.ts ──call──▶ api/endpoints.ts ──▶ api/client.ts ──fetch /api/*──▶ Vite proxy ──▶ backend
      │
-     └──dùng──▶ components/ (layout, common, charts, filters)
+     └──use──▶ components/ (layout, common, charts, filters)
 ```
-- `routes.tsx` là danh sách trang duy nhất; thanh điều hướng trên cùng và Router cùng đọc từ đây.
-- Bộ lọc dùng chung (`context/FiltersProvider.tsx`): khách sạn chọn ở thanh trên, ngày đến / kênh / quốc gia ở
-  `components/filters/FilterBar.tsx`. Giá trị giữ nguyên khi chuyển trang và được gửi thành query param cho backend.
-- Frontend **không tính KPI**: tỉ lệ, ADR, what-if đều do backend trả về; FE chỉ định dạng (`lib/format.ts`, kiểu vi-VN).
-- Giao diện theo prototype `docs/design/prototype/` (phong cách "sổ cái": nền giấy, đường kẻ thay cho card, mỗi trang
-  một khối xanh Rifle làm điểm nhấn, số lớn bằng Bodoni Moda). Token màu/font khai báo một chỗ trong
-  `styles/global.css` (`@theme` của Tailwind) và `lib/theme.ts` (giá trị hex cho SVG).
+- `routes.tsx` is the single list of pages; both the top navigation bar and the Router read from it.
+- Shared filters (`context/FiltersProvider.tsx`): the hotel is chosen in the top bar, arrival date / channel / country in
+  `components/filters/FilterBar.tsx`. Values persist across pages and are sent to the backend as query params.
+- The frontend **does not compute KPIs**: rates, ADR and what-if all come from the backend; the FE only formats them (`lib/format.ts`, en-GB style).
+- The UI follows the prototype in `docs/design/prototype/` (a "ledger" style: paper background, rules instead of cards, one
+  Rifle green block per page as the accent, large numbers and titles in Archivo, a heavy low-contrast sans chosen over the prototype's Bodoni Moda for legibility). Color/font tokens are declared in one place in
+  `styles/global.css` (Tailwind's `@theme`) and `lib/theme.ts` (hex values for SVG).
 
-| Trang | Người dùng | Endpoint chính |
+| Page | Users | Main endpoints |
 |---|---|---|
-| Tổng quan (`/`) | General Manager | `/api/kpi/summary`, `/api/kpi/timeseries` (drill-down Năm → Quý → Tháng → Tuần), `/api/channels/ranking` |
-| Rủi ro hủy (`/cancellation`) | Revenue Manager, Reservations | `/api/cancellation/high-risk` (ngưỡng xác suất, theo tuần đến), `/breakdown`, `/model-metrics` |
-| Dự báo (`/forecast`) | Revenue, Sales & Marketing | `/api/forecast`, `/api/forecast/metrics` |
-| What-if (`/what-if`) | Revenue Manager | `POST /api/what-if` (gọi lại sau 300 ms khi kéo thanh trượt) |
-| Kênh & thị trường (`/channels`) | Sales & Marketing | `/api/channels/ranking`, `/api/markets/ranking` |
-| Pipeline (`/system`) | Nhóm kỹ thuật | `/api/health`, `/api/pipeline/runs` |
-- Vite proxy `/api` sang `localhost:8000` (dev); nginx proxy sang `backend:8000` (Docker). FE không cần biết URL backend và không gặp lỗi CORS.
+| Overview (`/`) | General Manager | `/api/kpi/summary`, `/api/kpi/timeseries` (drill-down Year → Quarter → Month → Week), `/api/channels/ranking` |
+| Cancellations (`/cancellation`) | Revenue Manager, Reservations | `/api/cancellation/high-risk` (probability threshold, by arrival week), `/breakdown`, `/model-metrics` |
+| Forecast (`/forecast`) | Revenue, Sales & Marketing | `/api/forecast`, `/api/forecast/metrics` |
+| What-if (`/what-if`) | Revenue Manager | `POST /api/what-if` (re-requested 300 ms after a slider moves) |
+| Channels & markets (`/channels`) | Sales & Marketing | `/api/channels/ranking`, `/api/markets/ranking` |
+| Pipeline (`/system`) | Technical team | `/api/health`, `/api/pipeline/runs` |
+- Vite proxies `/api` to `localhost:8000` (dev); nginx proxies it to `backend:8000` (Docker). The FE does not need to know the backend URL and avoids CORS errors.
 
-## 7. Cấu hình và cổng
+## 7. Configuration and ports
 
-| Biến / Cổng | Giá trị mặc định | Dùng bởi |
+| Variable / Port | Default value | Used by |
 |---|---|---|
-| `.env` (thư mục gốc) | copy từ `.env.example` | ETL, backend, Vite, docker compose |
+| `.env` (repo root) | copied from `.env.example` | ETL, backend, Vite, docker compose |
 | PostgreSQL | `localhost:5432`, DB `tourism_dw` | |
 | Backend | `localhost:8000` (`/docs` = Swagger) | |
 | Frontend | `localhost:5173` | |
 
-### Chạy bằng Docker (demo)
+### Running with Docker (demo)
 
-`docker compose --profile app up -d --build` bật 4 service:
+`docker compose --profile app up -d --build` starts 4 services:
 
-| Service | Image | Vai trò |
+| Service | Image | Role |
 |---|---|---|
-| `db` | `postgres:16-alpine` | Lakehouse. Dữ liệu ở volume `pgdata` |
-| `etl` | `etl/Dockerfile` (context = gốc repo) | Chạy `python -m etl.run_pipeline` **một lần** rồi thoát, sau khi `db` healthy. File nguồn giữ ở volume `rawdata` |
-| `backend` | `backend/Dockerfile` | FastAPI, chờ `db` healthy (không chờ `etl`: trang System hiển thị tiến độ pipeline) |
-| `frontend` | `frontend/Dockerfile` | nginx phục vụ bản build, proxy `/api` sang `backend` |
+| `db` | `postgres:16-alpine` | Lakehouse. Data lives in the `pgdata` volume |
+| `etl` | `etl/Dockerfile` (context = repo root) | Runs `python -m etl.run_pipeline` **once** and exits, after `db` is healthy. Source files are kept in the `rawdata` volume |
+| `backend` | `backend/Dockerfile` | FastAPI, waits for `db` to be healthy (not for `etl`: the System page shows pipeline progress) |
+| `frontend` | `frontend/Dockerfile` | nginx serves the build and proxies `/api` to `backend` |
 
-CI có job `docker` chạy đúng lệnh trên từ DB rỗng, chờ `etl` thoát với mã 0 rồi gọi `/api/health` qua frontend.
+CI has a `docker` job that runs exactly this command from an empty DB, waits for `etl` to exit with code 0, then calls `/api/health` through the frontend.
 
-## 8. Lý do chọn công nghệ
+## 8. Technology choices
 
-| Lựa chọn | Lý do | Phương án đã cân nhắc |
+| Choice | Rationale | Alternatives considered |
 |---|---|---|
-| **PostgreSQL + Docker** | Phổ biến, SQL chuẩn, cả nhóm chạy giống hệt nhau | DuckDB (khó dùng chung), SQL Server (nặng) |
-| **Medallion trên 1 DB (schema riêng)** | Thể hiện rõ lakehouse mà vẫn đơn giản | Lưu Parquet trên object storage (quá mức cần) |
-| **Python + SQL thuần** | Dễ debug, đủ cho dataset tĩnh, mỗi file SQL là một bước rõ ràng | dbt, Airflow (tốn thời gian setup) |
-| **FastAPI** | Nhanh, tự sinh tài liệu `/docs`, cùng ngôn ngữ Python với ETL/ML | Flask, Django |
-| **React + Vite + TS** | Tương tác mạnh (yêu cầu "interactive" của tiêu chí 50% điểm), type an toàn | Streamlit, Power BI |
-| **Tailwind CSS v4** | Style viết ngay trong component, token thiết kế (màu, font của prototype) khai báo một chỗ bằng `@theme`; không phải đặt tên class/CSS riêng cho từng trang | CSS thuần (khó giữ nhất quán khi nhiều người sửa), CSS-in-JS |
-| **Recharts** | Component React khai báo, đủ loại cần dùng (đường, vùng khoảng tin cậy, phân tán, ReferenceArea/Dot), tooltip tùy biến được để giống prototype, nhẹ hơn ECharts | Chart.js (API imperative), ECharts (nặng), tự vẽ D3 (tốn công) |
+| **PostgreSQL + Docker** | Widely used, standard SQL, identical setup for the whole team | DuckDB (hard to share), SQL Server (heavy) |
+| **Medallion on 1 DB (separate schemas)** | Shows the lakehouse clearly while staying simple | Parquet on object storage (more than needed) |
+| **Plain Python + SQL** | Easy to debug, sufficient for a static dataset, each SQL file is one clear step | dbt, Airflow (time-consuming setup) |
+| **FastAPI** | Fast, auto-generated `/docs`, same language (Python) as ETL/ML | Flask, Django |
+| **React + Vite + TS** | Rich interactivity (the "interactive" requirement of the criterion worth 50% of the grade), type safety | Streamlit, Power BI |
+| **Tailwind CSS v4** | Styles written directly in components, design tokens (the prototype's colors and fonts) declared in one place with `@theme`; no need to name custom classes/CSS per page | Plain CSS (hard to keep consistent with many editors), CSS-in-JS |
+| **Recharts** | Declarative React components, all the chart types needed (line, confidence-interval area, scatter, ReferenceArea/Dot), customizable tooltips to match the prototype, lighter than ECharts | Chart.js (imperative API), ECharts (heavy), hand-drawn D3 (laborious) |
 
-## 9. Nhật ký quyết định
+## 9. Decision log
 
-| Ngày | Quyết định |
+| Date | Decision |
 |---|---|
-| 2026-11-21 | Chọn bài toán quản lý doanh thu và hủy phòng, dataset Hotel Booking Demand |
+| 2026-11-21 | Chose the revenue and cancellation management problem, with the Hotel Booking Demand dataset |
 | 2026-11-21 | Stack: PostgreSQL + Python/SQL + FastAPI + React |
-| 2026-11-21 | Bronze lưu TEXT; silver không lọc dòng; quyết định lọc dữ liệu bất thường đặt ở gold |
-| 2026-11-21 | Chốt star schema (`STAR_SCHEMA.md`): 7 dimension, 2 fact, 5 view KPI |
-| 2026-11-21 | Loại 181 dòng bất thường khỏi fact; `CN` → `CAN`; giả định giữ 20% cọc khi booking Non Refund bị hủy; thêm nguồn mã ISO 3166 |
-| 2026-11-21 | Thêm nguồn thời tiết Open-Meteo (Lisbon, Faro) thành fact riêng `fact_daily_weather`; thêm service `etl` vào Docker Compose để demo chạy được từ DB rỗng (issue #8) |
-| 2026-11-21 | Backend E5: API dùng mã `UNK` cho quốc gia không rõ; what-if chỉ nhận thêm đặt phòng ở đêm "kín trên sổ" (đặt ≥ công suất), dùng tỉ lệ hủy thực tế từng đêm |
-| 2026-11-21 | Frontend E6: Tailwind CSS v4 + Recharts, giao diện theo prototype; thêm trang Kênh & thị trường; bộ lọc dùng chung qua React context |
+| 2026-11-21 | Bronze stores TEXT; silver does not filter rows; decisions on filtering anomalous data are made in gold |
+| 2026-11-21 | Finalized the star schema (`STAR_SCHEMA.md`): 7 dimensions, 2 facts, 5 KPI views |
+| 2026-11-21 | Removed 181 anomalous rows from the fact; `CN` → `CAN`; assumed 20% of the deposit is retained when a Non Refund booking is cancelled; added the ISO 3166 code source |
+| 2026-11-21 | Added the Open-Meteo weather source (Lisbon, Faro) as a separate fact `fact_daily_weather`; added the `etl` service to Docker Compose so the demo runs from an empty DB (issue #8) |
+| 2026-11-21 | Backend E5: the API uses the code `UNK` for unknown countries; the what-if only accepts extra bookings on nights that are "full on the books" (booked ≥ capacity), using each night's actual cancellation rate |
+| 2026-11-21 | Frontend E6: Tailwind CSS v4 + Recharts, UI following the prototype; added the Channels & markets page; shared filters via React context |

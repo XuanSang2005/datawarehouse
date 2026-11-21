@@ -14,15 +14,15 @@ HighRiskSort = Literal["probability", "expected_loss"]
 
 
 class BreakdownItem(BaseModel):
-    key: str = Field(description="Giá trị nhóm (vd '0-7', 'OTA', 'Non Refund', 'PRT')")
-    label: str = Field(description="Nhãn hiển thị (vd tên quốc gia)")
+    key: str = Field(description="Group value (e.g. '0-7', 'OTA', 'Non Refund', 'PRT')")
+    label: str = Field(description="Display label (e.g. country name)")
     sort_order: int = Field(
-        description="Thứ tự hiển thị gợi ý (lead time theo khoảng; còn lại theo số booking)"
+        description="Suggested display order (lead time by bucket; others by number of bookings)"
     )
     bookings: int
     canceled_bookings: int
     cancellation_rate: float | None
-    booking_share: float | None = Field(description="Tỉ trọng booking của nhóm trong tổng đã lọc")
+    booking_share: float | None = Field(description="Share of the filtered bookings in this group")
     lost_revenue: float
     net_lost_revenue: float
 
@@ -56,9 +56,9 @@ class HighRiskBooking(BaseModel):
     cancel_probability: float
     risk_band: RiskBand
     expected_loss: float = Field(description="cancel_probability × booked_revenue (EUR)")
-    is_test_set: bool = Field(description="TRUE = điểm ngoài mẫu (booking đến năm 2017)")
+    is_test_set: bool = Field(description="TRUE = out-of-sample score (arrival in 2017)")
     is_canceled: bool = Field(
-        description="Kết quả THỰC TẾ (dữ liệu lịch sử, lúc ra quyết định chưa biết)"
+        description="ACTUAL outcome (historical data, unknown at decision time)"
     )
 
 
@@ -70,9 +70,11 @@ class HighRiskPage(BaseModel):
     sort: HighRiskSort
     page: int
     page_size: int
-    total: int = Field(description="Số booking khớp điều kiện (mọi trang)")
-    booked_revenue_total: float = Field(description="Σ booked_revenue của mọi booking khớp (EUR)")
+    total: int = Field(description="Number of matching bookings (all pages)")
+    booked_revenue_total: float = Field(
+        description="Σ booked_revenue of all matching bookings (EUR)"
+    )
     expected_loss_total: float = Field(
-        description="Σ cancel_probability × booked_revenue của mọi booking khớp (EUR)"
+        description="Σ cancel_probability × booked_revenue of all matching bookings (EUR)"
     )
     items: list[HighRiskBooking]

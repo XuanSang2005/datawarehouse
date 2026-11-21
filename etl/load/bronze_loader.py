@@ -1,6 +1,6 @@
-"""Load: nạp file CSV vào bảng bronze bằng lệnh COPY (nhanh hơn INSERT nhiều lần).
+"""Load: load CSV files into bronze tables with COPY (much faster than INSERT).
 
-Bảng bronze phải có đúng các cột như header CSV, cộng thêm các cột kỹ thuật bắt đầu bằng `_`.
+A bronze table must have exactly the CSV header columns, plus technical columns starting with `_`.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def _table_columns(conn: psycopg.Connection, table: str) -> list[str]:
     ).fetchall()
     if not rows:
         raise HeaderMismatchError(
-            f"Bảng {table} không tồn tại. Kiểm tra file DDL trong database/bronze/."
+            f"Table {table} does not exist. Check the DDL file in database/bronze/."
         )
     return [r[0] for r in rows]
 
@@ -36,14 +36,14 @@ def check_header(header: list[str], table_cols: list[str], csv_path: Path, table
     extra = [c for c in header if c not in table_cols]
     if missing or extra:
         raise HeaderMismatchError(
-            f"Header của {csv_path.name} không khớp bảng {table}. "
-            f"Thiếu trong CSV: {missing or '-'}; thừa trong CSV: {extra or '-'}. "
-            "Sửa file DDL trong database/bronze/ hoặc kiểm tra lại file nguồn."
+            f"Header of {csv_path.name} does not match table {table}. "
+            f"Missing in CSV: {missing or '-'}; extra in CSV: {extra or '-'}. "
+            "Fix the DDL file in database/bronze/ or check the source file."
         )
 
 
 def load_csv(conn: psycopg.Connection, csv_path: Path, table: str) -> int:
-    """Nạp toàn bộ CSV vào `table`. Trả về số dòng đã nạp."""
+    """Load the whole CSV into `table`. Returns the number of rows loaded."""
     table_cols = _table_columns(conn, table)
     schema, name = table.split(".")
 

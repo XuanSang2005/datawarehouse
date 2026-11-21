@@ -1,4 +1,4 @@
-"""Unit test cho công thức what-if (services/what_if_service.py) với dữ liệu giả. Không cần DB."""
+"""Unit tests for the what-if formulas (services/what_if_service.py) on fake data. No DB needed."""
 
 import pytest
 
@@ -12,16 +12,16 @@ from app.services.what_if_service import (
     simulate_overbooking,
 )
 
-# Khách sạn 100 phòng, ADR 100 €
+# 100-room hotel, ADR 100 €
 FULL_ON_BOOKS = Night(
     rooms_occupied=80, rooms_canceled=40, realized_revenue=8000
-)  # 120 đặt, hủy 1/3
+)  # 120 booked, 1/3 canceled
 QUIET = Night(
     rooms_occupied=50, rooms_canceled=10, realized_revenue=5000
-)  # 60 đặt < 100: không nhận thêm
+)  # 60 booked < 100: no extra reservations
 SOLD_OUT = Night(
     rooms_occupied=100, rooms_canceled=25, realized_revenue=10000
-)  # không còn phòng trống
+)  # no empty rooms left
 
 
 def test_no_overbooking_means_no_change():
@@ -34,7 +34,8 @@ def test_no_overbooking_means_no_change():
 
 
 def test_overbooking_fills_empty_rooms_on_full_nights_only():
-    # Đêm kín trên sổ: nhận thêm 10, đến ở 10 × (1 − 40/120) = 6.67, còn 20 phòng trống → lấp hết.
+    # Full on the books: accept 10 extra, 10 × (1 − 40/120) = 6.67 show up, 20 empty rooms
+    # → all filled.
     r = simulate_overbooking(
         [FULL_ON_BOOKS, QUIET], capacity=100, overbooking_pct=0.10, walk_cost=150, net_factor=1.0
     )
@@ -47,7 +48,7 @@ def test_overbooking_fills_empty_rooms_on_full_nights_only():
 
 
 def test_overbooking_walks_guests_when_no_room_left():
-    # Đêm đã kín phòng thật: mọi khách đặt thêm đến ở đều phải chuyển đi.
+    # Night actually sold out: every extra guest who shows up must be walked.
     r = simulate_overbooking(
         [SOLD_OUT], capacity=100, overbooking_pct=0.10, walk_cost=150, net_factor=1.0
     )
@@ -75,7 +76,7 @@ def test_curve_starts_at_zero_and_recommends_interior_optimum():
     assert len(curve) == 51
     best_point = max(curve, key=lambda p: p.net_benefit)
     assert best == best_point.overbooking_pct
-    assert 0 < best < 0.5  # lợi ích tăng rồi giảm khi phải đền bù nhiều
+    assert 0 < best < 0.5  # benefit rises then falls as walk costs grow
 
 
 def test_curve_recommends_zero_when_overbooking_never_pays():

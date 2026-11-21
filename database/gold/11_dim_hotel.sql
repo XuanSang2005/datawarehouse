@@ -1,11 +1,11 @@
 -- =============================================================================
--- gold.dim_hotel — Dimension khách sạn (conformed)
--- Nguồn : DISTINCT silver.hotel_bookings.hotel_name + thuộc tính mô tả từ bài báo gốc
---         (City Hotel ở Lisbon, Resort Hotel ở Algarve)
---   * weather_location: điểm đo thời tiết của khách sạn (khóa nối với silver.weather_daily.location,
---     dùng trong gold/32_fact_daily_weather.sql). Tọa độ trùng với etl/extract/weather.py.
--- Grain : 1 dòng = 1 khách sạn (2 dòng)
--- Cố ý KHÔNG có cột số phòng: dataset không có công suất (quy tắc 10 trong CLAUDE.md).
+-- gold.dim_hotel — Hotel dimension (conformed)
+-- Source: DISTINCT silver.hotel_bookings.hotel_name + descriptive attributes from the original paper
+--         (City Hotel in Lisbon, Resort Hotel in the Algarve)
+--   * weather_location: the hotel's weather location (join key to silver.weather_daily.location,
+--     used in gold/32_fact_daily_weather.sql). Coordinates match etl/extract/weather.py.
+-- Grain : 1 row = 1 hotel (2 rows)
+-- Deliberately NO room-count column: the dataset has no capacity (rule 10 in CLAUDE.md).
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.dim_hotel CASCADE;

@@ -1,48 +1,48 @@
-# Hướng dẫn đóng góp (CONTRIBUTING)
+# Contributing guide (CONTRIBUTING)
 
-Quy trình làm việc chung của nhóm. Đọc hết **một lần** trước khi code.
+The team's shared workflow. Read it all **once** before writing code.
 
 ---
 
-## 1. Phân công theo thành phần
+## 1. Ownership by component
 
-Mỗi thư mục có **một người phụ trách chính** (owner). Owner review PR chạm vào thư mục đó.
-Ai cũng được sửa mọi chỗ, nhưng phải được owner duyệt.
+Each directory has **one main owner**. The owner reviews PRs that touch that directory.
+Anyone may change anything, but the owner must approve.
 
-| Thư mục | Phụ trách chính | Hỗ trợ |
+| Directory | Main owner | Support |
 |---|---|---|
 | `database/` (bronze/silver/gold, checks) | _TBD_ | |
 | `etl/` | _TBD_ | |
 | `ml/` | _TBD_ | |
 | `backend/` | _TBD_ | |
 | `frontend/` | _TBD_ | |
-| `docs/`, `deliverables/` (báo cáo, slide, video) | _Cả nhóm_ | |
+| `docs/`, `deliverables/` (report, slides, video) | _Whole team_ | |
 
-> Đề yêu cầu báo cáo đóng góp của từng thành viên (Appendix 1. Teamwork report). Commit và PR rõ ràng chính là bằng chứng.
+> The assignment requires a contribution report for each member (Appendix 1. Teamwork report). Clear commits and PRs are the evidence.
 
 ---
 
-## 2. Quy trình Git
+## 2. Git workflow
 
-### Nhánh (branch)
-- `main`: luôn chạy được. **Không push thẳng**, chỉ merge qua Pull Request.
-- Nhánh làm việc tạo từ `main`, đặt tên `<loại>/<thư-mục>-<mô-tả-ngắn>`:
+### Branches
+- `main`: always runnable. **No direct pushes**; merge only through Pull Requests.
+- Working branches are created from `main` and named `<type>/<directory>-<short-description>`:
 
-| Ví dụ | Khi nào |
+| Example | When |
 |---|---|
-| `feat/gold-dim-date` | Thêm tính năng |
-| `fix/etl-header-mismatch` | Sửa lỗi |
-| `docs/report-chapter-3` | Tài liệu, báo cáo |
-| `refactor/backend-kpi-service` | Cải tổ code, không đổi hành vi |
+| `feat/gold-dim-date` | New feature |
+| `fix/etl-header-mismatch` | Bug fix |
+| `docs/report-chapter-3` | Documentation, report |
+| `refactor/backend-kpi-service` | Code restructuring without behavior change |
 
-### Commit: theo [Conventional Commits](https://www.conventionalcommits.org/)
+### Commits: follow [Conventional Commits](https://www.conventionalcommits.org/)
 ```
-<loại>(<scope>): <mô tả ngắn, thì hiện tại>
+<type>(<scope>): <short description, present tense>
 ```
-- **loại**: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
-- **scope**: tên thư mục hoặc layer: `database`, `bronze`, `silver`, `gold`, `checks`, `etl`, `ml`, `backend`, `frontend`, `docs`
+- **type**: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+- **scope**: directory or layer name: `database`, `bronze`, `silver`, `gold`, `checks`, `etl`, `ml`, `backend`, `frontend`, `docs`
 
-Ví dụ:
+Examples:
 ```
 feat(gold): add fact_booking with surrogate keys
 fix(silver): handle 'NA' in children column
@@ -50,10 +50,10 @@ feat(frontend): add KPI cards to overview page
 docs(report): write chapter 2 business problem
 ```
 
-### Các bước làm một việc
-**Bước 0: tạo issue trước khi code** (bắt buộc, xem quy tắc 11 trong `CLAUDE.md`).
-Trên GitHub: tab **Issues → New issue**, ghi bối cảnh, việc cần làm và tiêu chí hoàn thành (checklist).
-Ghi lại số issue (ví dụ `#12`) để liên kết với PR.
+### Steps for a piece of work
+**Step 0: create an issue before coding** (mandatory, see rule 11 in `CLAUDE.md`).
+On GitHub: **Issues → New issue** tab; write the context, what to do and the acceptance criteria (checklist).
+Note the issue number (e.g. `#12`) to link it to the PR.
 
 ```bash
 git checkout main && git pull
@@ -61,86 +61,90 @@ git checkout main && git pull
 ```bash
 git checkout -b feat/gold-dim-date
 ```
-Code, rồi commit nhỏ và thường xuyên:
+Write code, then commit small and often:
 ```bash
 git add database/gold/10_dim_date.sql && git commit -m "feat(gold): add dim_date"
 ```
 ```bash
 git push -u origin feat/gold-dim-date
 ```
-Sau đó mở Pull Request trên GitHub, điền template (ghi `Closes #12` để issue tự đóng khi merge), và nhờ owner review.
+Then open a Pull Request on GitHub, fill in the template (write `Closes #12` so the issue closes automatically on merge), and ask the owner for a review.
 
-### Pull Request
-- Mỗi PR phải liên kết **một issue** (`Closes #..` trong mô tả). Không có issue thì không merge.
-- Một PR làm **một việc**, nên dưới khoảng 400 dòng thay đổi.
-- Phải qua **CI xanh** (lint, test, chạy pipeline, build frontend).
-- Ít nhất **1 người duyệt** trước khi merge. Dùng **Squash and merge**.
-- Sửa giao diện thì đính kèm ảnh chụp màn hình.
+### Pull Requests
+- Every PR must link **one issue** (`Closes #..` in the description). No issue, no merge.
+- One PR does **one thing**, ideally under about 400 changed lines.
+- It must pass a **green CI** (lint, tests, pipeline run, frontend build).
+- At least **1 approval** before merging. Use **Squash and merge**.
+- For UI changes, attach screenshots.
 
 ---
 
-## 3. Quy ước theo thành phần
+## 3. Conventions per component
+
+### Language
+- Documentation, code comments, commit messages, PR descriptions and UI text are in **English**.
+- Names of variables, tables and columns are in English: `snake_case` (Python/SQL), `camelCase` (TS).
 
 ### 🗄️ `database/`: SQL
-- **Tên file**: `NN_ten_bang.sql` (2 chữ số, chữ thường, gạch dưới). Pipeline chạy theo **thứ tự tên file**.
-- **Idempotent**: chạy lại không lỗi. Bảng full-load dùng `DROP TABLE IF EXISTS` rồi `CREATE TABLE`.
-- **Header bắt buộc** ở đầu mỗi file: tên bảng, nguồn, **grain**, các biến đổi chính (xem `database/silver/01_hotel_bookings.sql`).
-- Quy ước số ở gold: `1x` = dimension, `3x` = fact, `5x` = KPI/view.
-- Đặt tên: bảng `dim_*`, `fact_*`, `kpi_*`, `ml_*`; khóa thay thế `<dim>_key`; cột cờ `is_*`; ngày `*_date`.
-- File check: dòng đầu `-- severity: error|warning`, câu SELECT trả về **các dòng vi phạm**.
-- Sau khi sửa: chạy `python -m etl.run_pipeline --from <layer>` và cập nhật `docs/DATA_DICTIONARY.md`.
+- **File name**: `NN_table_name.sql` (2 digits, lowercase, underscores). The pipeline runs files in **file-name order**.
+- **Idempotent**: rerunning does not fail. Full-load tables use `DROP TABLE IF EXISTS` followed by `CREATE TABLE`.
+- **Mandatory header** at the top of each file: table name, source, **grain**, main transformations (see `database/silver/01_hotel_bookings.sql`).
+- Numbering in gold: `1x` = dimension, `3x` = fact, `5x` = KPI/view.
+- Naming: tables `dim_*`, `fact_*`, `kpi_*`, `ml_*`; surrogate keys `<dim>_key`; flag columns `is_*`; dates `*_date`.
+- Check files: first line `-- severity: error|warning`; the SELECT returns the **violating rows**.
+- After changes: run `python -m etl.run_pipeline --from <layer>` and update `docs/DATA_DICTIONARY.md`.
 
 ### ⚙️ `etl/`: Python pipeline
-- Không viết logic biến đổi dữ liệu bằng pandas ở đây. Biến đổi làm bằng SQL trong `database/`.
-  `etl/` chỉ **tải về, nạp vào, điều phối**.
-- Thêm nguồn mới:
-  1. Viết `etl/extract/<ten_nguon>.py` có hàm `extract(target: Path)`
-  2. Viết DDL `database/bronze/NN_<ten_nguon>.sql` (cột TEXT, khớp header CSV)
-  3. Đăng ký trong `SOURCES` ở `etl/extract/__init__.py`
-- Log bằng `logging.getLogger("etl.<module>")`, không dùng `print`.
+- Do not write data transformation logic in pandas here. Transformations are done in SQL in `database/`.
+  `etl/` only **downloads, loads and orchestrates**.
+- Adding a new source:
+  1. Write `etl/extract/<source_name>.py` with a function `extract(target: Path)`
+  2. Write the DDL `database/bronze/NN_<source_name>.sql` (TEXT columns, matching the CSV header)
+  3. Register it in `SOURCES` in `etl/extract/__init__.py`
+- Log with `logging.getLogger("etl.<module>")`, not `print`.
 
 ### 🤖 `ml/`
-- Notebook đặt tên `NN_<ten>_<chu-de>.ipynb`, ví dụ `01_an_eda-cancellation.ipynb`. **Clear output trước khi commit.**
-- Code dùng lại hoặc code train chính thức viết thành `.py` trong `ml/`, không để trong notebook.
-- Kết quả cho ứng dụng **ghi vào bảng `gold.ml_*`**. Backend chỉ đọc bảng đó.
-- Ghi rõ metric đánh giá (AUC, MAPE…) vào `ml/README.md` để đưa vào chương Evaluation.
+- Notebooks are named `NN_<name>_<topic>.ipynb`, e.g. `01_an_eda-cancellation.ipynb`. **Clear outputs before committing.**
+- Reusable code and the official training code go into `.py` files in `ml/`, not in notebooks.
+- Results for the application are **written to `gold.ml_*` tables**. The backend only reads those tables.
+- Record the evaluation metrics (AUC, MAPE…) in `ml/README.md` so they can go into the Evaluation chapter.
 
 ### 🔌 `backend/`
-Thêm một endpoint, theo thứ tự:
-1. `app/schemas/<chu_de>.py`: model Pydantic cho response
-2. `app/repositories/<chu_de>_repo.py`: câu SQL (chỉ đọc `gold`/`meta`)
-3. `app/services/<chu_de>_service.py`: logic, tính toán
-4. `app/api/routes/<chu_de>.py`: endpoint HTTP, rồi include trong `app/api/router.py`
-5. `tests/test_<chu_de>.py`
+To add an endpoint, in this order:
+1. `app/schemas/<topic>.py`: Pydantic model for the response
+2. `app/repositories/<topic>_repo.py`: SQL queries (read only `gold`/`meta`)
+3. `app/services/<topic>_service.py`: logic, calculations
+4. `app/api/routes/<topic>.py`: HTTP endpoint, then include it in `app/api/router.py`
+5. `tests/test_<topic>.py`
 
-Route **không chứa SQL**; repository **không chứa logic nghiệp vụ**.
+Routes **contain no SQL**; repositories **contain no business logic**.
 
 ### 🖥️ `frontend/`
-Thêm một trang:
-1. `src/types/api.ts`: thêm type khớp schema backend
-2. `src/api/endpoints.ts`: thêm hàm gọi API
-3. `src/pages/<Ten>Page.tsx`: trang, dùng hook `useApi`
-4. `src/routes.tsx`: thêm 1 dòng (sidebar tự cập nhật)
+To add a page:
+1. `src/types/api.ts`: add a type matching the backend schema
+2. `src/api/endpoints.ts`: add the API call function
+3. `src/pages/<Name>Page.tsx`: the page, using the `useApi` hook
+4. `src/routes.tsx`: add 1 line (the sidebar updates automatically)
 
-- Component dùng lại để trong `src/components/` (`common/`, `charts/`, `filters/`, `layout/`).
-- Tên file component: `PascalCase.tsx`; hook: `useXxx.ts`.
-- Không gọi `fetch` trực tiếp trong component.
+- Reusable components go in `src/components/` (`common/`, `charts/`, `filters/`, `layout/`).
+- Component file names: `PascalCase.tsx`; hooks: `useXxx.ts`.
+- Never call `fetch` directly in a component.
 
 ---
 
-## 4. Trước khi push
+## 4. Before pushing
 ```bash
 ruff check . && pytest
 ```
 ```bash
 cd frontend && npm run lint && npm run build
 ```
-Nếu có sửa `database/` hoặc `etl/`:
+If you changed `database/` or `etl/`:
 ```bash
 python -m etl.run_pipeline
 ```
 
-## 5. Quy tắc chung
-- Không commit `.env`, dữ liệu (`data/raw/`), model (`ml/models/`), video.
-- Không commit mật khẩu hay API key vào code.
-- Gặp lỗi: xem `docs/TROUBLESHOOTING.md` trước, rồi hỏi trong nhóm kèm **log lỗi đầy đủ** và **lệnh đã chạy**.
+## 5. General rules
+- Do not commit `.env`, data (`data/raw/`), models (`ml/models/`), or videos.
+- Do not commit passwords or API keys in code.
+- When you hit an error: check `docs/TROUBLESHOOTING.md` first, then ask the team with the **full error log** and the **command you ran**.

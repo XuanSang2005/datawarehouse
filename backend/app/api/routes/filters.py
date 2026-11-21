@@ -9,5 +9,5 @@ router = APIRouter(prefix="/filters", tags=["filters"])
 
 @router.get("", response_model=FilterOptions)
 def get_filters(conn: DbConn) -> FilterOptions:
-    """Danh mục cho bộ lọc: khách sạn, nhóm kênh, phân khúc, quốc gia, khoảng ngày đến."""
+    """Filter options: hotels, channel groups, segments, countries, arrival date range."""
     return filters_service.get_filter_options(conn)

@@ -1,4 +1,4 @@
-// Mỗi endpoint backend = 1 hàm ở đây. Component KHÔNG gọi fetch trực tiếp.
+// One function here per backend endpoint. Components do NOT call fetch directly.
 import { apiGet, apiPost, withQuery } from './client'
 import type {
   BookingFilter,
@@ -22,7 +22,7 @@ import type {
   WhatIfResponse,
 } from '../types/api'
 
-/** Bộ lọc FE gửi lên: mọi trường đều tùy chọn. */
+/** Filters the FE sends: every field is optional. */
 export type FilterParams = Partial<BookingFilter>
 
 export const getHealth = () => apiGet<HealthResponse>('/api/health')

@@ -1,7 +1,7 @@
-# Video demo
+# Demo video
 
-File video nặng nên **không commit**. Upload lên Google Drive hoặc YouTube (unlisted) rồi ghi link ở đây.
+Video files are large, so they are **not committed**. Upload to Google Drive or YouTube (unlisted) and put the link here.
 
-| Phiên bản | Link | Thời lượng | Ngày |
+| Version | Link | Duration | Date |
 |---|---|---|---|
 | | | | |

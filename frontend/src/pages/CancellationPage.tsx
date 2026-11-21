@@ -1,6 +1,6 @@
-// Rủi ro hủy phòng (G2) — người dùng: Revenue Manager, bộ phận Reservations.
-// Quyết định hỗ trợ: tuần này gọi xác nhận / yêu cầu cọc những booking nào; nhóm khách nào hủy nhiều.
-// Điểm rủi ro lấy từ gold.ml_booking_risk (model dự đoán hủy, E3); mặc định chỉ booking năm 2017 (ngoài mẫu).
+// Cancellation risk (G2) — users: Revenue Manager, Reservations team.
+// Decisions supported: which bookings to call to reconfirm / ask for a deposit this week; which guest groups cancel most.
+// Risk scores come from gold.ml_booking_risk (cancellation model, E3); by default only 2017 bookings (out of sample).
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import {
   getCancellationBreakdown,
@@ -19,7 +19,7 @@ import { addDays, dateLabel, dayLabel, dayMonth, eur, num, pct } from '../lib/fo
 import { hotelColor } from '../lib/theme'
 import type { BreakdownDimension, BreakdownItem, CancellationBreakdown, HighRiskBooking, HighRiskSort } from '../types/api'
 
-// Tập test của model: booking đến năm 2017 (dữ liệu kết thúc 31/8/2017)
+// The model's test set: bookings arriving in 2017 (data ends 31 Aug 2017)
 const FIRST_WEEK = '2017-01-02'
 const LAST_WEEK = '2017-08-28'
 const DEFAULT_WEEK = '2017-08-21'
@@ -32,16 +32,16 @@ const LEAD_BANDS: [number, string][] = [
   [180, '91-180'],
   [365, '181-365'],
 ]
-/** Nhóm lead time — PHẢI khớp backend (repositories/booking_sql.py). */
+/** Lead time bands — MUST match the backend (repositories/booking_sql.py). */
 function leadBand(lead: number): string {
   return LEAD_BANDS.find(([max]) => lead <= max)?.[1] ?? '>365'
 }
 
 const DIMENSIONS: { value: BreakdownDimension; label: string }[] = [
-  { value: 'lead_time', label: 'Đặt trước' },
-  { value: 'channel', label: 'Kênh' },
-  { value: 'deposit_type', label: 'Đặt cọc' },
-  { value: 'country', label: 'Quốc gia' },
+  { value: 'lead_time', label: 'Lead time' },
+  { value: 'channel', label: 'Channel' },
+  { value: 'deposit_type', label: 'Deposit' },
+  { value: 'country', label: 'Country' },
 ]
 type Breakdowns = Record<'lead_time' | 'channel' | 'deposit_type' | 'country', CancellationBreakdown>
 
@@ -61,7 +61,7 @@ export default function CancellationPage() {
   const thr = threshold ?? Math.round(modelThreshold * 100) / 100
   const thrQuery = useDebounced(thr, 250)
 
-  // Đổi bộ lọc → về trang đầu
+  // Filters changed → back to the first page
   const listKey = JSON.stringify([params, week, thrQuery, sort])
   useEffect(() => setPages(1), [listKey])
 
@@ -107,11 +107,13 @@ export default function CancellationPage() {
 
   const canPrev = week > FIRST_WEEK
   const canNext = week < LAST_WEEK
+  // "21–27 Aug 2017" within one month, "28 Aug–3 Sep 2017" across months (word joiners: never wrap at the dash)
+  const weekStart = week.slice(5, 7) === weekEnd.slice(5, 7) ? String(Number(week.slice(8, 10))) : dayMonth(week)
 
   return (
     <>
       <PageHead
-        title={`Khách đến ${dayMonth(week)}–${dateLabel(weekEnd)}`}
+        title={`Arrivals ${weekStart}\u2060–\u2060${dateLabel(weekEnd)}`}
         aside={
           <div className="flex items-center gap-2">
             <button
@@ -120,7 +122,7 @@ export default function CancellationPage() {
               onClick={() => setWeek((w) => addDays(w, -7))}
               className="cursor-pointer border border-cedar px-3.5 py-2 text-[13.5px] font-semibold hover:bg-kangaroo disabled:cursor-default disabled:opacity-40"
             >
-              ← Tuần trước
+              ← Previous week
             </button>
             <button
               type="button"
@@ -128,7 +130,7 @@ export default function CancellationPage() {
               onClick={() => setWeek((w) => addDays(w, 7))}
               className="cursor-pointer border border-cedar px-3.5 py-2 text-[13.5px] font-semibold hover:bg-kangaroo disabled:cursor-default disabled:opacity-40"
             >
-              Tuần sau →
+              Next week →
             </button>
           </div>
         }
@@ -136,21 +138,21 @@ export default function CancellationPage() {
 
       <Focal className="grid items-end gap-x-12 gap-y-5 p-[22px] sm:p-[28px_34px] md:grid-cols-[auto_minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_auto]">
         <div>
-          <Cap className="text-kangaroo">Có khả năng hủy</Cap>
+          <Cap className="text-kangaroo">Likely to cancel</Cap>
           <BigNumber className="text-[clamp(72px,9vw,132px)]">{list.data ? num(list.data.total) : '—'}</BigNumber>
         </div>
         <div className="flex flex-col gap-1.5 pb-2">
-          <Cap className="text-kangaroo">Doanh thu phòng có nguy cơ mất</Cap>
-          <b className="font-display text-[40px] leading-none font-medium tabular-nums">
+          <Cap className="text-kangaroo">Room revenue at risk</Cap>
+          <b className="font-display text-[40px] leading-none font-bold tabular-nums">
             {list.data ? <Money value={list.data.expected_loss_total} /> : '—'}
           </b>
           <span className="text-sm text-kangaroo">
-            kỳ vọng = Σ xác suất × doanh thu đặt · tổng đặt {list.data ? eur(list.data.booked_revenue_total) : '—'}
+            expected = Σ probability × booked revenue · booked {list.data ? eur(list.data.booked_revenue_total) : '—'}
           </span>
         </div>
         <div className="flex min-w-0 flex-col gap-2 pb-2 md:col-span-2 xl:col-span-1 xl:min-w-[260px]">
           <label className="font-mono text-[11.5px] tracking-[0.14em] text-kangaroo uppercase" htmlFor="thr">
-            Gắn cờ khi xác suất ≥
+            Flag when risk ≥
           </label>
           <div className="flex items-center gap-3.5">
             <input
@@ -164,11 +166,11 @@ export default function CancellationPage() {
               className="range-ledger range-on-focal"
               style={{ '--p': `${((thr * 100 - 5) / 90) * 100}%` } as CSSProperties}
             />
-            <output htmlFor="thr" className="min-w-[74px] text-right font-display text-[34px] leading-none">
+            <output htmlFor="thr" className="min-w-[74px] text-right font-display text-[34px] leading-none font-bold">
               {pct(thr, 0)}
             </output>
           </div>
-          <span className="text-[13px] text-kangaroo">Ngưỡng High của model: {pct(modelThreshold, 0)}</span>
+          <span className="text-[13px] text-kangaroo">Model's High threshold: {pct(modelThreshold, 0)}</span>
         </div>
       </Focal>
 
@@ -178,15 +180,15 @@ export default function CancellationPage() {
         <section className="flex min-w-0 flex-col gap-4 xl:pr-10">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <Cap>
-              {list.data ? `${num(items.length)} / ${num(list.data.total)} booking · ${list.data.model_version}` : ' '}
+              {list.data ? `${num(items.length)} / ${num(list.data.total)} bookings · ${list.data.model_version}` : ' '}
             </Cap>
             <Tabs
-              label="Sắp xếp"
+              label="Sort by"
               value={sort}
               onChange={setSort}
               options={[
-                { value: 'probability', label: 'Xác suất hủy' },
-                { value: 'expected_loss', label: 'Thiệt hại kỳ vọng' },
+                { value: 'probability', label: 'Cancel probability' },
+                { value: 'expected_loss', label: 'Expected loss' },
               ]}
             />
           </div>
@@ -194,7 +196,7 @@ export default function CancellationPage() {
             state={list}
             minHeight={420}
             isEmpty={(d) => d.items.length === 0}
-            empty="Không có booking nào vượt ngưỡng trong tuần này. Thử hạ ngưỡng hoặc đổi tuần."
+            empty="No bookings above the threshold this week. Try a lower threshold or another week."
           >
             {(d) => (
               <div className="overflow-x-auto">
@@ -202,11 +204,11 @@ export default function CancellationPage() {
                   <thead>
                     <tr>
                       <th className={`${th} pl-2.5`}>Booking</th>
-                      <th className={th}>Ngày đến</th>
-                      <th className={`${th} text-right`}>Đêm</th>
-                      <th className={th}>Kênh</th>
-                      <th className={`${th} text-right`}>Đặt trước</th>
-                      <th className={th}>Rủi ro</th>
+                      <th className={th}>Arrival</th>
+                      <th className={`${th} text-right`}>Nights</th>
+                      <th className={th}>Channel</th>
+                      <th className={`${th} text-right`}>Lead</th>
+                      <th className={th}>Risk</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -264,7 +266,7 @@ export default function CancellationPage() {
                     onClick={() => setPages((p) => p + 1)}
                     className="mt-4 cursor-pointer border border-rifle px-5 py-2.5 text-sm font-semibold text-rifle hover:bg-kangaroo"
                   >
-                    Xem thêm {Math.min(PAGE_SIZE, d.total - items.length)} booking
+                    Show {Math.min(PAGE_SIZE, d.total - items.length)} more bookings
                   </button>
                 )}
               </div>
@@ -276,8 +278,8 @@ export default function CancellationPage() {
           booking={current}
           threshold={thr}
           breakdowns={breakdowns.data}
-          onCall={(b) => queue(b, 'Gọi', `#${b.booking_id} đã thêm vào danh sách gọi xác nhận hôm nay`)}
-          onDeposit={(b) => queue(b, 'Cọc', `Đã soạn yêu cầu đặt cọc cho #${b.booking_id}`)}
+          onCall={(b) => queue(b, 'Call', `#${b.booking_id} added to today's reconfirmation calls`)}
+          onDeposit={(b) => queue(b, 'Deposit', `Deposit request drafted for #${b.booking_id}`)}
         />
       </div>
 
@@ -306,22 +308,22 @@ function BookingDetail({
   onDeposit: (b: HighRiskBooking) => void
 }) {
   const overall = breakdowns?.lead_time.overall_cancellation_rate ?? null
-  // Yếu tố = tỉ lệ hủy LỊCH SỬ của nhóm booking giống booking này, so với tỉ lệ chung (không phải giải thích của model)
+  // Factor = HISTORICAL cancellation rate of bookings like this one, compared with the overall rate (not a model explanation)
   const factors: Factor[] = useMemo(() => {
     if (!b || !breakdowns) return []
     const find = (items: BreakdownItem[], key: string) => items.find((i) => i.key === key)?.cancellation_rate ?? null
     return [
-      { label: `Đặt trước ${b.lead_time} ngày`, rate: find(breakdowns.lead_time.items, leadBand(b.lead_time)) },
-      { label: `Đặt cọc: ${b.deposit_type}`, rate: find(breakdowns.deposit_type.items, b.deposit_type) },
-      { label: `Kênh ${b.channel_group}`, rate: find(breakdowns.channel.items, b.channel_group) },
-      { label: `Khách từ ${b.country_code}`, rate: find(breakdowns.country.items, b.country_code) },
+      { label: `Booked ${b.lead_time} days ahead`, rate: find(breakdowns.lead_time.items, leadBand(b.lead_time)) },
+      { label: `Deposit: ${b.deposit_type}`, rate: find(breakdowns.deposit_type.items, b.deposit_type) },
+      { label: `Channel: ${b.channel_group}`, rate: find(breakdowns.channel.items, b.channel_group) },
+      { label: `Guests from ${b.country_code}`, rate: find(breakdowns.country.items, b.country_code) },
     ]
   }, [b, breakdowns])
 
   if (!b) {
     return (
       <aside className="mt-8 border-t border-cedar pt-6 xl:mt-0 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-10">
-        <p className="text-oyster-ink">Chọn một booking để xem chi tiết.</p>
+        <p className="text-oyster-ink">Select a booking to see the details.</p>
       </aside>
     )
   }
@@ -332,7 +334,7 @@ function BookingDetail({
       className="mt-8 flex flex-col gap-6 border-t border-cedar pt-6 xl:sticky xl:top-28 xl:mt-0 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-10"
     >
       <div className="flex items-end justify-between gap-4">
-        <div className="font-display text-[84px] leading-[0.82] font-medium tracking-[-0.03em] text-rust tabular-nums sm:text-[104px]">
+        <div className="font-display text-[84px] leading-[0.82] font-bold tracking-[-0.03em] text-rust tabular-nums sm:text-[104px]">
           {pct(b.cancel_probability, 0)}
         </div>
         <div className="text-right">
@@ -342,14 +344,14 @@ function BookingDetail({
           </Cap>
         </div>
       </div>
-      <div className="relative h-1.5 bg-kangaroo" title={`Ngưỡng ${pct(threshold, 0)}`}>
+      <div className="relative h-1.5 bg-kangaroo" title={`Threshold ${pct(threshold, 0)}`}>
         <i className="absolute inset-y-0 left-0 bg-rust" style={{ width: `${b.cancel_probability * 100}%` }} />
         <b className="absolute -top-[7px] -bottom-[7px] w-0.5 bg-cedar" style={{ left: `calc(${threshold * 100}% - 1px)` }} />
       </div>
 
       {factors.length > 0 && (
         <div className="flex flex-col gap-2.5">
-          <Cap>Tỉ lệ hủy lịch sử của nhóm tương tự · chung {pct(overall, 0)}</Cap>
+          <Cap>Cancel rate of similar bookings · overall {pct(overall, 0)}</Cap>
           {factors.map((f) => {
             const diff = f.rate != null && overall != null ? f.rate - overall : 0
             const width = Math.min(50, (Math.abs(diff) / 0.5) * 50)
@@ -358,7 +360,7 @@ function BookingDetail({
                 <span className="truncate">{f.label}</span>
                 <span
                   className="relative h-2 before:absolute before:-top-1 before:-bottom-1 before:left-1/2 before:w-px before:bg-cedar"
-                  title={diff > 0 ? 'cao hơn tỉ lệ chung' : 'thấp hơn tỉ lệ chung'}
+                  title={diff > 0 ? 'above the overall rate' : 'below the overall rate'}
                 >
                   <i
                     className={`absolute inset-y-0 ${diff > 0 ? 'left-1/2 bg-rust' : 'right-1/2 bg-rifle'}`}
@@ -375,15 +377,15 @@ function BookingDetail({
       <dl className="m-0 grid grid-cols-2 gap-x-[18px] gap-y-3.5 border-t border-kangaroo pt-[18px] sm:grid-cols-3">
         {(
           [
-            ['Ngày đến', dayLabel(b.arrival_date)],
-            ['Số đêm', b.total_nights],
-            ['Đặt cọc', b.deposit_type],
-            ['Phân khúc', b.market_segment],
+            ['Arrival', dayLabel(b.arrival_date)],
+            ['Nights', b.total_nights],
+            ['Deposit', b.deposit_type],
+            ['Segment', b.market_segment],
             ['ADR', eur(b.adr)],
-            ['Doanh thu', eur(b.booked_revenue)],
-            ['Đặt ngày', dateLabel(b.booking_date)],
-            ['Yêu cầu riêng', b.total_of_special_requests],
-            ['Hủy trước đây', b.previous_cancellations],
+            ['Revenue', eur(b.booked_revenue)],
+            ['Booked on', dateLabel(b.booking_date)],
+            ['Special requests', b.total_of_special_requests],
+            ['Past cancellations', b.previous_cancellations],
           ] as [string, string | number][]
         ).map(([k, v]) => (
           <div key={k}>
@@ -400,19 +402,19 @@ function BookingDetail({
           onClick={() => onCall(b)}
           className="cursor-pointer border border-rifle bg-rifle px-5 py-3 text-sm font-semibold text-merino transition hover:border-cedar hover:bg-cedar active:scale-[0.97]"
         >
-          Gọi xác nhận lại
+          Call to reconfirm
         </button>
         <button
           type="button"
           onClick={() => onDeposit(b)}
           className="cursor-pointer border border-rifle px-5 py-3 text-sm font-semibold text-rifle transition hover:bg-kangaroo active:scale-[0.97]"
         >
-          Yêu cầu đặt cọc
+          Ask for deposit
         </button>
       </div>
       <p className="text-[13px] text-oyster-ink">
-        Kết quả thực tế (dữ liệu lịch sử, lúc ra quyết định chưa biết):{' '}
-        <b className={b.is_canceled ? 'text-rust' : 'text-rifle'}>{b.is_canceled ? 'đã hủy' : 'không hủy'}</b>
+        Actual outcome (historical data, unknown at decision time):{' '}
+        <b className={b.is_canceled ? 'text-rust' : 'text-rifle'}>{b.is_canceled ? 'cancelled' : 'not cancelled'}</b>
       </p>
     </aside>
   )
@@ -431,8 +433,8 @@ function BreakdownSection({
   const test = metrics?.test
   return (
     <Section
-      title="Tỉ lệ hủy theo nhóm"
-      aside={<Tabs label="Chiều phân tích" options={DIMENSIONS} value={dim} onChange={setDim} />}
+      title="Cancellation rate by group"
+      aside={<Tabs label="Breakdown" options={DIMENSIONS} value={dim} onChange={setDim} />}
     >
       <div className="grid items-end gap-x-14 gap-y-6 md:grid-cols-[minmax(0,1fr)_auto]">
         <DataState state={state} minHeight={190}>
@@ -445,7 +447,7 @@ function BreakdownSection({
                   key: i.key,
                   label: dim === 'lead_time' ? `${i.label}d` : dim === 'country' ? i.key : i.label,
                   value: i.cancellation_rate,
-                  title: `${i.label}: ${num(i.bookings)} booking`,
+                  title: `${i.label}: ${num(i.bookings)} bookings`,
                 }))}
                 max={1}
               />
@@ -458,9 +460,9 @@ function BreakdownSection({
           ) : (
             <>
               <div className="flex flex-col gap-1.5">
-                <Cap>AUC model, tập test 2017</Cap>
-                <b className="font-display text-[64px] leading-[0.9] font-medium">
-                  {test?.auc != null ? test.auc.toFixed(3).replace('.', ',') : '—'}
+                <Cap>Model AUC, 2017 test</Cap>
+                <b className="font-display text-[64px] leading-[0.9] font-bold">
+                  {test?.auc != null ? test.auc.toFixed(3) : '—'}
                 </b>
               </div>
               <dl className="m-0 grid grid-cols-3 gap-4">
@@ -475,16 +477,16 @@ function BreakdownSection({
                     <dt>
                       <Cap>{k}</Cap>
                     </dt>
-                    <dd className="mt-0.5 font-display text-[26px] font-medium tabular-nums">{pct(v ?? null, 0)}</dd>
+                    <dd className="mt-0.5 font-display text-[26px] font-bold tabular-nums">{pct(v ?? null, 0)}</dd>
                   </div>
                 ))}
               </dl>
-              <span className="text-[13px] text-oyster-ink">Precision/recall tại ngưỡng High của model</span>
+              <span className="text-[13px] text-oyster-ink">Precision/recall at the model's High threshold</span>
             </>
           )}
         </div>
       </div>
-      {dim === 'country' && <Cap>Quốc gia có ≥ 500 booking, nhiều booking nhất</Cap>}
+      {dim === 'country' && <Cap>Countries with ≥ 500 bookings, largest first</Cap>}
     </Section>
   )
 }

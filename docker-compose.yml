@@ -1,10 +1,10 @@
-# Cách dùng:
-#   docker compose up -d db                 # Dev hằng ngày: chỉ chạy PostgreSQL
-#   docker compose --profile app up -d --build   # Demo: db + etl (chạy pipeline 1 lần) + backend + frontend
-#   docker compose logs -f etl              # Theo dõi pipeline, đợi dòng "Pipeline hoàn tất"
-#   docker compose run --rm etl             # Chạy lại pipeline trong Docker (không cần venv)
-#   docker compose down                     # Dừng (giữ dữ liệu)
-#   docker compose down -v                  # Dừng + XÓA dữ liệu DB (reset sạch)
+# Usage:
+#   docker compose up -d db                 # Daily dev: run PostgreSQL only
+#   docker compose --profile app up -d --build   # Demo: db + etl (runs the pipeline once) + backend + frontend
+#   docker compose logs -f etl              # Follow the pipeline; wait for the line "Pipeline finished"
+#   docker compose run --rm etl             # Rerun the pipeline in Docker (no venv needed)
+#   docker compose down                     # Stop (keep data)
+#   docker compose down -v                  # Stop + DELETE DB data (clean reset)
 name: tourism-dss
 
 services:
@@ -22,8 +22,8 @@ services:
       retries: 10
 
   etl:
-    # Chạy python -m etl.run_pipeline một lần rồi thoát (exit 0 = thành công).
-    # File nguồn tải về được giữ trong volume `rawdata`, lần sau không tải lại.
+    # Runs python -m etl.run_pipeline once and exits (exit 0 = success).
+    # Downloaded source files are kept in the `rawdata` volume, so later runs do not download again.
     profiles: ["app"]
     build:
       context: .
@@ -44,7 +44,7 @@ services:
     build: ./backend
     env_file: .env
     environment:
-      POSTGRES_HOST: db          # trong mạng Docker, DB có hostname là "db"
+      POSTGRES_HOST: db          # inside the Docker network, the DB hostname is "db"
       POSTGRES_PORT: 5432
     ports:
       - "${BACKEND_PORT:-8000}:8000"

@@ -2,7 +2,7 @@
 .env
 *.local
 
-# ---- Data (không commit dữ liệu, tải lại bằng pipeline) ----
+# ---- Data (do not commit data; the pipeline downloads it again) ----
 data/raw/*
 !data/raw/.gitkeep
 data/processed/
@@ -11,7 +11,7 @@ data/processed/
 ml/models/*
 !ml/models/.gitkeep
 
-# ---- Deliverables nặng (video để link Drive/YouTube) ----
+# ---- Heavy deliverables (videos are linked via Drive/YouTube) ----
 deliverables/video/*
 !deliverables/video/.gitkeep
 !deliverables/video/README.md

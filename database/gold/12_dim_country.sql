@@ -1,10 +1,10 @@
 -- =============================================================================
--- gold.dim_country — Dimension quốc gia của khách
--- Nguồn : mã trong silver.hotel_bookings LEFT JOIN silver.countries (ISO 3166 + vùng UN M49)
--- Grain : 1 dòng = 1 mã quốc gia + 1 dòng Unknown (country_key = -1, cho booking có country NULL)
--- Biến đổi chính:
---   * market_group: Domestic (PRT) / Core Europe (8 thị trường lớn nhất) / Other Europe / Rest of World / Unknown
---   * Mã không tìm thấy trong bảng ISO: country_name = chính mã, region = 'Unknown'
+-- gold.dim_country — Guest country dimension
+-- Source: codes in silver.hotel_bookings LEFT JOIN silver.countries (ISO 3166 + UN M49 regions)
+-- Grain : 1 row = 1 country code + 1 Unknown row (country_key = -1, for bookings with NULL country)
+-- Main transformations:
+--   * market_group: Domestic (PRT) / Core Europe (8 largest markets) / Other Europe / Rest of World / Unknown
+--   * Codes not found in the ISO table: country_name = the code itself, region = 'Unknown'
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.dim_country CASCADE;

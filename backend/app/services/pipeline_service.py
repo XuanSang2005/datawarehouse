@@ -1,6 +1,6 @@
-"""Service: logic nghiệp vụ, kết hợp/biến đổi dữ liệu từ repository.
+"""Service: business logic, combining/transforming data from the repository.
 
-Các phép tính cho what-if, khuyến nghị overbooking... sẽ nằm ở tầng này.
+Calculations for the what-if, overbooking recommendations... live in this layer.
 """
 
 from sqlalchemy import Connection

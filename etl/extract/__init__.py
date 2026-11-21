@@ -1,7 +1,7 @@
-"""Extract: lấy dữ liệu từ nguồn bên ngoài về thư mục data/raw/.
+"""Extract: fetch data from external sources into data/raw/.
 
-Mỗi nguồn dữ liệu = 1 module + 1 dòng trong SOURCES.
-Thêm nguồn mới: viết module extract, tạo file DDL trong database/bronze/, rồi đăng ký ở đây.
+Each data source = 1 module + 1 entry in SOURCES.
+To add a source: write an extract module, add a DDL file in database/bronze/, then register it here.
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ from etl.extract import countries, hotel_bookings, pt_holidays, weather
 @dataclass(frozen=True)
 class Source:
     name: str
-    filename: str                      # tên file trong data/raw/
-    bronze_table: str                  # bảng đích ở lớp bronze
-    extract: Callable[[Path], None]    # hàm tạo/tải file vào đường dẫn cho trước
+    filename: str                      # file name in data/raw/
+    bronze_table: str                  # target table in the bronze layer
+    extract: Callable[[Path], None]    # function that creates/downloads the file at the given path
 
 
 SOURCES: list[Source] = [

@@ -4,54 +4,64 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class WhatIfRequest(BaseModel):
-    """Tham số mô phỏng. Dataset không có số phòng và chi phí, nên người dùng nhập (quy tắc 10)."""
+    """Simulation parameters. The dataset has no room count or costs, so the user enters them
+    (rule 10).
+    """
 
-    hotel_key: int = Field(ge=1, description="Khách sạn mô phỏng")
+    hotel_key: int = Field(ge=1, description="Hotel to simulate")
     capacity: int = Field(
-        ge=1, le=5000, description="Số phòng của khách sạn (gợi ý: >= peak_rooms_occupied)"
+        ge=1, le=5000, description="Hotel room count (suggested: >= peak_rooms_occupied)"
     )
     overbooking_pct: float = Field(
         0.0,
         ge=0,
         le=0.5,
-        description="Nhận thêm đặt phòng vượt công suất, tỉ lệ của capacity (0.05 = 5%)",
+        description="Extra reservations accepted above capacity, as a share of it (0.05 = 5%)",
     )
     deposit_risk_threshold: float | None = Field(
         None,
         ge=0,
         le=1,
-        description="Yêu cầu cọc khi xác suất hủy >= ngưỡng. Mặc định: ngưỡng High của model",
+        description="Require a deposit when cancellation probability >= threshold. "
+        "Default: the model's High threshold",
     )
     deposit_rate: float | None = Field(
         None,
         ge=0,
         le=1,
-        description="Tỉ lệ tiền cọc giữ lại khi hủy. Mặc định: gold.business_assumptions",
+        description="Share of booked revenue retained on cancellation. "
+        "Default: gold.business_assumptions",
     )
     deposit_attrition_pct: float = Field(
-        0.05, ge=0, le=1, description="Tỉ lệ khách KHÔNG hủy nhưng bỏ đặt vì bị yêu cầu cọc"
+        0.05,
+        ge=0,
+        le=1,
+        description="Share of guests who would NOT cancel but drop the booking when asked "
+        "for a deposit",
     )
     walk_cost: float = Field(
-        150.0, ge=0, le=10000, description="Chi phí đền bù mỗi đêm phòng phải chuyển khách đi (EUR)"
+        150.0, ge=0, le=10000, description="Walk cost per room-night walked (EUR)"
     )
     ota_commission: float = Field(
-        0.15, ge=0, le=0.5, description="Hoa hồng OTA trên doanh thu qua kênh OTA"
+        0.15, ge=0, le=0.5, description="OTA commission on revenue through the OTA channel"
     )
-    date_from: date = Field(date(2017, 1, 1), description="Từ ngày (mặc định: đầu tập test 2017)")
-    date_to: date = Field(date(2017, 8, 31), description="Đến ngày (bao gồm)")
+    date_from: date = Field(
+        date(2017, 1, 1), description="From date (default: start of the 2017 test set)"
+    )
+    date_to: date = Field(date(2017, 8, 31), description="To date (inclusive)")
     max_curve_pct: float = Field(
-        0.3, ge=0.01, le=0.5, description="Mức overbooking lớn nhất trong đường cong thử"
+        0.3, ge=0.01, le=0.5, description="Largest overbooking level on the tested curve"
     )
 
     @model_validator(mode="after")
     def check_dates(self) -> "WhatIfRequest":
         if self.date_from > self.date_to:
-            raise ValueError("date_from phải nhỏ hơn hoặc bằng date_to")
+            raise ValueError("date_from must be less than or equal to date_to")
         return self
 
 
 class WhatIfAssumptions(BaseModel):
-    """Giá trị thực sự đã dùng (sau khi điền mặc định), để hiển thị và đưa vào báo cáo."""
+    """Values actually used (after defaults are filled in), for display and the report."""
 
     hotel_key: int
     hotel_name: str
@@ -68,36 +78,42 @@ class WhatIfAssumptions(BaseModel):
 
 
 class BaselineResult(BaseModel):
-    nights: int = Field(description="Số đêm trong giai đoạn có dữ liệu")
+    nights: int = Field(description="Number of nights with data in the period")
     room_nights_sold: int
     room_nights_canceled: int
     realized_revenue: float
     adr: float | None
-    night_cancellation_rate: float | None = Field(description="Đêm phòng hủy / đêm phòng đã đặt")
+    night_cancellation_rate: float | None = Field(
+        description="Canceled room-nights / booked room-nights"
+    )
     ota_revenue_share: float | None
     ota_commission_cost: float
     occupancy_rate: float | None = Field(description="room_nights_sold / (capacity × nights)")
     revpar: float | None = Field(description="realized_revenue / (capacity × nights)")
     nights_over_capacity: int = Field(
-        description="Số đêm thực tế đã có khách nhiều hơn capacity nhập vào"
+        description="Number of nights with more occupied rooms than the entered capacity"
     )
 
 
 class OverbookingResult(BaseModel):
     overbooking_pct: float
-    extra_reservations: float = Field(description="Đặt phòng nhận thêm nhờ overbooking (kỳ vọng)")
-    extra_show_ups: float = Field(description="Số trong đó đến ở thật (không hủy)")
-    rooms_filled: float = Field(description="Đêm phòng trống được lấp")
-    rooms_walked: float = Field(description="Đêm phòng phải chuyển khách đi vì hết phòng")
+    extra_reservations: float = Field(
+        description="Extra reservations accepted thanks to overbooking (expected)"
+    )
+    extra_show_ups: float = Field(description="Of which actually show up (not canceled)")
+    rooms_filled: float = Field(description="Empty room-nights filled")
+    rooms_walked: float = Field(description="Room-nights walked because the hotel is full")
     revenue_recovered: float = Field(
-        description="rooms_filled × ADR đêm đó × hệ số sau hoa hồng (EUR)"
+        description="rooms_filled × that night's ADR × net-of-commission factor (EUR)"
     )
     walk_cost_total: float
     net_benefit: float = Field(description="revenue_recovered − walk_cost_total")
     nights_with_extra_bookings: int = Field(
-        description="Số đêm nhận thêm đặt phòng (đêm 'kín' trên sổ)"
+        description="Number of nights taking extra reservations ('full' nights on the books)"
     )
-    nights_at_risk: int = Field(description="Số đêm có nguy cơ hết phòng (rooms_walked > 0)")
+    nights_at_risk: int = Field(
+        description="Number of nights at risk of overselling (rooms_walked > 0)"
+    )
     occupancy_rate_after: float | None
     revpar_after: float | None
 
@@ -106,24 +122,24 @@ class DepositResult(BaseModel):
     risk_threshold: float
     deposit_rate: float
     attrition_pct: float
-    bookings: int = Field(description="Booking đến trong giai đoạn")
+    bookings: int = Field(description="Bookings arriving in the period")
     flagged_bookings: int = Field(
-        description="Booking bị yêu cầu cọc (xác suất >= ngưỡng, chưa phải Non Refund)"
+        description="Bookings asked for a deposit (probability >= threshold, not yet Non Refund)"
     )
     flagged_canceled: int
     flagged_precision: float | None = Field(
-        description="Tỉ lệ booking bị yêu cầu cọc mà thực tế hủy"
+        description="Share of deposit-flagged bookings that actually canceled"
     )
     deposit_retained: float = Field(
-        description="deposit_rate × doanh thu đặt của booking bị yêu cầu cọc rồi hủy"
+        description="deposit_rate × booked revenue of flagged bookings that canceled"
     )
     attrition_loss: float = Field(
-        description="attrition_pct × doanh thu (sau hoa hồng) của booking bị yêu cầu cọc "
-        "mà không hủy"
+        description="attrition_pct × revenue (net of commission) of flagged bookings "
+        "that did not cancel"
     )
     net_benefit: float
     in_sample_bookings: int = Field(
-        description="Booking có điểm in-sample (model đã thấy khi train): kết quả lạc quan"
+        description="Bookings with in-sample scores (seen by the model in training): optimistic"
     )
 
 
@@ -140,12 +156,14 @@ class WhatIfResponse(BaseModel):
     assumptions: WhatIfAssumptions
     baseline: BaselineResult
     overbooking: OverbookingResult
-    deposit: DepositResult | None = Field(description="None nếu chưa có gold.ml_booking_risk")
+    deposit: DepositResult | None = Field(
+        description="None if gold.ml_booking_risk is not available"
+    )
     total_net_benefit: float = Field(description="overbooking.net_benefit + deposit.net_benefit")
     curve: list[CurvePoint] = Field(
-        description="Lợi ích ròng của overbooking ở từng mức 0..max_curve_pct (bước 1%)"
+        description="Overbooking net benefit at each level 0..max_curve_pct (1% steps)"
     )
     recommended_overbooking_pct: float = Field(
-        description="Mức có net_benefit lớn nhất trên đường cong"
+        description="Level with the highest net_benefit on the curve"
     )
     warnings: list[str]

@@ -12,19 +12,19 @@ router = APIRouter(prefix="/forecast", tags=["forecast"])
 @router.get("", response_model=ForecastResponse)
 def get_forecast(
     conn: DbConn,
-    hotel_key: Annotated[int | None, Query(ge=1, description="Bỏ trống = cả 2 khách sạn")] = None,
+    hotel_key: Annotated[int | None, Query(ge=1, description="Empty = both hotels")] = None,
     model_version: Annotated[
-        str | None, Query(max_length=100, description="Mặc định: model chính forecast_gbm mới nhất")
+        str | None, Query(max_length=100, description="Default: latest forecast_gbm main model")
     ] = None,
 ) -> ForecastResponse:
-    """Room-nights theo tuần: dự báo, khoảng tin cậy 80%, thực tế (backtest 2017 + tuần tương lai).
+    """Weekly room-nights: forecast, 80% interval, actuals (2017 backtest + future weeks).
 
-    404 nếu bảng gold.ml_demand_forecast chưa có dữ liệu.
+    404 if gold.ml_demand_forecast has no data yet.
     """
     return forecast_service.get_forecast(conn, hotel_key, model_version)
 
 
 @router.get("/metrics", response_model=ForecastMetricsResponse)
 def get_forecast_metrics(conn: DbConn) -> ForecastMetricsResponse:
-    """MAPE (chung, theo horizon, theo khách sạn) và độ phủ khoảng 80% của từng model."""
+    """MAPE (overall, by horizon, by hotel) and 80% interval coverage of each model."""
     return forecast_service.get_metrics(conn)

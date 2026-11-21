@@ -9,8 +9,8 @@ def get_filter_options(conn: Connection) -> FilterOptions:
     date_range = filters_repo.fetch_arrival_date_range(conn)
     if date_range is None:
         raise DataNotReadyError(
-            "gold.fact_booking chưa có dữ liệu",
-            hint="Chạy pipeline: python -m etl.run_pipeline",
+            "gold.fact_booking has no data yet",
+            hint="Run the pipeline: python -m etl.run_pipeline",
         )
     return FilterOptions(
         hotels=[HotelOption(**r) for r in filters_repo.fetch_hotels(conn)],

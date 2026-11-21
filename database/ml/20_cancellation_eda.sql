@@ -1,9 +1,9 @@
 -- =============================================================================
--- Dữ liệu cho notebook EDA hủy phòng (ml/notebooks/01_claude_eda_cancellation.ipynb): CHỈ SELECT.
--- Nguồn : silver.hotel_bookings (119.390 dòng, CHƯA lọc như gold) để đối chiếu số liệu của
---         docs/BUSINESS_PROBLEM.md, kèm cờ in_gold cho biết booking có nằm trong gold.fact_booking.
--- ⚠ Có chọn cả cột leakage (reservation_status, assigned_room_type, ...) để CHỨNG MINH chúng
---   rò rỉ kết quả. KHÔNG dùng file này để train: feature lấy từ 21_cancellation_features.sql.
+-- Data for the cancellation EDA notebook (ml/notebooks/01_claude_eda_cancellation.ipynb): SELECT ONLY.
+-- Source: silver.hotel_bookings (119,390 rows, NOT filtered like gold) to reconcile with the figures in
+--         docs/BUSINESS_PROBLEM.md, plus an in_gold flag telling whether the booking is in gold.fact_booking.
+-- ⚠ Leakage columns (reservation_status, assigned_room_type, ...) are selected on purpose to PROVE that they
+--   leak the outcome. Do NOT use this file for training: features come from 21_cancellation_features.sql.
 -- =============================================================================
 
 SELECT
@@ -24,7 +24,7 @@ SELECT
     s.agent_id,
     s.adr,
     s.total_of_special_requests,
-    -- Cột nghi leakage
+    -- Suspected leakage columns
     s.reservation_status,
     s.reservation_status_date,
     s.reserved_room_type,

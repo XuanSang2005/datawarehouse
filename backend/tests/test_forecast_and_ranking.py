@@ -1,4 +1,4 @@
-"""Dự báo nhu cầu và xếp hạng kênh/thị trường. Không cần DB."""
+"""Demand forecast and channel/market ranking. No DB needed."""
 
 from datetime import date, datetime
 
@@ -80,10 +80,10 @@ def grp(key, bookings, canceled, nights, revenue):
 
 
 ROWS = [
-    grp("OTA", 1000, 400, 2000, 200_000),  # ADR 100, hủy 40%
-    grp("Direct", 300, 30, 600, 75_000),  # ADR 125, hủy 10%
-    grp("Groups", 200, 120, 300, 22_500),  # ADR 75,  hủy 60%
-    grp("Tiny", 5, 0, 5, 2_500),  # ADR 500, quá ít booking
+    grp("OTA", 1000, 400, 2000, 200_000),  # ADR 100, 40% canceled
+    grp("Direct", 300, 30, 600, 75_000),  # ADR 125, 10% canceled
+    grp("Groups", 200, 120, 300, 22_500),  # ADR 75,  60% canceled
+    grp("Tiny", 5, 0, 5, 2_500),  # ADR 500, too few bookings
 ]
 
 
@@ -101,7 +101,7 @@ def test_rank_min_bookings_excludes_noisy_groups_from_adr_ranking():
     items, total, ranked = ranking_service.rank_groups(ROWS, "adr", min_bookings=50, top_n=10)
     assert [i.key for i in items] == ["Direct", "OTA", "Groups"]
     assert ranked == 3
-    assert total == 300_000  # tổng vẫn gồm nhóm bị loại
+    assert total == 300_000  # the total still includes dropped groups
 
 
 def test_rank_cancellation_rate_ascending_and_top_n():

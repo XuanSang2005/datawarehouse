@@ -1,6 +1,6 @@
-// Kênh và thị trường (G5) — người dùng: Sales & Marketing Manager.
-// Quyết định hỗ trợ: phân bổ ngân sách marketing / hợp đồng kênh vào kênh và quốc gia mang lại doanh thu thực
-// (sau hủy) cao, ADR tốt, tỉ lệ hủy thấp. Dữ liệu: GET /api/channels/ranking, /api/markets/ranking.
+// Channels and markets (G5) — user: Sales & Marketing Manager.
+// Decisions supported: put marketing budget / channel contracts into the channels and countries that bring high
+// realized revenue (after cancellations), good ADR and low cancellation rates. Data: GET /api/channels/ranking, /api/markets/ranking.
 import { useState } from 'react'
 import { CartesianGrid, LabelList, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts'
 import { getChannelRanking, getMarketRanking } from '../api/endpoints'
@@ -17,10 +17,10 @@ import type { RankingItem, RankingResponse, RankingSort } from '../types/api'
 type Dimension = 'channel' | 'market'
 
 const SORTS: { value: RankingSort; label: string }[] = [
-  { value: 'realized_revenue', label: 'Doanh thu thực' },
+  { value: 'realized_revenue', label: 'Realized revenue' },
   { value: 'adr', label: 'ADR' },
-  { value: 'cancellation_rate', label: 'Hủy ít nhất' },
-  { value: 'bookings', label: 'Số booking' },
+  { value: 'cancellation_rate', label: 'Fewest cancellations' },
+  { value: 'bookings', label: 'Bookings' },
 ]
 
 export default function ChannelMarketPage() {
@@ -37,7 +37,7 @@ export default function ChannelMarketPage() {
         : getMarketRanking({ ...params, sort_by: sortBy, top_n: topN, min_bookings: 100 }),
     [key],
   )
-  // Khối điểm nhấn luôn là kênh/thị trường doanh thu thực lớn nhất, không phụ thuộc cách sắp xếp
+  // The focal block always shows the channel/market with the most realized revenue, whatever the sort order
   const leaderKey = JSON.stringify([params, dim])
   const leader = useApi(
     () =>
@@ -52,27 +52,27 @@ export default function ChannelMarketPage() {
     <>
       <div className="grid items-stretch gap-x-12 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)]">
         <PageHead
-          title="Doanh thu thực đến từ đâu?"
+          title="Where does realized revenue come from?"
           aside={
             <Segmented<Dimension>
-              label="Xếp hạng theo"
+              label="Rank by"
               value={dim}
               onChange={setDim}
               options={[
-                { value: 'channel', label: 'Kênh bán' },
-                { value: 'market', label: 'Thị trường' },
+                { value: 'channel', label: 'Channels' },
+                { value: 'market', label: 'Markets' },
               ]}
             />
           }
         />
         <Focal className="flex flex-col justify-between gap-[18px] px-[22px] py-[22px] sm:px-7 sm:py-6">
-          <Cap className="text-kangaroo">{dim === 'channel' ? 'Kênh mang về nhiều nhất' : 'Thị trường lớn nhất'}</Cap>
+          <Cap className="text-kangaroo">{dim === 'channel' ? 'Top-earning channel' : 'Largest market'}</Cap>
           <div>
             <BigNumber className="text-[clamp(64px,7vw,108px)]">{top ? pct(top.revenue_share, 0) : '—'}</BigNumber>
             <p className="mt-3.5 text-[17px] text-kangaroo">
               {top ? (
                 <>
-                  doanh thu thực từ <b className="font-semibold text-merino">{top.label}</b> · ADR {eur(top.adr)} · hủy{' '}
+                  of realized revenue from <b className="font-semibold text-merino">{top.label}</b> · ADR {eur(top.adr)} · cancelled{' '}
                   {pct(top.cancellation_rate, 0)}
                 </>
               ) : (
@@ -86,10 +86,10 @@ export default function ChannelMarketPage() {
       <FilterBar hide={dim === 'channel' ? ['channel'] : ['country']} />
 
       <Section
-        title={dim === 'channel' ? 'Xếp hạng kênh bán' : 'Xếp hạng thị trường'}
+        title={dim === 'channel' ? 'Channel ranking' : 'Market ranking'}
         aside={
           <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-            <Tabs label="Sắp xếp theo" options={SORTS} value={sortBy} onChange={setSortBy} />
+            <Tabs label="Sort by" options={SORTS} value={sortBy} onChange={setSortBy} />
             <label className="flex items-baseline gap-2">
               <Cap>Top</Cap>
               <select
@@ -112,9 +112,9 @@ export default function ChannelMarketPage() {
         </DataState>
       </Section>
 
-      <Section title="ADR và tỉ lệ hủy">
+      <Section title="ADR vs cancellation rate">
         <p className="max-w-3xl text-[14.5px] text-oyster-ink">
-          Góc trên bên trái là nhóm đáng đầu tư: giá phòng cao, ít hủy. Kích thước điểm theo doanh thu thực.
+          The top-left corner is where to invest: high room rates, few cancellations. Dot size shows realized revenue.
         </p>
         <DataState state={ranking} minHeight={340} isEmpty={(r) => r.items.length === 0}>
           {(r) => <Quadrant items={r.items} />}
@@ -133,14 +133,14 @@ function RankingTable({ data }: { data: RankingResponse }) {
         <thead>
           <tr>
             <th className={`${th} text-right`}>#</th>
-            <th className={th}>{market ? 'Quốc gia' : 'Kênh'}</th>
-            {market && <th className={th}>Nhóm</th>}
-            <th className={`${th} text-right`}>Booking</th>
-            <th className={th}>Tỉ trọng doanh thu</th>
+            <th className={th}>{market ? 'Country' : 'Channel'}</th>
+            {market && <th className={th}>Group</th>}
+            <th className={`${th} text-right`}>Bookings</th>
+            <th className={th}>Revenue share</th>
             <th className={`${th} text-right`}>ADR</th>
-            <th className={th}>Tỉ lệ hủy</th>
-            <th className={`${th} text-right`}>Doanh thu mất</th>
-            <th className={`${th} text-right`}>Doanh thu thực</th>
+            <th className={th}>Cancellation rate</th>
+            <th className={`${th} text-right`}>Lost revenue</th>
+            <th className={`${th} text-right`}>Realized revenue</th>
           </tr>
         </thead>
         <tbody>
@@ -167,9 +167,9 @@ function RankingTable({ data }: { data: RankingResponse }) {
         </tbody>
       </table>
       <p className="mt-3 text-[13px] text-oyster-ink">
-        {num(data.groups_ranked)} nhóm được xếp hạng
-        {data.min_bookings > 0 && ` (bỏ nhóm dưới ${num(data.min_bookings)} booking vì ADR/tỉ lệ hủy dễ nhiễu)`} · tỉ
-        trọng tính trên tổng doanh thu thực {eurCompact(data.total_realized_revenue)}.
+        {num(data.groups_ranked)} groups ranked
+        {data.min_bookings > 0 && ` (groups under ${num(data.min_bookings)} bookings left out, as their ADR/cancellation rate is noisy)`} ·
+        share of total realized revenue {eurCompact(data.total_realized_revenue)}.
       </p>
     </div>
   )
@@ -180,19 +180,19 @@ function Quadrant({ items }: { items: RankingItem[] }) {
     .filter((i) => i.adr != null && i.cancellation_rate != null)
     .map((i) => ({ ...i, x: i.cancellation_rate as number, y: i.adr as number, z: i.realized_revenue }))
   return (
-    <div className="h-[340px] w-full min-w-0" role="img" aria-label="ADR theo tỉ lệ hủy">
+    <div className="h-[340px] w-full min-w-0" role="img" aria-label="ADR by cancellation rate">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 20, right: 40, bottom: 20, left: 4 }}>
           <CartesianGrid stroke={COLORS.kangaroo} />
           <XAxis
             type="number"
             dataKey="x"
-            name="Tỉ lệ hủy"
+            name="Cancellation rate"
             tickFormatter={(v) => pct(v, 0)}
             tickLine={false}
             axisLine={false}
             domain={[0, 'auto']}
-            label={{ value: 'Tỉ lệ hủy →', position: 'insideBottomRight', offset: -12, fill: COLORS.oysterInk, fontFamily: FONT_MONO, fontSize: 11.5 }}
+            label={{ value: 'Cancellation rate →', position: 'insideBottomRight', offset: -12, fill: COLORS.oysterInk, fontFamily: FONT_MONO, fontSize: 11.5 }}
           />
           <YAxis
             type="number"
@@ -214,10 +214,10 @@ function Quadrant({ items }: { items: RankingItem[] }) {
               return (
                 <div className="min-w-[170px] bg-cedar px-3 py-2.5 text-[13px] leading-[1.45] text-merino">
                   <b className="font-semibold">{p.label}</b>
-                  <TipRow label="Doanh thu thực" value={eurCompact(p.realized_revenue)} />
+                  <TipRow label="Realized revenue" value={eurCompact(p.realized_revenue)} />
                   <TipRow label="ADR" value={eur(p.adr)} />
-                  <TipRow label="Tỉ lệ hủy" value={pct(p.cancellation_rate)} />
-                  <TipRow label="Booking" value={num(p.bookings)} />
+                  <TipRow label="Cancellation rate" value={pct(p.cancellation_rate)} />
+                  <TipRow label="Bookings" value={num(p.bookings)} />
                 </div>
               )
             }}

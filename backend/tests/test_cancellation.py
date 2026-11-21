@@ -1,4 +1,4 @@
-"""Phân tích hủy, metric ML, xử lý khi bảng ML chưa có. Không cần DB."""
+"""Cancellation analysis, ML metrics, handling of missing ML tables. No DB needed."""
 
 from datetime import datetime
 
@@ -38,7 +38,7 @@ def test_breakdown_top_n_keeps_largest_groups_but_totals_cover_all():
     rows = [group("PRT", 100, 50), group("GBR", 30, 6), group("FRA", 20, 4), group("XYZ", 1, 1)]
     items, total, _ = cancellation_service.build_breakdown(rows, top_n=2)
     assert [i.key for i in items] == ["PRT", "GBR"]
-    assert total == 151  # tỉ trọng/tỉ lệ chung tính trên mọi nhóm, không chỉ top N
+    assert total == 151  # overall shares/rates cover every group, not just top N
 
 
 def test_group_metrics_nests_by_dataset():

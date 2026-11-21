@@ -1,7 +1,7 @@
 -- =============================================================================
--- bronze.pt_holidays — Ngày lễ quốc gia Bồ Đào Nha (sinh từ thư viện Python `holidays`)
--- Grain : 1 dòng = 1 ngày lễ
--- Dùng để làm giàu Dim_Date (is_holiday) ở lớp Gold.
+-- bronze.pt_holidays — Portuguese national holidays (generated with the Python `holidays` library)
+-- Grain : 1 row = 1 holiday
+-- Used to enrich Dim_Date (is_holiday) in the Gold layer.
 -- =============================================================================
 
 DROP TABLE IF EXISTS bronze.pt_holidays;

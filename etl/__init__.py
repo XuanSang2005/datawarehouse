@@ -1,1 +1,1 @@
-"""ETL pipeline: đưa dữ liệu từ nguồn -> bronze -> silver -> gold (PostgreSQL)."""
+"""ETL pipeline: moves data from sources -> bronze -> silver -> gold (PostgreSQL)."""

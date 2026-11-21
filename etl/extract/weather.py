@@ -1,15 +1,15 @@
-"""Nguồn 4: Thời tiết lịch sử theo ngày từ Open-Meteo Historical Weather API (ERA5).
+"""Source 4: Daily historical weather from the Open-Meteo Historical Weather API (ERA5).
 
-Hai điểm đo, mỗi điểm ứng với một khách sạn (cột `weather_location` trong `gold.dim_hotel`):
+Two locations, one per hotel (column `weather_location` in `gold.dim_hotel`):
   * Lisbon -> City Hotel
   * Faro   -> Resort Hotel (Algarve)
-Khoảng ngày: 2015-01-01 → 2017-12-31 (phủ toàn bộ ngày đến/đêm lưu trú trong dataset booking).
-Đầu ra: đúng 1 dòng / 1 điểm đo × 1 ngày.
-Hàm `rows_from_response` kiểm tra điều này trước khi ghi file.
+Date range: 2015-01-01 → 2017-12-31 (covers every arrival date/stay night in the booking dataset).
+Output: exactly 1 row per location × day.
+`rows_from_response` checks this before writing the file.
 
-API miễn phí, không cần key (giới hạn ~10.000 request/ngày theo IP).
-Mỗi lần extract chỉ gọi 2 request.
-Tài liệu: https://open-meteo.com/en/docs/historical-weather-api (dữ liệu CC BY 4.0).
+Free API, no key required (limit ~10,000 requests/day per IP).
+Each extract makes only 2 requests.
+Docs: https://open-meteo.com/en/docs/historical-weather-api (data CC BY 4.0).
 """
 
 from __future__ import annotations
@@ -27,21 +27,21 @@ import requests
 log = logging.getLogger("etl.extract.weather")
 
 API_URL = "https://archive-api.open-meteo.com/v1/archive"
-TIMEZONE = "Europe/Lisbon"  # Lisbon và Faro cùng múi giờ: "ngày" khớp với ngày của booking
+TIMEZONE = "Europe/Lisbon"  # Lisbon and Faro share a time zone: the "day" matches the booking dates
 START_DATE = date(2015, 1, 1)
 END_DATE = date(2017, 12, 31)
 
-# Biến daily lấy từ API (tên giữ nguyên như API trả về, cũng là tên cột CSV/bronze).
+# Daily variables fetched from the API (names as returned by the API; also the CSV/bronze columns).
 DAILY_VARIABLES = [
-    "weather_code",          # mã thời tiết WMO (0 = trời quang ... 95+ = dông)
+    "weather_code",          # WMO weather code (0 = clear sky ... 95+ = thunderstorm)
     "temperature_2m_max",    # °C
     "temperature_2m_min",    # °C
     "temperature_2m_mean",   # °C
-    "precipitation_sum",     # mm (mưa + tuyết)
+    "precipitation_sum",     # mm (rain + snow)
     "rain_sum",              # mm
-    "precipitation_hours",   # giờ có mưa
+    "precipitation_hours",   # hours with precipitation
     "wind_speed_10m_max",    # km/h
-    "sunshine_duration",     # giây
+    "sunshine_duration",     # seconds
 ]
 
 CSV_HEADER = ["location", "latitude", "longitude", "weather_date", *DAILY_VARIABLES]
@@ -57,7 +57,7 @@ class WeatherLocation:
     longitude: float
 
 
-# Tọa độ trùng với gold.dim_hotel (database/gold/11_dim_hotel.sql).
+# Coordinates match gold.dim_hotel (database/gold/11_dim_hotel.sql).
 LOCATIONS = [
     WeatherLocation("Lisbon", 38.72230, -9.13930),
     WeatherLocation("Faro", 37.01930, -7.93040),
@@ -65,7 +65,7 @@ LOCATIONS = [
 
 
 class WeatherDataError(ValueError):
-    """Dữ liệu API trả về không đúng 1 dòng / 1 ngày, hoặc thiếu biến."""
+    """The API data is not exactly 1 row per day, or a variable is missing."""
 
 
 def expected_dates(start: date, end: date) -> list[str]:
@@ -73,21 +73,21 @@ def expected_dates(start: date, end: date) -> list[str]:
 
 
 def _fmt(value: Any) -> str:
-    """NULL của API -> chuỗi rỗng trong CSV (bronze giữ TEXT, silver đổi '' thành NULL)."""
+    """API NULL -> empty string in the CSV (bronze keeps TEXT, silver turns '' into NULL)."""
     return "" if value is None else str(value)
 
 
 def rows_from_response(
     location: WeatherLocation, payload: dict[str, Any], start: date, end: date
 ) -> list[list[str]]:
-    """Chuyển JSON của Open-Meteo thành các dòng CSV, đảm bảo đúng 1 dòng cho mỗi ngày."""
+    """Convert Open-Meteo JSON into CSV rows, ensuring exactly 1 row per day."""
     daily = payload.get("daily")
     if not isinstance(daily, dict) or "time" not in daily:
-        raise WeatherDataError(f"[{location.name}] Phản hồi API không có khối 'daily.time'")
+        raise WeatherDataError(f"[{location.name}] API response has no 'daily.time' block")
 
     missing_vars = [v for v in DAILY_VARIABLES if v not in daily]
     if missing_vars:
-        raise WeatherDataError(f"[{location.name}] API thiếu biến: {missing_vars}")
+        raise WeatherDataError(f"[{location.name}] API is missing variables: {missing_vars}")
 
     days = daily["time"]
     wanted = expected_dates(start, end)
@@ -96,13 +96,15 @@ def rows_from_response(
         missing = sorted(set(wanted) - set(days))[:5]
         extra = sorted(set(days) - set(wanted))[:5]
         raise WeatherDataError(
-            f"[{location.name}] Ngày trả về không khớp {start}→{end}: {len(days)} ngày "
-            f"(cần {len(wanted)}), trùng {dupes}, thiếu {missing or '-'}, thừa {extra or '-'}"
+            f"[{location.name}] Returned dates do not match {start}→{end}: {len(days)} days "
+            f"(expected {len(wanted)}), duplicates {dupes}, missing {missing or '-'}, "
+            f"extra {extra or '-'}"
         )
     for var in DAILY_VARIABLES:
         if len(daily[var]) != len(days):
             raise WeatherDataError(
-                f"[{location.name}] Biến {var} có {len(daily[var])} giá trị, cần {len(days)}"
+                f"[{location.name}] Variable {var} has {len(daily[var])} values, "
+                f"expected {len(days)}"
             )
 
     lat = _fmt(payload.get("latitude", location.latitude))
@@ -129,7 +131,7 @@ def fetch_location(
         if resp.status_code not in RETRY_STATUS or attempt == MAX_ATTEMPTS:
             break
         wait = 2**attempt
-        log.warning("[%s] Open-Meteo trả HTTP %s, thử lại sau %ss (lần %d/%d)",
+        log.warning("[%s] Open-Meteo returned HTTP %s, retrying in %ss (attempt %d/%d)",
                     location.name, resp.status_code, wait, attempt, MAX_ATTEMPTS)
         time.sleep(wait)
 
@@ -139,8 +141,9 @@ def fetch_location(
         except ValueError:
             reason = resp.text[:200]
         raise RuntimeError(
-            f"Open-Meteo trả HTTP {resp.status_code} cho {location.name}: {reason}. "
-            "Nếu là giới hạn request/ngày, thử lại sau hoặc xem docs/TROUBLESHOOTING.md mục 2."
+            f"Open-Meteo returned HTTP {resp.status_code} for {location.name}: {reason}. "
+            "If this is the daily request limit, retry later or see docs/TROUBLESHOOTING.md "
+            "section 2."
         )
     return resp.json()
 
@@ -148,16 +151,16 @@ def fetch_location(
 def extract(target: Path) -> None:
     rows: list[list[str]] = []
     for loc in LOCATIONS:
-        log.info("Đang tải thời tiết %s (%s, %s) %s→%s", loc.name, loc.latitude, loc.longitude,
+        log.info("Downloading weather for %s (%s, %s) %s→%s", loc.name, loc.latitude, loc.longitude,
                  START_DATE, END_DATE)
         rows.extend(rows_from_response(loc, fetch_location(loc), START_DATE, END_DATE))
 
-    # Ghi ra file tạm rồi đổi tên: lỗi giữa chừng không để lại file thiếu dữ liệu trong data/raw/.
+    # Write to a temp file then rename: a failure midway leaves no incomplete file in data/raw/.
     tmp = target.with_suffix(target.suffix + ".part")
     with tmp.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(CSV_HEADER)
         writer.writerows(rows)
     tmp.replace(target)
-    log.info("Đã lưu %d dòng (%d điểm đo × %d ngày) vào %s", len(rows), len(LOCATIONS),
+    log.info("Saved %d rows (%d locations × %d days) to %s", len(rows), len(LOCATIONS),
              len(rows) // len(LOCATIONS), target)

@@ -1,4 +1,4 @@
-# Cài TẤT CẢ dependency Python cho môi trường dev (1 venv duy nhất ở thư mục gốc):
+# Installs ALL Python dependencies for the dev environment (a single venv at the repo root):
 #   pip install -r requirements-dev.txt
 -r etl/requirements.txt
 -r ml/requirements.txt

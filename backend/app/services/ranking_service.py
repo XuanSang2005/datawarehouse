@@ -1,10 +1,12 @@
-"""Xếp hạng kênh bán và thị trường (G5) theo doanh thu thực (sau hủy), ADR, tỉ lệ hủy.
+"""Rank sales channels and markets (G5) by realized revenue (after cancellations), ADR,
+cancellation rate.
 
-- Tỉ lệ và ADR tính từ tổng của từng nhóm (quy tắc 8).
-- `revenue_share` tính trên tổng doanh thu của MỌI nhóm (kể cả nhóm bị loại vì ít booking).
-- `cancellation_rate`: xếp TĂNG dần (hủy ít = tốt hơn); các tiêu chí khác xếp GIẢM dần.
-- Nhóm có ít hơn `min_bookings` booking bị loại, để ADR/tỉ lệ của nhóm nhỏ không làm nhiễu
-  bảng xếp hạng.
+- Rates and ADR are computed from each group's totals (rule 8).
+- `revenue_share` is relative to the revenue of ALL groups (including those dropped for having
+  few bookings).
+- `cancellation_rate`: sorted ASCENDING (fewer cancellations = better); other metrics DESCENDING.
+- Groups with fewer than `min_bookings` bookings are dropped, so that the ADR/rates of small
+  groups do not add noise to the ranking.
 """
 
 from typing import Literal
@@ -22,7 +24,7 @@ ASCENDING_SORTS = {"cancellation_rate"}
 def rank_groups(
     rows: list[dict], sort_by: RankingSort, min_bookings: int, top_n: int
 ) -> tuple[list[RankingItem], float, int]:
-    """Trả về (top N item đã xếp hạng, tổng doanh thu mọi nhóm, số nhóm đủ điều kiện)."""
+    """Return (top N ranked items, total revenue of all groups, number of eligible groups)."""
     total_revenue = sum(to_float(r["realized_revenue"]) for r in rows)
     items = [
         RankingItem(
@@ -46,7 +48,7 @@ def rank_groups(
 
     def sort_key(item: RankingItem) -> tuple:
         value = getattr(item, sort_by)
-        missing = value is None  # nhóm không tính được chỉ số luôn xếp cuối
+        missing = value is None  # groups whose metric cannot be computed always rank last
         number = 0.0 if missing else float(value)
         return (missing, number if ascending else -number, -item.realized_revenue, item.key)
 

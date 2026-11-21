@@ -1,11 +1,11 @@
 -- =============================================================================
--- gold.dim_channel — Dimension kênh bán = tổ hợp (market_segment, distribution_channel)
--- Nguồn : DISTINCT từ silver.hotel_bookings
--- Grain : 1 dòng = 1 tổ hợp có trong dữ liệu (26 dòng)
--- Biến đổi chính:
---   * NULL (nguồn ghi 'Undefined') -> 'Unknown'
---   * channel_group: nhóm gọn cho dashboard
---   * is_intermediated: kênh qua trung gian (TA/TO, GDS), thường phải trả hoa hồng
+-- gold.dim_channel — Sales channel dimension = (market_segment, distribution_channel) combination
+-- Source: DISTINCT from silver.hotel_bookings
+-- Grain : 1 row = 1 combination present in the data (26 rows)
+-- Main transformations:
+--   * NULL (source says 'Undefined') -> 'Unknown'
+--   * channel_group: compact grouping for the dashboard
+--   * is_intermediated: channel through an intermediary (TA/TO, GDS), usually commission-bearing
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.dim_channel CASCADE;

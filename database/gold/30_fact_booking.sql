@@ -1,18 +1,18 @@
 -- =============================================================================
--- gold.fact_booking — Transaction fact: mỗi booking một dòng
--- Nguồn : silver.hotel_bookings, JOIN các dimension 1x để lấy surrogate key
---         + gold.business_assumptions (tỉ lệ cọc Non Refund)
--- Grain : 1 dòng = 1 booking. PK = booking_id (degenerate dimension, = bronze._source_row)
--- Lọc (nhóm đã chốt): LOẠI booking không có khách (adults + children + babies = 0) và booking ADR âm.
---   Giữ booking 0 đêm (doanh thu = 0, số đêm = 0 nên không ảnh hưởng ADR tính từ tổng).
--- Measure tiền:
+-- gold.fact_booking — Transaction fact: one row per booking
+-- Source: silver.hotel_bookings, JOINed to the 1x dimensions to get surrogate keys
+--         + gold.business_assumptions (Non Refund deposit rate)
+-- Grain : 1 row = 1 booking. PK = booking_id (degenerate dimension, = bronze._source_row)
+-- Filter (agreed by the team): EXCLUDE bookings with no guests (adults + children + babies = 0) and bookings with negative ADR.
+--   0-night bookings are kept (revenue = 0, nights = 0, so they do not affect ADR computed from totals).
+-- Money measures:
 --   booked_revenue   = adr × total_nights
---   realized_revenue = booked_revenue nếu không hủy             (doanh thu thực thu)
---   lost_revenue     = booked_revenue nếu hủy                   (thiệt hại gộp, cận trên)
---   deposit_retained = booked_revenue × non_refund_deposit_rate nếu hủy VÀ deposit_type = 'Non Refund'
---   net_lost_revenue = lost_revenue - deposit_retained          (thiệt hại sau khi giữ cọc)
--- ⚠ ADR là non-additive: luôn tính SUM(realized_revenue) / SUM(room_nights_sold), không SUM/AVG(adr).
--- ⛔ Cột suy ra từ KẾT QUẢ hủy, cấm dùng làm feature ML: status_date_key, reservation_status,
+--   realized_revenue = booked_revenue if not canceled           (realized revenue)
+--   lost_revenue     = booked_revenue if canceled               (gross loss, upper bound)
+--   deposit_retained = booked_revenue × non_refund_deposit_rate if canceled AND deposit_type = 'Non Refund'
+--   net_lost_revenue = lost_revenue - deposit_retained          (loss after the retained deposit)
+-- ⚠ ADR is non-additive: always compute SUM(realized_revenue) / SUM(room_nights_sold), never SUM/AVG(adr).
+-- ⛔ Columns derived from the cancellation OUTCOME, forbidden as ML features: status_date_key, reservation_status,
 --   room_nights_sold, realized_revenue, lost_revenue, deposit_retained, net_lost_revenue, cancel_lead_days.
 -- =============================================================================
 
@@ -36,7 +36,7 @@ SELECT
     -- Degenerate dimension
     b.booking_id,
 
-    -- Khóa ngoại
+    -- Foreign keys
     h.hotel_key,
     to_char(b.booking_date, 'YYYYMMDD')::INT                         AS booking_date_key,
     to_char(b.arrival_date, 'YYYYMMDD')::INT                         AS arrival_date_key,
@@ -49,11 +49,11 @@ SELECT
     ra.room_type_key                                                 AS assigned_room_type_key,
     bp.booking_profile_key,
 
-    -- Degenerate dimension khác
+    -- Other degenerate dimensions
     b.company_id,
     b.reservation_status,
 
-    -- Measure: đếm
+    -- Measures: counts
     1::SMALLINT                                                      AS booking_count,
     b.is_canceled::INT::SMALLINT                                     AS is_canceled,
     b.lead_time,
@@ -66,7 +66,7 @@ SELECT
     b.babies,
     b.total_guests                                                   AS guests,
 
-    -- Measure: tiền
+    -- Measures: money
     b.adr,
     b.booked_revenue,
     CASE WHEN b.is_canceled THEN 0 ELSE b.booked_revenue END::NUMERIC(12, 2)
@@ -80,7 +80,7 @@ SELECT
          THEN b.booked_revenue * (1 - CASE WHEN b.deposit_type = 'Non Refund' THEN p.deposit_rate ELSE 0 END)
          ELSE 0 END::NUMERIC(12, 2)                                  AS net_lost_revenue,
 
-    -- Measure: hành vi khách
+    -- Measures: guest behaviour
     b.days_in_waiting_list,
     b.previous_cancellations,
     b.previous_bookings_not_canceled,

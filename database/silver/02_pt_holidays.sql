@@ -1,6 +1,6 @@
 -- =============================================================================
--- silver.pt_holidays — Ngày lễ đã ép kiểu, 1 dòng / 1 ngày (gộp tên nếu trùng ngày).
--- Nguồn : bronze.pt_holidays
+-- silver.pt_holidays — Typed holidays, 1 row per day (names merged when dates collide).
+-- Source: bronze.pt_holidays
 -- =============================================================================
 
 DROP TABLE IF EXISTS silver.pt_holidays;

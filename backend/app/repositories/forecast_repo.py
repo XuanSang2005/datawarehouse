@@ -1,4 +1,4 @@
-"""Dự báo nhu cầu (G3): gold.ml_demand_forecast + chuỗi tuần thực tế (gold.kpi_weekly_occupancy)."""
+"""Demand forecast (G3): gold.ml_demand_forecast + weekly actuals (gold.kpi_weekly_occupancy)."""
 
 from sqlalchemy import Connection, text
 

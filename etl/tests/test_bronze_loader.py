@@ -10,5 +10,5 @@ def test_check_header_ok():
 
 
 def test_check_header_reports_missing_and_extra():
-    with pytest.raises(HeaderMismatchError, match="Thiếu trong CSV: \\['b'\\]"):
+    with pytest.raises(HeaderMismatchError, match="Missing in CSV: \\['b'\\]"):
         check_header(["a", "c"], ["a", "b"], Path("x.csv"), "bronze.x")

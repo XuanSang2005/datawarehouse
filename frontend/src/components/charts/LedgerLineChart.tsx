@@ -1,6 +1,6 @@
-// Biểu đồ đường theo phong cách prototype, dựng trên Recharts:
-// chỉ kẻ lưới ngang, chữ trục mono, nhãn tên đặt ngay cuối đường (không cần legend rời), crosshair nét đứt,
-// tooltip nền Cedar. Hỗ trợ dải khoảng tin cậy, vùng đánh dấu, đường 0 và click để drill-down.
+// Prototype-style line chart built on Recharts:
+// horizontal grid only, mono axis text, series names placed at the end of each line (no separate legend), dashed crosshair,
+// Cedar tooltip. Supports interval bands, a highlighted region, a zero line and click-to-drill-down.
 import type { ReactNode } from 'react'
 import {
   Area,
@@ -24,14 +24,14 @@ export interface LineSeries {
   color: string
   dashed?: boolean
   width?: number
-  /** Hiện tên ở cuối đường */
+  /** Show the name at the end of the line */
   endLabel?: boolean
-  /** Dịch nhãn cuối theo trục y (tránh chồng nhau) */
+  /** Shift the end label along the y axis (to avoid overlaps) */
   labelDy?: number
 }
 
 export interface BandSeries {
-  /** Khóa chứa mảng [cận dưới, cận trên] */
+  /** Key holding a [lower, upper] array */
   key: string
   color: string
   opacity?: number
@@ -46,14 +46,14 @@ interface Props {
   yFormat: (v: number) => string
   xFormat?: (v: string) => string
   yDomain?: [number | 'auto' | 'dataMin', number | 'auto' | 'dataMax']
-  /** Nội dung tooltip cho 1 dòng dữ liệu */
+  /** Tooltip content for one data row */
   tooltip: (row: ChartRow) => ReactNode
-  /** Click 1 điểm (drill-down) */
+  /** Click on a point (drill-down) */
   onPointClick?: (row: ChartRow) => void
-  /** Vùng nền đánh dấu, vd giai đoạn dự báo */
+  /** Highlighted background region, e.g. the forecast period */
   highlight?: { from: string; to: string; label: string }
   zeroLine?: boolean
-  /** Phần tử Recharts thêm vào (ReferenceDot...) */
+  /** Extra Recharts elements (ReferenceDot...) */
   children?: ReactNode
   label: string
 }
@@ -198,7 +198,7 @@ export default function LedgerLineChart({
   )
 }
 
-/** Một dòng trong tooltip: nhãn trái, số phải. */
+/** One tooltip row: label on the left, number on the right. */
 export function TipRow({ label, value, color }: { label: ReactNode; value: ReactNode; color?: string }) {
   return (
     <div className="flex justify-between gap-3.5">

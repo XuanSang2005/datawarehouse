@@ -1,4 +1,4 @@
-"""Dự báo nhu cầu (G3): chuỗi dự báo + khoảng tin cậy + thực tế; MAPE model so với baseline."""
+"""Demand forecast (G3): forecast series + prediction interval + actuals; model MAPE vs baseline."""
 
 from sqlalchemy import Connection
 
@@ -18,7 +18,7 @@ MAIN_MODEL_PREFIX = "forecast_gbm"
 
 
 def pick_default_version(versions: list[dict]) -> str:
-    """Model chính (forecast_gbm_*) mới nhất; nếu không có thì phiên bản mới nhất bất kỳ."""
+    """Latest main model (forecast_gbm_*); otherwise the latest version of any model."""
     main = [v for v in versions if v["model_version"].startswith(MAIN_MODEL_PREFIX)]
     candidates = main or versions
     return max(candidates, key=lambda v: v["created_at"])["model_version"]
@@ -68,12 +68,12 @@ def get_forecast(
     version = model_version or pick_default_version(versions)
     if version not in names:
         raise DataNotReadyError(
-            f"Không có dự báo cho model_version '{version}'",
-            hint=f"Các phiên bản hiện có: {', '.join(names)}",
+            f"No forecast for model_version '{version}'",
+            hint=f"Available versions: {', '.join(names)}",
         )
     rows = forecast_repo.fetch_forecast(conn, version, hotel_key)
     if not rows:
-        raise DataNotReadyError(f"Không có dự báo cho hotel_key={hotel_key}")
+        raise DataNotReadyError(f"No forecast for hotel_key={hotel_key}")
     actuals = forecast_repo.fetch_weekly_actuals(conn, hotel_key)
     return ForecastResponse(
         model_version=version, available_versions=names, series=build_series(rows, actuals)

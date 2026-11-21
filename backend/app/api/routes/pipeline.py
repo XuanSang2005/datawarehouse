@@ -17,5 +17,5 @@ def list_runs(
     conn: DbConn,
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
 ) -> list[PipelineRun]:
-    """Các bước ETL gần nhất (đọc từ meta.etl_run_log)."""
+    """Most recent ETL steps (read from meta.etl_run_log)."""
     return pipeline_service.get_recent_runs(conn, limit)

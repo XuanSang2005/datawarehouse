@@ -1,7 +1,7 @@
 -- =============================================================================
--- gold.dim_room_type — Dimension loại phòng (role-playing: reserved / assigned)
--- Nguồn : UNION reserved_room_type và assigned_room_type từ silver.hotel_bookings
--- Grain : 1 dòng = 1 mã loại phòng (12 dòng; mã đã bị ẩn danh trong nguồn)
+-- gold.dim_room_type — Room type dimension (role-playing: reserved / assigned)
+-- Source: UNION of reserved_room_type and assigned_room_type from silver.hotel_bookings
+-- Grain : 1 row = 1 room type code (12 rows; codes are anonymized in the source)
 -- =============================================================================
 
 DROP TABLE IF EXISTS gold.dim_room_type CASCADE;

@@ -1,4 +1,4 @@
-"""Test nguồn thời tiết Open-Meteo (không gọi mạng, không cần DB)."""
+"""Tests for the Open-Meteo weather source (no network calls, no DB needed)."""
 
 import csv
 import re
@@ -19,7 +19,7 @@ from etl.extract.weather import (
 )
 
 LISBON = WeatherLocation("Lisbon", 38.7223, -9.1393)
-START, END = date(2016, 2, 27), date(2016, 3, 2)  # có ngày 29/02 năm nhuận
+START, END = date(2016, 2, 27), date(2016, 3, 2)  # includes the 29 Feb leap day
 
 
 def fake_payload(days: list[str]) -> dict:
@@ -27,7 +27,7 @@ def fake_payload(days: list[str]) -> dict:
     daily = {"time": days}
     for i, var in enumerate(DAILY_VARIABLES):
         daily[var] = [float(i)] * n
-    daily["rain_sum"] = [None] * n  # API có thể trả null
+    daily["rain_sum"] = [None] * n  # the API may return null
     return {"latitude": 38.71, "longitude": -9.14, "daily": daily}
 
 
@@ -37,7 +37,7 @@ def test_expected_dates_inclusive_with_leap_day():
 
 
 def test_default_range_covers_booking_period():
-    # Booking đến từ 2015-07-01 đến 2017-08-31 (+ đêm lưu trú vắt sang tháng 9).
+    # Arrivals run from 2015-07-01 to 2017-08-31 (+ stay nights spilling into September).
     assert weather.START_DATE <= date(2015, 7, 1)
     assert weather.END_DATE >= date(2017, 9, 30)
     assert len(expected_dates(weather.START_DATE, weather.END_DATE)) == 1096
@@ -48,21 +48,21 @@ def test_rows_from_response_one_row_per_day():
     assert len(rows) == 5
     assert all(len(r) == len(CSV_HEADER) for r in rows)
     assert [r[3] for r in rows] == expected_dates(START, END)
-    assert len({(r[0], r[3]) for r in rows}) == len(rows)  # (location, ngày) duy nhất
+    assert len({(r[0], r[3]) for r in rows}) == len(rows)  # unique (location, day)
     rain_idx = CSV_HEADER.index("rain_sum")
-    assert rows[0][0] == "Lisbon" and rows[0][rain_idx] == ""  # null -> chuỗi rỗng
+    assert rows[0][0] == "Lisbon" and rows[0][rain_idx] == ""  # null -> empty string
 
 
 @pytest.mark.parametrize(
     "days",
     [
-        ["2016-02-27", "2016-02-28", "2016-03-01", "2016-03-02"],                # thiếu 29/02
-        ["2016-02-27", "2016-02-28", "2016-02-28", "2016-02-29", "2016-03-01"],  # trùng ngày
-        ["2016-02-28", "2016-02-29", "2016-03-01", "2016-03-02", "2016-03-03"],  # lệch khoảng
+        ["2016-02-27", "2016-02-28", "2016-03-01", "2016-03-02"],                # missing 29 Feb
+        ["2016-02-27", "2016-02-28", "2016-02-28", "2016-02-29", "2016-03-01"],  # duplicate day
+        ["2016-02-28", "2016-02-29", "2016-03-01", "2016-03-02", "2016-03-03"],  # shifted range
     ],
 )
 def test_rows_from_response_rejects_wrong_days(days):
-    with pytest.raises(WeatherDataError, match="Ngày trả về không khớp"):
+    with pytest.raises(WeatherDataError, match="Returned dates do not match"):
         rows_from_response(LISBON, fake_payload(days), START, END)
 
 
@@ -110,4 +110,4 @@ def test_bronze_ddl_matches_csv_header():
 def test_every_location_is_mapped_to_a_hotel():
     dim_hotel = (DATABASE_DIR / "gold" / "11_dim_hotel.sql").read_text(encoding="utf-8")
     for loc in LOCATIONS:
-        assert f"'{loc.name}'" in dim_hotel, f"dim_hotel.weather_location thiếu '{loc.name}'"
+        assert f"'{loc.name}'" in dim_hotel, f"dim_hotel.weather_location is missing '{loc.name}'"

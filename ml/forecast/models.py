@@ -1,9 +1,9 @@
-"""Các mô hình dự báo room-nights theo tuần: 2 baseline + Gradient Boosting.
+"""Weekly room-nights forecasting models: 2 baselines + Gradient Boosting.
 
-Mỗi forecaster có cùng giao diện:
+Every forecaster has the same interface:
     forecast(history, calendar, horizon) -> DataFrame[hotel_key, h, week_start_date, yhat]
-trong đó `history` chỉ chứa dữ liệu đến tuần gốc (origin) — tuần cuối của mỗi khách sạn —
-và dự báo các tuần origin+1 … origin+horizon. Mô hình cần học thì học lại ở mỗi origin.
+where `history` only contains data up to the origin week — the last week of each hotel —
+and the forecast covers weeks origin+1 … origin+horizon. Models that learn are refit at each origin.
 """
 
 from __future__ import annotations
@@ -25,23 +25,23 @@ from ml.forecast.features import (
 
 
 def mape(actual: Sequence[float], predicted: Sequence[float]) -> float:
-    """Mean Absolute Percentage Error dạng TỈ LỆ (0.08 = 8%). Actual phải > 0."""
+    """Mean Absolute Percentage Error as a RATIO (0.08 = 8%). Actual must be > 0."""
     a = np.asarray(actual, dtype=float)
     p = np.asarray(predicted, dtype=float)
     if a.shape != p.shape or a.size == 0:
-        raise ValueError("actual và predicted phải cùng độ dài và không rỗng")
+        raise ValueError("actual and predicted must have the same length and not be empty")
     if (a <= 0).any():
-        raise ValueError("MAPE không xác định khi actual <= 0")
+        raise ValueError("MAPE is undefined when actual <= 0")
     return float(np.mean(np.abs(a - p) / a))
 
 
 def seasonal_naive(past: Sequence[float], horizon: int, season: int = SEASON_LAG) -> list[float]:
-    """Dự báo tuần origin+h = giá trị cùng tuần năm trước (lùi `season` tuần).
+    """Forecast for week origin+h = the value of the same week last year (`season` weeks back).
 
-    NaN cho các h mà lịch sử chưa đủ dài (chưa có "cùng tuần năm trước").
+    NaN for the h where the history is not long enough yet (no "same week last year").
     """
     if horizon > season:
-        raise ValueError("horizon không được vượt quá chu kỳ mùa vụ")
+        raise ValueError("horizon must not exceed the seasonal period")
     n = len(past)
     out = []
     for h in range(1, horizon + 1):
@@ -51,9 +51,9 @@ def seasonal_naive(past: Sequence[float], horizon: int, season: int = SEASON_LAG
 
 
 def moving_average(past: Sequence[float], horizon: int, window: int = 4) -> list[float]:
-    """Dự báo phẳng = trung bình `window` tuần gần nhất (giữ nguyên cho mọi h)."""
+    """Flat forecast = mean of the last `window` weeks (the same for every h)."""
     if len(past) < window:
-        raise ValueError(f"Cần ít nhất {window} tuần lịch sử cho moving average")
+        raise ValueError(f"At least {window} weeks of history are needed for the moving average")
     level = float(np.mean(past[-window:]))
     return [level] * horizon
 
@@ -72,7 +72,7 @@ def _frame(hotel_key: int, origin: pd.Timestamp, yhat: Sequence[float]) -> pd.Da
 
 @dataclass
 class PerHotelBaseline:
-    """Bọc 1 hàm baseline (seasonal_naive / moving_average) chạy riêng từng khách sạn."""
+    """Wraps 1 baseline function (seasonal_naive / moving_average) run separately per hotel."""
 
     model_name: str
     func: object  # Callable[[Sequence[float], int], list[float]]
@@ -87,10 +87,10 @@ class PerHotelBaseline:
 
 @dataclass
 class GbmForecaster:
-    """Gradient Boosting gộp 2 khách sạn, đặc trưng lag + mùa vụ + lịch; dự báo đệ quy.
+    """Gradient Boosting pooling both hotels; lag + seasonal + calendar features; recursive.
 
-    Dự báo nhiều bước theo kiểu đệ quy: dự báo tuần origin+1 rồi đưa vào làm lag_1 cho
-    tuần origin+2, … Các lag ≥ 52 tuần luôn là số thật khi horizon ≤ 51.
+    Multi-step forecasts are recursive: forecast week origin+1, then feed it in as lag_1 for
+    week origin+2, … Lags ≥ 52 weeks are always real values when horizon ≤ 51.
     """
 
     resort_keys: set[int]
@@ -109,7 +109,7 @@ class GbmForecaster:
     def fit(
         self, history: pd.DataFrame, calendar: pd.DataFrame
     ) -> tuple[HistGradientBoostingRegressor, list[str]]:
-        """Học model; bỏ cột toàn NaN (vd lag_52 khi lịch sử < 1 năm ở các origin sớm)."""
+        """Fit the model; drop all-NaN columns (e.g. lag_52 with < 1 year of history early on)."""
         x, y = build_training_matrix(history, calendar, self.resort_keys)
         columns = [c for c in FEATURE_COLUMNS if x[c].notna().any()]
         model = HistGradientBoostingRegressor(**self.params)

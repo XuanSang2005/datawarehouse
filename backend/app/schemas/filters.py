@@ -9,13 +9,13 @@ class HotelOption(BaseModel):
     hotel_type: str
     city: str
     peak_rooms_occupied: int | None = Field(
-        description="Số phòng có khách cao nhất trong 1 đêm "
-        "(gợi ý cận dưới cho công suất khi chạy what-if)"
+        description="Highest number of occupied rooms in a single night "
+        "(suggested lower bound for capacity in the what-if)"
     )
 
 
 class CountryOption(BaseModel):
-    country_code: str = Field(description="ISO alpha-3; 'UNK' = không rõ quốc gia")
+    country_code: str = Field(description="ISO alpha-3; 'UNK' = unknown country")
     country_name: str
     market_group: str
     bookings: int
@@ -27,10 +27,10 @@ class DateRange(BaseModel):
 
 
 class FilterOptions(BaseModel):
-    """Danh mục cho FilterBar. Chỉ gồm giá trị thực sự xuất hiện trong gold.fact_booking."""
+    """Options for the FilterBar. Only values that actually appear in gold.fact_booking."""
 
     hotels: list[HotelOption]
     channel_groups: list[str]
     market_segments: list[str]
-    countries: list[CountryOption] = Field(description="Sắp xếp theo số booking giảm dần")
+    countries: list[CountryOption] = Field(description="Sorted by number of bookings, descending")
     arrival_date_range: DateRange

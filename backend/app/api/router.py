@@ -1,4 +1,4 @@
-"""Gom tất cả router. Thêm endpoint mới: tạo file trong api/routes/ rồi include ở đây."""
+"""Collects all routers. New endpoint: create a file in api/routes/ and include it here."""
 
 from fastapi import APIRouter
 

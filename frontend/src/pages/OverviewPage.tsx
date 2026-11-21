@@ -1,6 +1,6 @@
-// Tổng quan KPI (G1) — người dùng: General Manager.
-// Quyết định hỗ trợ: theo dõi doanh thu, room-nights, ADR, tỉ lệ hủy; so sánh City và Resort; xem mùa vụ.
-// Mọi tỉ lệ/ADR do backend tính từ tổng (quy tắc 8); trang này chỉ hiển thị.
+// KPI overview (G1) — user: General Manager.
+// Decisions supported: track revenue, room-nights, ADR, cancellation rate; compare City and Resort; see seasonality.
+// Every rate/ADR is computed from totals by the backend (rule 8); this page only displays them.
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ReferenceDot } from 'recharts'
@@ -37,23 +37,23 @@ type Metric = 'adr' | 'realized_revenue' | 'room_nights_sold' | 'cancellation_ra
 
 const METRICS: { value: Metric; label: string; title: string; format: (v: number) => string }[] = [
   { value: 'adr', label: 'ADR', title: 'ADR', format: (v) => eur(v) },
-  { value: 'realized_revenue', label: 'Doanh thu', title: 'Doanh thu', format: (v) => eurCompact(v) },
+  { value: 'realized_revenue', label: 'Revenue', title: 'Revenue', format: (v) => eurCompact(v) },
   { value: 'room_nights_sold', label: 'Room-nights', title: 'Room-nights', format: (v) => compact(v) },
-  { value: 'cancellation_rate', label: 'Tỉ lệ hủy', title: 'Tỉ lệ hủy', format: (v) => pct(v, 0) },
+  { value: 'cancellation_rate', label: 'Cancellation rate', title: 'Cancellation rate', format: (v) => pct(v, 0) },
 ]
 
 const GRAINS: { value: Grain; label: string; title: string }[] = [
-  { value: 'year', label: 'Năm', title: 'theo năm' },
-  { value: 'quarter', label: 'Quý', title: 'theo quý' },
-  { value: 'month', label: 'Tháng', title: 'theo tháng' },
-  { value: 'week', label: 'Tuần', title: 'theo tuần' },
+  { value: 'year', label: 'Year', title: 'by year' },
+  { value: 'quarter', label: 'Quarter', title: 'by quarter' },
+  { value: 'month', label: 'Month', title: 'by month' },
+  { value: 'week', label: 'Week', title: 'by week' },
 ]
 const NEXT_GRAIN: Partial<Record<Grain, Grain>> = { year: 'quarter', quarter: 'month', month: 'week' }
 
 const PHOTO: Record<string, { src: string; alt: string; place: string }> = {
-  both: { src: '/img/lisbon-tram.jpg', alt: 'Tàu điện trên phố Lisbon', place: 'Lisbon & Algarve' },
-  City: { src: '/img/lisbon-aerial.jpg', alt: 'Mái nhà Lisbon bên sông', place: 'Lisbon' },
-  Resort: { src: '/img/coast-cliffs.jpg', alt: 'Vách đá Algarve bên biển', place: 'Algarve' },
+  both: { src: '/img/lisbon-tram.jpg', alt: 'Tram on a Lisbon street', place: 'Lisbon & Algarve' },
+  City: { src: '/img/lisbon-aerial.jpg', alt: 'Lisbon rooftops by the river', place: 'Lisbon' },
+  Resort: { src: '/img/coast-cliffs.jpg', alt: 'Algarve cliffs by the sea', place: 'Algarve' },
 }
 
 interface Drill {
@@ -63,7 +63,7 @@ interface Drill {
   grain: Grain
 }
 
-/** Ngày cuối của kỳ bắt đầu tại `start` (ISO) với grain cho trước. */
+/** Last day of the period that starts at `start` (ISO) for the given grain. */
 function periodEnd(start: string, grain: Grain): string {
   const d = new Date(`${start}T00:00:00Z`)
   if (grain === 'week') return addDays(start, 6)
@@ -88,10 +88,10 @@ export default function OverviewPage() {
         {(s) => (
           <KpiStrip
             items={[
-              { label: 'Doanh thu thực', value: <Money value={s.total.realized_revenue} compactForm /> },
+              { label: 'Realized revenue', value: <Money value={s.total.realized_revenue} compactForm /> },
               { label: 'Room-nights', value: compact(s.total.room_nights_sold) },
               { label: 'ADR', value: <Money value={s.total.adr} /> },
-              { label: 'Tỉ lệ hủy', value: pct(s.total.cancellation_rate), alert: true },
+              { label: 'Cancellation rate', value: pct(s.total.cancellation_rate), alert: true },
             ]}
           />
         )}
@@ -109,15 +109,15 @@ function Hero({ summary, hotelType }: { summary: KpiValues | null; hotelType: st
   return (
     <div className="grid animate-rise md:min-h-[470px] md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <Focal className="flex flex-col justify-between gap-10 px-[22px] py-[22px] [container-type:inline-size] sm:px-[34px] sm:pt-[30px] sm:pb-[34px]">
-        <Cap className="text-kangaroo">Doanh thu mất do hủy trước ngày đến</Cap>
+        <Cap className="text-kangaroo">Lost to cancellations before arrival</Cap>
         <div>
           <BigNumber className="text-[min(30cqi,176px)]">
             {summary ? <Money value={summary.lost_revenue} compactForm /> : '—'}
           </BigNumber>
           <p className="mt-[22px] text-[17px] text-kangaroo">
-            <b className="font-semibold text-merino">{booked ? pct(summary!.lost_revenue / booked, 0) : '—'}</b> doanh
-            thu phòng đã đặt · còn <b className="font-semibold text-merino">{eurCompact(summary?.net_lost_revenue)}</b>{' '}
-            sau khi giữ cọc
+            <b className="font-semibold text-merino">{booked ? pct(summary!.lost_revenue / booked, 0) : '—'}</b> of
+            booked room revenue · <b className="font-semibold text-merino">{eurCompact(summary?.net_lost_revenue)}</b>{' '}
+            net of retained deposits
           </p>
         </div>
       </Focal>
@@ -141,21 +141,21 @@ function Hero({ summary, hotelType }: { summary: KpiValues | null; hotelType: st
 
 function HotelComparison({ state }: { state: ApiState<KpiSummary> }) {
   return (
-    <Section title="City và Resort">
+    <Section title="City and Resort">
       <DataState state={state} isEmpty={(s) => s.by_hotel.length === 0}>
         {(s) => (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[14.5px]">
               <thead>
                 <tr>
-                  <th className={th}>Khách sạn</th>
-                  <th className={`${th} text-right`}>Booking</th>
-                  <th className={`${th} text-right`}>Doanh thu thực</th>
+                  <th className={th}>Hotel</th>
+                  <th className={`${th} text-right`}>Bookings</th>
+                  <th className={`${th} text-right`}>Realized revenue</th>
                   <th className={`${th} text-right`}>Room-nights</th>
                   <th className={`${th} text-right`}>ADR</th>
-                  <th className={th}>Tỉ lệ hủy</th>
-                  <th className={`${th} text-right`}>Đặt trước TB</th>
-                  <th className={`${th} text-right`}>Số đêm TB</th>
+                  <th className={th}>Cancellation rate</th>
+                  <th className={`${th} text-right`}>Avg lead time</th>
+                  <th className={`${th} text-right`}>Avg nights</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,7 +175,7 @@ function HotelComparison({ state }: { state: ApiState<KpiSummary> }) {
                     <td className={td}>
                       <BarCell value={h.cancellation_rate} tone="rust" />
                     </td>
-                    <td className={`${td} text-right font-mono tabular-nums`}>{num(h.avg_lead_time)} ngày</td>
+                    <td className={`${td} text-right font-mono tabular-nums`}>{num(h.avg_lead_time)} days</td>
                     <td className={`${td} text-right font-mono tabular-nums`}>{num1(h.avg_los)}</td>
                   </tr>
                 ))}
@@ -203,7 +203,7 @@ function TrendSection({
   const [baseGrain, setBaseGrain] = useState<Grain>('month')
   const activeGrain: Grain = drill?.grain ?? baseGrain
 
-  // Drill-down thu hẹp khoảng ngày của biểu đồ (giao với bộ lọc chung)
+  // Drill-down narrows the chart's date range (intersected with the shared filters)
   const chartParams: FilterParams = drill
     ? { ...params, date_from: maxIso(params.date_from, drill.from), date_to: minIso(params.date_to, drill.to) }
     : params
@@ -237,11 +237,11 @@ function TrendSection({
             endLabel: true,
             labelDy: hotels.length > 1 ? (i === 0 ? -6 : 10) : 0,
           }))
-        : [{ key: 'all', name: hotelType ?? 'Tổng', color: hotelColor(hotelType), endLabel: true }],
+        : [{ key: 'all', name: hotelType ?? 'Total', color: hotelColor(hotelType), endLabel: true }],
     [byHotel, hotels, hotelType],
   )
 
-  // Điểm cao nhất để chú thích như prototype ("€174 in August")
+  // Highest point, annotated as in the prototype ("€174 in August")
   const peak = useMemo(() => {
     let best: { period: string; value: number; key: string; name: string } | null = null
     for (const r of rows)
@@ -263,7 +263,7 @@ function TrendSection({
   return (
     <Section
       title={`${m.title} ${GRAINS.find((g) => g.value === activeGrain)?.title}`}
-      aside={<Tabs label="Chỉ số" options={METRICS} value={metric} onChange={setMetric} />}
+      aside={<Tabs label="Metric" options={METRICS} value={metric} onChange={setMetric} />}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <nav aria-label="Drill-down" className="flex flex-wrap items-center gap-2 font-mono text-[12px] tracking-[0.08em] uppercase">
@@ -272,7 +272,7 @@ function TrendSection({
             onClick={() => setPath([])}
             className={`cursor-pointer ${path.length ? 'text-oyster-ink underline underline-offset-4 hover:text-cedar' : 'text-cedar'}`}
           >
-            Toàn bộ
+            All periods
           </button>
           {path.map((d, i) => (
             <span key={d.label} className="flex items-center gap-2">
@@ -286,17 +286,17 @@ function TrendSection({
               </button>
             </span>
           ))}
-          {nextGrain && <span className="ml-2 normal-case tracking-normal text-oyster-ink">· bấm vào 1 điểm để xem chi tiết</span>}
+          {nextGrain && <span className="ml-2 normal-case tracking-normal text-oyster-ink">· click a point to drill down</span>}
         </nav>
         {!drill && (
-          <Tabs label="Mức thời gian" options={GRAINS} value={baseGrain} onChange={setBaseGrain} />
+          <Tabs label="Time grain" options={GRAINS} value={baseGrain} onChange={setBaseGrain} />
         )}
       </div>
       {byHotel && series.length > 1 && <Legend items={series.map((s) => ({ label: s.name, color: s.color }))} />}
       <DataState state={ts} minHeight={300} isEmpty={(d) => d.points.length === 0}>
         {() => (
           <LedgerLineChart
-            label={`${m.title} theo kỳ`}
+            label={`${m.title} by period`}
             data={rows}
             xKey="period"
             series={series}
@@ -347,20 +347,20 @@ function ChannelMix({ params }: { params: FilterParams }) {
   )
   return (
     <Section
-      title="Kênh bán"
+      title="Sales channels"
       aside={
         <div className="flex items-baseline gap-6">
           <Tabs
-            label="Nhóm theo"
+            label="Group by"
             options={[
-              { value: 'channel', label: 'Kênh' },
-              { value: 'market', label: 'Thị trường' },
+              { value: 'channel', label: 'Channel' },
+              { value: 'market', label: 'Market' },
             ]}
             value={by}
             onChange={setBy}
           />
           <Link to="/channels" className="text-sm font-semibold text-rifle underline underline-offset-4">
-            Xem xếp hạng đầy đủ →
+            See full ranking →
           </Link>
         </div>
       }
@@ -373,11 +373,11 @@ function ChannelMix({ params }: { params: FilterParams }) {
               <table className="w-full border-collapse text-[14.5px]">
                 <thead>
                   <tr>
-                    <th className={th}>{by === 'channel' ? 'Kênh' : 'Thị trường'}</th>
-                    <th className={th}>Tỉ trọng doanh thu</th>
+                    <th className={th}>{by === 'channel' ? 'Channel' : 'Market'}</th>
+                    <th className={th}>Revenue share</th>
                     <th className={`${th} text-right`}>ADR</th>
-                    <th className={th}>Tỉ lệ hủy</th>
-                    <th className={`${th} text-right`}>Doanh thu thực</th>
+                    <th className={th}>Cancellation rate</th>
+                    <th className={`${th} text-right`}>Realized revenue</th>
                   </tr>
                 </thead>
                 <tbody>

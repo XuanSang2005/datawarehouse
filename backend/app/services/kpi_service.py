@@ -1,4 +1,4 @@
-"""KPI tổng quan (G1): tổng hợp theo bộ lọc, so sánh khách sạn, chuỗi thời gian drill-down."""
+"""Overview KPIs (G1): aggregates by filter, hotel comparison, drill-down time series."""
 
 from sqlalchemy import Connection
 
@@ -20,7 +20,7 @@ SUM_COLUMNS = (
 
 
 def combine_sums(rows: list[dict]) -> dict:
-    """Cộng các TỔNG của nhiều nhóm (cộng được) để ra tổng chung, rồi mới tính tỉ lệ."""
+    """Add up the (additive) TOTALS of several groups into an overall total, then compute rates."""
     return {col: sum((r[col] or 0) for r in rows) for col in SUM_COLUMNS}
 
 

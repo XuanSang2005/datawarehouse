@@ -1,10 +1,10 @@
 -- =============================================================================
--- gold.kpi_cancellation_profile — Tỉ lệ hủy theo nhóm lead time × loại đặt cọc × nhóm kênh (trang Rủi ro hủy phòng)
--- Nguồn : gold.fact_booking + dim_hotel + dim_booking_profile + dim_channel
--- Grain : 1 dòng = 1 khách sạn × 1 nhóm lead time × 1 deposit_type × 1 channel_group
--- Nhóm lead time: 0–7, 8–30, 31–90, 91–180, 181–365, >365 ngày (lead_time_band_order để sắp xếp)
--- Measure non-additive (cancellation_rate, adr, avg_los) tính lại từ tổng (quy tắc 8).
--- Cột chung: bookings, canceled_bookings, cancellation_rate, room_nights_sold, realized_revenue,
+-- gold.kpi_cancellation_profile — Cancellation rate by lead time band × deposit type × channel group (Cancellation Risk page)
+-- Source: gold.fact_booking + dim_hotel + dim_booking_profile + dim_channel
+-- Grain : 1 row = 1 hotel × 1 lead time band × 1 deposit_type × 1 channel_group
+-- Lead time bands: 0–7, 8–30, 31–90, 91–180, 181–365, >365 days (lead_time_band_order for sorting)
+-- Non-additive measures (cancellation_rate, adr, avg_los) are recomputed from totals (rule 8).
+-- Common columns: bookings, canceled_bookings, cancellation_rate, room_nights_sold, realized_revenue,
 --            lost_revenue, net_lost_revenue, adr, avg_lead_time, avg_los
 -- =============================================================================
 

@@ -11,7 +11,7 @@ export default function FiltersProvider({ children }: { children: ReactNode }) {
     (patch: Partial<FiltersState>) => setState((f) => ({ ...f, ...patch })),
     [],
   )
-  // Giữ khách sạn đang chọn ở thanh trên, chỉ xóa các bộ lọc của FilterBar
+  // Keep the hotel picked in the top bar; only clear the FilterBar filters
   const resetFilters = useCallback(
     () => setState((f) => ({ ...EMPTY_FILTERS, hotelKey: f.hotelKey })),
     [],

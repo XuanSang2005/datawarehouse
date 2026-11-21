@@ -1,6 +1,6 @@
-// Pipeline & trạng thái hệ thống: kiểm tra FE ↔ BE ↔ DB có thông không và lần chạy ETL gần nhất ra sao.
-// Khi có lỗi, mở trang này TRƯỚC TIÊN (xem docs/TROUBLESHOOTING.md).
-// Số liệu lấy từ meta.etl_run_log (GET /api/pipeline/runs) của lần chạy gần nhất.
+// Pipeline & system status: is FE ↔ BE ↔ DB connected, and how did the latest ETL run go.
+// When something breaks, open this page FIRST (see docs/TROUBLESHOOTING.md).
+// Figures come from meta.etl_run_log (GET /api/pipeline/runs) for the latest run.
 import { getHealth, getPipelineRuns } from '../api/endpoints'
 import DataState from '../components/common/DataState'
 import { Cap, PageHead, Section, td, th } from '../components/common/ledger'
@@ -10,9 +10,9 @@ import { num } from '../lib/format'
 import type { PipelineRun } from '../types/api'
 
 const LAYER_NOTE: Record<string, string> = {
-  extract: 'Nguồn',
-  bronze: 'Giữ nguyên, TEXT',
-  silver: 'Định kiểu, làm sạch',
+  extract: 'Sources',
+  bronze: 'As is, text',
+  silver: 'Typed, checked',
   gold: 'Star schema',
 }
 
@@ -20,29 +20,32 @@ function fileName(step: string): string {
   return step.split('/').slice(1).join('/').replace(/^\d+_/, '').replace(/\.sql$/, '')
 }
 
-/** Gom các bước gold theo loại bảng (như prototype: "fact_booking · fact_daily_occupancy — 2 fact"). */
+/** Group gold steps by table kind (as in the prototype: "fact_booking · fact_daily_occupancy — 2 facts"). */
 function goldGroups(steps: PipelineRun[]): { names: string; label: string }[] {
   const names = steps.map((s) => fileName(s.step))
   const groups: [string, (n: string) => boolean, string][] = [
     ['fact', (n) => n.startsWith('fact_'), 'fact'],
     ['dim', (n) => n.startsWith('dim_'), 'dimension'],
-    ['kpi', (n) => n.startsWith('kpi_'), 'view KPI'],
+    ['kpi', (n) => n.startsWith('kpi_'), 'KPI view'],
   ]
   const out = groups
     .map(([, test, label]) => {
       const g = names.filter(test)
-      return { names: g.map((n) => n.replace(/^(fact|dim|kpi)_/, '')).join(' · '), label: `${g.length} ${label}`, count: g.length }
+      return { names: g.map((n) => n.replace(/^(fact|dim|kpi)_/, '')).join(' · '), label: `${g.length} ${label}${g.length === 1 ? '' : 's'}`, count: g.length }
     })
     .filter((g) => g.count > 0)
     .map(({ names: n, label }) => ({ names: n, label }))
-  out.push({ names: 'ml_booking_risk · ml_demand_forecast', label: 'từ ml/ (không do pipeline tạo)' })
+  out.push({ names: 'ml_booking_risk · ml_demand_forecast', label: 'from ml/ (not built by the pipeline)' })
   return out
 }
+
+/** "21 Nov 2017, 08:14" */
+const RUN_TIME: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
 
 function runDuration(steps: PipelineRun[]): string {
   const start = Math.min(...steps.map((s) => new Date(s.started_at).getTime()))
   const end = Math.max(...steps.map((s) => new Date(s.finished_at ?? s.started_at).getTime()))
-  return `${Math.max(1, Math.round((end - start) / 1000))} giây`
+  return `${Math.max(1, Math.round((end - start) / 1000))} s`
 }
 
 export default function SystemStatusPage() {
@@ -59,18 +62,18 @@ export default function SystemStatusPage() {
   return (
     <>
       <PageHead
-        title="Từ CSV đến quyết định"
+        title="From CSV to decisions"
         aside={
           latest.length > 0 && (
             <StatusBadge
               value={failed ? 'failed' : 'success'}
-              label={`Lần chạy gần nhất ${new Date(latest[0].started_at).toLocaleString('vi-VN')} · ${runDuration(latest)}`}
+              label={`Last run ${new Date(latest[0].started_at).toLocaleString('en-GB', RUN_TIME)} · ${runDuration(latest)}`}
             />
           )
         }
       />
 
-      <Section title="Kết nối">
+      <Section title="Connections">
         <DataState state={health} minHeight={60}>
           {(h) => (
             <div className="flex flex-wrap gap-x-10 gap-y-3">
@@ -88,7 +91,7 @@ export default function SystemStatusPage() {
         isEmpty={(r) => r.length === 0}
         empty={
           <>
-            Chưa có log. Chạy: <code className="font-mono">python -m etl.run_pipeline</code>
+            No logs yet. Run: <code className="font-mono">python -m etl.run_pipeline</code>
           </>
         }
       >
@@ -123,7 +126,7 @@ export default function SystemStatusPage() {
                         <li key={s.log_id} className="flex flex-col gap-px">
                           <code className="font-mono text-[13px] [overflow-wrap:anywhere]">{name}</code>
                           <span className={`text-[13px] ${hl ? 'text-kangaroo' : 'text-oyster-ink'}`}>
-                            {s.status !== 'success' ? s.status : rows != null ? `${num(rows)} dòng` : 'xong'}
+                            {s.status !== 'success' ? s.status : rows != null ? `${num(rows)} rows` : 'done'}
                           </span>
                         </li>
                       )
@@ -133,7 +136,7 @@ export default function SystemStatusPage() {
               )
             })}
             <div className="flex min-w-0 flex-col gap-3.5 border-kangaroo max-md:border-t max-md:py-[18px] md:pl-[26px]">
-              <Cap>Chỉ đọc</Cap>
+              <Cap>Read only</Cap>
               <h3 className="font-display text-[34px] leading-none">App</h3>
               <ul className="flex flex-col gap-3">
                 <li className="flex flex-col gap-px">
@@ -142,11 +145,11 @@ export default function SystemStatusPage() {
                 </li>
                 <li className="flex flex-col gap-px">
                   <code className="font-mono text-[13px]">ml/ → gold.ml_*</code>
-                  <span className="text-[13px] text-oyster-ink">rủi ro hủy, dự báo</span>
+                  <span className="text-[13px] text-oyster-ink">cancellation risk, forecast</span>
                 </li>
                 <li className="flex flex-col gap-px">
                   <code className="font-mono text-[13px]">Revenue Desk</code>
-                  <span className="text-[13px] text-oyster-ink">màn hình này</span>
+                  <span className="text-[13px] text-oyster-ink">this screen</span>
                 </li>
               </ul>
             </div>
@@ -155,7 +158,7 @@ export default function SystemStatusPage() {
       </DataState>
 
       {checks.length > 0 && (
-        <Section title="Chất lượng dữ liệu">
+        <Section title="Data quality">
           <div className="grid grid-cols-2 gap-y-6 md:grid-cols-4">
             {checks.map((c, i) => (
               <div
@@ -164,11 +167,11 @@ export default function SystemStatusPage() {
                   i % 2 === 1 ? 'max-md:border-l max-md:border-kangaroo max-md:pl-6' : ''
                 }`}
               >
-                <b className="font-display text-[48px] leading-none font-medium tabular-nums">{num(c.rows_affected ?? 0)}</b>
+                <b className="font-display text-[48px] leading-none font-bold tabular-nums">{num(c.rows_affected ?? 0)}</b>
                 <span className="font-semibold [overflow-wrap:anywhere]">{fileName(c.step).replace(/_/g, ' ')}</span>
                 <StatusBadge
                   value={c.status}
-                  label={c.status === 'success' ? 'Đạt' : c.status === 'warning' ? 'Cảnh báo (đã xử lý ở gold)' : 'Lỗi'}
+                  label={c.status === 'success' ? 'Passed' : c.status === 'warning' ? 'Warning (handled in gold)' : 'Failed'}
                 />
               </div>
             ))}
@@ -176,23 +179,23 @@ export default function SystemStatusPage() {
         </Section>
       )}
 
-      <Section title="Các bước ETL gần nhất">
+      <Section title="Latest ETL steps">
         <DataState state={runs} isEmpty={(r) => r.length === 0}>
           {(r) => (
             <details className="group">
               <summary className="cursor-pointer list-none font-semibold text-rifle underline underline-offset-4">
-                <span className="group-open:hidden">Xem chi tiết {num(Math.min(r.length, 40))} bước gần nhất</span>
-                <span className="hidden group-open:inline">Ẩn chi tiết</span>
+                <span className="group-open:hidden">Show the latest {num(Math.min(r.length, 40))} steps</span>
+                <span className="hidden group-open:inline">Hide details</span>
               </summary>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full border-collapse text-[14.5px]">
                 <thead>
                   <tr>
-                    <th className={th}>Bước</th>
-                    <th className={th}>Trạng thái</th>
-                    <th className={`${th} text-right`}>Số dòng</th>
-                    <th className={th}>Ghi chú</th>
-                    <th className={th}>Bắt đầu</th>
+                    <th className={th}>Step</th>
+                    <th className={th}>Status</th>
+                    <th className={`${th} text-right`}>Rows</th>
+                    <th className={th}>Message</th>
+                    <th className={th}>Started</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -206,7 +209,7 @@ export default function SystemStatusPage() {
                       </td>
                       <td className={`${td} text-right font-mono tabular-nums`}>{s.rows_affected != null ? num(s.rows_affected) : '–'}</td>
                       <td className={`${td} text-oyster-ink`}>{s.message ?? ''}</td>
-                      <td className={`${td} font-mono text-[13px]`}>{new Date(s.started_at).toLocaleString('vi-VN')}</td>
+                      <td className={`${td} font-mono text-[13px]`}>{new Date(s.started_at).toLocaleString('en-GB')}</td>
                     </tr>
                   ))}
                 </tbody>

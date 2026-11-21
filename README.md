@@ -1,91 +1,91 @@
-# Tourism DSS: Hệ thống hỗ trợ quyết định cho chuỗi khách sạn
+# Tourism DSS: a decision support system for a hotel chain
 
-> Đồ án môn **Data Warehouses and Decision Support Systems (CO4031)**
-> Chủ đề: *Build a decision support solution utilizing a data warehouse/lake/lakehouse and data analytics*, lĩnh vực **Tourism**.
+> Course project for **Data Warehouses and Decision Support Systems (CO4031)**
+> Topic: *Build a decision support solution utilizing a data warehouse/lake/lakehouse and data analytics*, domain: **Tourism**.
 
-Một **lakehouse** (PostgreSQL, kiến trúc Bronze → Silver → Gold) cùng một **ứng dụng web** giúp tập đoàn khách sạn
-**giảm thiệt hại do hủy phòng** và **tối ưu doanh thu theo mùa**.
+A **lakehouse** (PostgreSQL, Bronze → Silver → Gold architecture) plus a **web application** that helps a hotel group
+**reduce losses from cancellations** and **optimize seasonal revenue**.
 
-| Người ra quyết định | Hệ thống hỗ trợ quyết định gì |
+| Decision maker | Decisions the system supports |
 |---|---|
-| Revenue Manager | Mức overbooking, chính sách đặt cọc, giá theo mùa |
-| Sales & Marketing Manager | Phân bổ ngân sách theo kênh bán và thị trường |
-| General Manager | Theo dõi KPI, so sánh 2 khách sạn |
-| Bộ phận Reservations | Danh sách booking rủi ro cao cần gọi xác nhận |
+| Revenue Manager | Overbooking level, deposit policy, seasonal pricing |
+| Sales & Marketing Manager | Budget allocation across distribution channels and markets |
+| General Manager | KPI monitoring, comparison of the 2 hotels |
+| Reservations department | List of high-risk bookings to call for confirmation |
 
-Chi tiết bài toán: [`docs/BUSINESS_PROBLEM.md`](docs/BUSINESS_PROBLEM.md)
+Problem details: [`docs/BUSINESS_PROBLEM.md`](docs/BUSINESS_PROBLEM.md)
 
 ---
 
-## Kiến trúc tóm tắt
+## Architecture at a glance
 
 ```
- Nguồn dữ liệu          ETL (Python + SQL)                PostgreSQL                  Ứng dụng
+ Data sources           ETL (Python + SQL)                PostgreSQL                  Application
 ┌──────────────┐     ┌──────────────────┐     ┌────────────────────────────┐     ┌──────────────┐
 │ hotel_bookings│ ──▶ │ etl/extract      │ ──▶ │ bronze ─▶ silver ─▶ gold   │ ◀── │ backend      │ ◀── frontend
 │ pt_holidays   │     │ etl/load         │     │ (database/*.sql)           │     │ FastAPI :8000│     React :5173
-│ countries     │     │ etl/run_pipeline │     │ meta (log pipeline)        │     └──────────────┘
+│ countries     │     │ etl/run_pipeline │     │ meta (pipeline log)        │     └──────────────┘
 │ weather       │     │                  │     │                            │
 └──────────────┘     └──────────────────┘     └────────────────────────────┘
                                                         ▲
-                                              ml/ (train) ghi kết quả vào gold.ml_*
+                                              ml/ (train) writes results to gold.ml_*
 ```
 
-Chi tiết: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ---
 
-## Cấu trúc thư mục
+## Directory structure
 
 ```
 datawarehouse/
-├── database/          🗄️  DB: TOÀN BỘ SQL (tạo schema, bảng, biến đổi, kiểm tra chất lượng)
-│   ├── init/              Tạo schema bronze/silver/gold/meta + bảng log
-│   ├── bronze/            DDL bảng thô (mọi cột TEXT)
-│   ├── silver/            SQL làm sạch, ép kiểu
-│   ├── gold/              SQL star schema (fact/dim) + KPI
-│   └── checks/            SQL kiểm tra chất lượng dữ liệu
-├── etl/               ⚙️  PIPELINE: code Python điều phối, tải và nạp dữ liệu
-│   ├── extract/           Tải/sinh file nguồn vào data/raw/
-│   ├── load/              Nạp CSV vào bronze (COPY)
-│   ├── run_pipeline.py    ▶ Điểm chạy chính
+├── database/          🗄️  DB: ALL SQL (schemas, tables, transformations, quality checks)
+│   ├── init/              Creates the bronze/silver/gold/meta schemas + log tables
+│   ├── bronze/            Raw table DDL (every column TEXT)
+│   ├── silver/            Cleaning and type-casting SQL
+│   ├── gold/              Star schema SQL (fact/dim) + KPIs
+│   └── checks/            Data quality check SQL
+├── etl/               ⚙️  PIPELINE: Python code that orchestrates, downloads and loads data
+│   ├── extract/           Downloads/generates source files into data/raw/
+│   ├── load/              Loads CSVs into bronze (COPY)
+│   ├── run_pipeline.py    ▶ Main entry point
 │   └── tests/
-├── ml/                🤖  PHÂN TÍCH: notebook khám phá + mô hình dự đoán
-├── backend/           🔌  BE: FastAPI, chỉ đọc gold/meta, trả JSON
+├── ml/                🤖  ANALYTICS: exploratory notebooks + predictive models
+├── backend/           🔌  BE: FastAPI, reads only gold/meta, returns JSON
 │   └── app/
-│       ├── api/routes/    Endpoint HTTP
-│       ├── services/      Logic nghiệp vụ (what-if, khuyến nghị)
-│       ├── repositories/  Câu SQL
-│       ├── schemas/       Kiểu dữ liệu request/response (Pydantic)
-│       └── core/          Cấu hình, kết nối DB, logging
+│       ├── api/routes/    HTTP endpoints
+│       ├── services/      Business logic (what-if, recommendations)
+│       ├── repositories/  SQL queries
+│       ├── schemas/       Request/response types (Pydantic)
+│       └── core/          Configuration, DB connection, logging
 ├── frontend/          🖥️  FE: React + Vite + TypeScript
 │   └── src/
-│       ├── pages/         Mỗi trang = 1 file
-│       ├── components/    Thành phần giao diện dùng lại
-│       ├── api/           Hàm gọi backend
-│       ├── hooks/         React hooks dùng chung
-│       └── types/         Kiểu dữ liệu (khớp backend/schemas)
-├── data/raw/          📦  File nguồn tải về (KHÔNG commit)
-├── docs/              📚  Tài liệu: kiến trúc, bài toán, từ điển dữ liệu, xử lý lỗi
-├── deliverables/      📑  Sản phẩm nộp: slide, báo cáo, link video
-├── docker-compose.yml     PostgreSQL (+ backend/frontend khi demo)
-├── Makefile               Lối tắt lệnh
-└── .env.example           Mẫu cấu hình -> copy thành .env
+│       ├── pages/         One file per page
+│       ├── components/    Reusable UI components
+│       ├── api/           Functions that call the backend
+│       ├── hooks/         Shared React hooks
+│       └── types/         Data types (match backend/schemas)
+├── data/raw/          📦  Downloaded source files (NOT committed)
+├── docs/              📚  Docs: architecture, business problem, data dictionary, troubleshooting
+├── deliverables/      📑  Deliverables: slides, report, video link
+├── docker-compose.yml     PostgreSQL (+ backend/frontend for the demo)
+├── Makefile               Command shortcuts
+└── .env.example           Configuration template -> copy to .env
 ```
 
-**Có lỗi thì tìm ở đâu?** Xem [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
+**Where to look when something breaks?** See [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
 
 ---
 
-## Cài đặt lần đầu
+## First-time setup
 
-### Yêu cầu
+### Requirements
 - **Python 3.11+**, **Node.js 20+**, **Docker Desktop**
-- Git, VS Code (khuyến nghị; repo có sẵn gợi ý extension)
+- Git, VS Code (recommended; the repo ships extension recommendations)
 
-### Các bước
+### Steps
 
-**1. Clone repo và tạo file cấu hình**
+**1. Clone the repo and create the configuration file**
 ```bash
 git clone https://github.com/XuanSang2005/datawarehouse.git
 ```
@@ -96,7 +96,7 @@ cd datawarehouse
 cp .env.example .env
 ```
 
-**2. Tạo môi trường Python** (1 venv duy nhất ở thư mục gốc)
+**2. Create the Python environment** (a single venv at the repo root)
 ```bash
 python -m venv .venv
 ```
@@ -112,22 +112,22 @@ Windows (PowerShell):
 pip install -r requirements-dev.txt
 ```
 
-**3. Cài frontend**
+**3. Install the frontend**
 ```bash
 cd frontend && npm install && cd ..
 ```
 
-**4. Bật database**
+**4. Start the database**
 ```bash
 docker compose up -d db
 ```
 
-**5. Chạy pipeline**: tự tải dữ liệu, nạp bronze → silver → gold, rồi kiểm tra chất lượng
+**5. Run the pipeline**: downloads the data, loads bronze → silver → gold, then runs the quality checks
 ```bash
 python -m etl.run_pipeline
 ```
 
-**6. Chạy ứng dụng** (mở 2 terminal)
+**6. Run the application** (open 2 terminals)
 ```bash
 cd backend && uvicorn app.main:app --reload --port 8000
 ```
@@ -135,74 +135,74 @@ cd backend && uvicorn app.main:app --reload --port 8000
 cd frontend && npm run dev
 ```
 
-Mở http://localhost:5173, vào trang **Trạng thái hệ thống**: nếu mọi thứ màu xanh là cài đặt thành công.
-Tài liệu API tự sinh có ở http://localhost:8000/docs.
+Open http://localhost:5173 and go to the **Pipeline** page (`/system`): if everything is green, the setup succeeded.
+Auto-generated API docs are at http://localhost:8000/docs.
 
-> Có `make` (macOS/Linux)? Gõ `make help` để xem các lối tắt: `make db-up`, `make etl`, `make backend`…
+> Have `make` (macOS/Linux)? Run `make help` to see the shortcuts: `make db-up`, `make etl`, `make backend`…
 
-### Cách khác: chạy toàn bộ bằng Docker (demo, không cần Python/Node)
+### Alternative: run everything in Docker (demo, no Python/Node needed)
 
-Chỉ cần Docker. Lệnh dưới bật DB, chạy pipeline một lần trong container `etl`, rồi bật backend và frontend:
+Only Docker is required. The command below starts the DB, runs the pipeline once in the `etl` container, then starts the backend and frontend:
 ```bash
 docker compose --profile app up -d --build
 ```
-Theo dõi pipeline, đợi dòng `✔ Pipeline hoàn tất` (lần đầu ~1 phút, phần lớn là tải dữ liệu):
+Follow the pipeline and wait for the `✔ Pipeline finished` line (~1 minute the first time, mostly downloading data):
 ```bash
 docker compose logs -f etl
 ```
-Mở http://localhost:5173/system. Muốn làm lại từ DB rỗng (trước buổi demo):
+Open http://localhost:5173/system. To start over from an empty DB (before a demo):
 ```bash
 docker compose --profile app down -v
 ```
 
 ---
 
-## Lệnh hay dùng
+## Common commands
 
-| Việc cần làm | Lệnh |
+| Task | Command |
 |---|---|
-| Chạy lại toàn bộ pipeline | `python -m etl.run_pipeline` |
-| Chỉ chạy lại silver + gold (sau khi sửa SQL) | `python -m etl.run_pipeline --from silver` |
-| Chạy một số bước | `python -m etl.run_pipeline --steps gold checks` |
-| Tải lại file nguồn | `python -m etl.run_pipeline --refresh-sources` |
+| Rerun the full pipeline | `python -m etl.run_pipeline` |
+| Rerun only silver + gold (after editing SQL) | `python -m etl.run_pipeline --from silver` |
+| Run selected steps | `python -m etl.run_pipeline --steps gold checks` |
+| Re-download source files | `python -m etl.run_pipeline --refresh-sources` |
 | Test Python | `pytest` |
-| Lint | `ruff check .` và `cd frontend && npm run lint` |
-| Reset sạch database | `docker compose down -v && docker compose up -d db` |
-| Chạy cả hệ thống bằng Docker (demo) | `docker compose --profile app up -d --build` (xem mục dưới) |
-| Chạy pipeline trong Docker | `docker compose run --rm etl` |
+| Lint | `ruff check .` and `cd frontend && npm run lint` |
+| Clean database reset | `docker compose down -v && docker compose up -d db` |
+| Run the whole system in Docker (demo) | `docker compose --profile app up -d --build` (see the section above) |
+| Run the pipeline in Docker | `docker compose run --rm etl` |
 
 ---
 
-## Dữ liệu
+## Data
 
-| Nguồn | Mô tả | Cách lấy |
+| Source | Description | How it is obtained |
 |---|---|---|
-| **Hotel Booking Demand** | 119.390 booking, City Hotel (Lisbon) và Resort Hotel (Algarve), 07/2015–08/2017 | Tự tải (mirror công khai của Kaggle) |
-| **Ngày lễ Bồ Đào Nha** | 2013–2018 | Sinh bằng thư viện `holidays` |
-| **Mã quốc gia ISO 3166** | Tên nước, châu lục (phân vùng UN M49) | Tự tải (GitHub `lukes/ISO-3166-Countries-with-Regional-Codes`) |
-| **Thời tiết lịch sử** | Theo ngày, Lisbon (City Hotel) và Faro (Resort Hotel), 2015–2017: nhiệt độ, lượng mưa, giờ nắng, mã WMO | Tự tải ([Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api), không cần key) |
+| **Hotel Booking Demand** | 119,390 bookings, City Hotel (Lisbon) and Resort Hotel (Algarve), 07/2015–08/2017 | Downloaded automatically (public mirror of the Kaggle dataset) |
+| **Portuguese public holidays** | 2013–2018 | Generated with the `holidays` library |
+| **ISO 3166 country codes** | Country name, continent (UN M49 regions) | Downloaded automatically (GitHub `lukes/ISO-3166-Countries-with-Regional-Codes`) |
+| **Historical weather** | Daily, Lisbon (City Hotel) and Faro (Resort Hotel), 2015–2017: temperature, precipitation, sunshine hours, WMO code | Downloaded automatically ([Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api), no key needed) |
 
-Mô tả từng cột: [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md)
+Column-by-column description: [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md)
 
-> Nguồn: N. Antonio, A. de Almeida, L. Nunes, "Hotel booking demand datasets", *Data in Brief*, vol. 22, pp. 41–49, 2019.
+> Source: N. Antonio, A. de Almeida, L. Nunes, "Hotel booking demand datasets", *Data in Brief*, vol. 22, pp. 41–49, 2019.
 
 ---
 
-## Tài liệu
+## Documentation
 
-| File | Nội dung |
+| File | Contents |
 |---|---|
-| [`docs/BUSINESS_PROBLEM.md`](docs/BUSINESS_PROBLEM.md) | Bối cảnh, người ra quyết định, mục tiêu |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Kiến trúc, luồng dữ liệu, star schema, lý do chọn công nghệ |
-| [`docs/STAR_SCHEMA.md`](docs/STAR_SCHEMA.md) | Thiết kế chi tiết star schema lớp Gold: grain, từng cột, measure, kế hoạch triển khai |
-| [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md) | Ý nghĩa từng bảng và từng cột |
-| [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Thuật ngữ data warehouse dùng trong dự án |
-| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Lỗi gì, tìm ở đâu, sửa thế nào |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Quy trình làm việc nhóm: branch, commit, PR, quy ước code |
-| [`deliverables/README.md`](deliverables/README.md) | Hạn nộp và quy tắc đặt tên file nộp |
+| [`docs/BUSINESS_PROBLEM.md`](docs/BUSINESS_PROBLEM.md) | Context, decision makers, objectives |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Architecture, data flow, star schema, technology choices |
+| [`docs/STAR_SCHEMA.md`](docs/STAR_SCHEMA.md) | Detailed design of the Gold-layer star schema: grain, every column, measures, implementation plan |
+| [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md) | Meaning of every table and column |
+| [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Data warehouse terms used in the project |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Which error, where to look, how to fix it |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Team workflow: branches, commits, PRs, code conventions |
+| [`deliverables/README.md`](deliverables/README.md) | Deadlines and naming rules for submitted files |
 
-## Thành viên
+## Team members
 
-| Họ tên | MSSV | Vai trò |
+| Full name | Student ID | Role |
 |---|---|---|
 | _TBD_ | | |

@@ -1,8 +1,8 @@
-// Định dạng số theo kiểu Việt Nam (dấu chấm ngăn nghìn, dấu phẩy thập phân). Tiền: EUR.
-// Chỉ định dạng để hiển thị; KHÔNG tính KPI ở đây (tỉ lệ/ADR đã được backend tính từ tổng).
+// Number formatting in en-GB style (comma for thousands, dot for decimals). Money: EUR.
+// Display formatting only; do NOT compute KPIs here (rates/ADR are computed from totals by the backend).
 
-const nf0 = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 })
-const nf1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const nf0 = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
+const nf1 = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 export const MISSING = '—'
 
@@ -14,7 +14,7 @@ export function num1(v: number | null | undefined): string {
   return v == null ? MISSING : nf1.format(v)
 }
 
-/** 26.900.000 → "26,9M"; 262.000 → "262K"; 950 → "950" */
+/** 26,900,000 → "26.9M"; 262,000 → "262K"; 950 → "950" */
 export function compact(v: number | null | undefined): string {
   if (v == null) return MISSING
   const a = Math.abs(v)
@@ -31,50 +31,51 @@ export function eurCompact(v: number | null | undefined): string {
   return v == null ? MISSING : `€${compact(v)}`
 }
 
-/** Tỉ lệ 0–1 → "37,1%" */
+/** Ratio 0–1 → "37.1%" */
 export function pct(v: number | null | undefined, digits = 1): string {
   if (v == null) return MISSING
-  return `${new Intl.NumberFormat('vi-VN', {
+  return `${new Intl.NumberFormat('en-GB', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(v * 100)}%`
 }
 
-const WEEKDAY = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function parseIsoDate(iso: string): Date {
   return new Date(`${iso.slice(0, 10)}T00:00:00Z`)
 }
 
-/** "2017-08-22" → "T3 22/8" */
+/** "2017-08-22" → "Tue 22 Aug" */
 export function dayLabel(iso: string): string {
   const d = parseIsoDate(iso)
-  return `${WEEKDAY[d.getUTCDay()]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`
+  return `${WEEKDAY[d.getUTCDay()]} ${d.getUTCDate()} ${MONTH[d.getUTCMonth()]}`
 }
 
-/** "2017-08-22" → "22/8/2017" */
+/** "2017-08-22" → "22 Aug 2017" */
 export function dateLabel(iso: string): string {
   const d = parseIsoDate(iso)
-  return `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`
+  return `${d.getUTCDate()} ${MONTH[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
-/** "2017-08-22" → "22/8" */
+/** "2017-08-22" → "22 Aug" */
 export function dayMonth(iso: string): string {
   const d = parseIsoDate(iso)
-  return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`
+  return `${d.getUTCDate()} ${MONTH[d.getUTCMonth()]}`
 }
 
-/** Cộng n ngày vào ngày ISO, trả về ISO (YYYY-MM-DD). */
+/** Add n days to an ISO date and return ISO (YYYY-MM-DD). */
 export function addDays(iso: string, n: number): string {
   const d = parseIsoDate(iso)
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
 }
 
-/** Số tuần ISO của một ngày. */
+/** ISO week number of a date. */
 export function isoWeek(iso: string): number {
   const d = parseIsoDate(iso)
-  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 3) // Thứ Năm cùng tuần
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 3) // Thursday of the same week
   const yearStart = Date.UTC(d.getUTCFullYear(), 0, 1)
   return Math.ceil(((d.getTime() - yearStart) / 86400000 + 1) / 7)
 }

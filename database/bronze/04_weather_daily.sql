@@ -1,9 +1,9 @@
 -- =============================================================================
--- bronze.weather_daily — Thời tiết lịch sử theo ngày (Open-Meteo Historical Weather API, nguyên bản)
--- Nguồn : etl/extract/weather.py -> data/raw/weather_daily.csv
--- Grain : 1 dòng = 1 điểm đo (Lisbon, Faro) × 1 ngày, 2015-01-01 → 2017-12-31
--- Mọi cột TEXT, tên cột giữ nguyên tên biến của API. Giá trị thiếu của API là chuỗi rỗng.
--- Dùng để làm giàu gold.fact_daily_weather (thời tiết theo khách sạn × ngày).
+-- bronze.weather_daily — Daily historical weather (Open-Meteo Historical Weather API, as-is)
+-- Source: etl/extract/weather.py -> data/raw/weather_daily.csv
+-- Grain : 1 row = 1 location (Lisbon, Faro) × 1 day, 2015-01-01 → 2017-12-31
+-- Every column is TEXT; column names keep the API variable names. Missing API values are empty strings.
+-- Used to enrich gold.fact_daily_weather (weather per hotel × day).
 -- =============================================================================
 
 DROP TABLE IF EXISTS bronze.weather_daily;

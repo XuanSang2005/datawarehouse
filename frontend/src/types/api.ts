@@ -1,5 +1,5 @@
-// Kiểu dữ liệu trả về từ backend. PHẢI khớp với backend/app/schemas/*.py
-// Sửa schema bên backend -> sửa luôn ở đây.
+// Types returned by the backend. MUST match backend/app/schemas/*.py
+// Change a schema in the backend -> change it here too.
 
 export interface HealthResponse {
   status: 'ok' | 'degraded'
@@ -19,20 +19,20 @@ export interface PipelineRun {
 }
 
 // ---------------------------------------------------------------------------
-// Dùng chung — backend/app/schemas/common.py, ml.py
+// Shared — backend/app/schemas/common.py, ml.py
 // ---------------------------------------------------------------------------
 
-/** Bộ lọc slice & dice. Khoảng ngày lọc theo NGÀY ĐẾN của booking. */
+/** Slice & dice filters. The date range filters on the booking's ARRIVAL DATE. */
 export interface BookingFilter {
   hotel_key: number | null
   date_from: string | null
   date_to: string | null
   channel_group: string | null
-  /** ISO alpha-3; 'UNK' = không rõ quốc gia */
+  /** ISO alpha-3; 'UNK' = unknown country */
   country_code: string | null
 }
 
-/** Tỉ lệ/trung bình tính lại từ tổng; null nếu mẫu số = 0. Tiền: EUR. */
+/** Rates/averages recomputed from totals; null when the denominator is 0. Money: EUR. */
 export interface KpiValues {
   bookings: number
   canceled_bookings: number
@@ -50,7 +50,7 @@ export interface ModelMetrics {
   model_name: string
   model_version: string
   trained_at: string
-  /** {dataset: {metric_name: value}}, vd metrics.test.auc */
+  /** {dataset: {metric_name: value}}, e.g. metrics.test.auc */
   metrics: Record<string, Record<string, number>>
 }
 
@@ -129,7 +129,7 @@ export type BreakdownDimension =
   | 'market_segment'
   | 'customer_type'
 export type RiskBand = 'Low' | 'Medium' | 'High'
-/** Bộ lọc nhóm rủi ro; 'All' = mọi nhóm */
+/** Risk band filter; 'All' = every band */
 export type RiskBandFilter = RiskBand | 'All'
 export type HighRiskSort = 'probability' | 'expected_loss'
 
@@ -175,7 +175,7 @@ export interface HighRiskBooking {
   risk_band: RiskBand
   expected_loss: number
   is_test_set: boolean
-  /** Kết quả thực tế (lịch sử), lúc ra quyết định chưa biết */
+  /** Actual (historical) outcome, unknown at decision time */
   is_canceled: boolean
 }
 
@@ -187,11 +187,11 @@ export interface HighRiskPage {
   sort: HighRiskSort
   page: number
   page_size: number
-  /** Số booking khớp điều kiện (mọi trang) */
+  /** Number of matching bookings (across all pages) */
   total: number
-  /** Σ doanh thu đặt của mọi booking khớp (EUR) */
+  /** Σ booked revenue of all matching bookings (EUR) */
   booked_revenue_total: number
-  /** Σ xác suất hủy × doanh thu đặt của mọi booking khớp (EUR) */
+  /** Σ cancel probability × booked revenue of all matching bookings (EUR) */
   expected_loss_total: number
   items: HighRiskBooking[]
 }
@@ -268,7 +268,7 @@ export interface RankingResponse {
 // POST /api/what-if — schemas/what_if.py
 // ---------------------------------------------------------------------------
 
-/** Trường để trống dùng mặc định của backend. Tỉ lệ dạng 0–1. */
+/** Omitted fields use the backend defaults. Rates as 0–1. */
 export interface WhatIfRequest {
   hotel_key: number
   capacity: number

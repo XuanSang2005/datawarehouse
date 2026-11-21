@@ -1,7 +1,7 @@
-"""Phép tính KPI non-additive từ các tổng (quy tắc 8). Dùng chung cho mọi service.
+"""Non-additive KPI calculations from totals (rule 8). Shared by all services.
 
-Mọi tỉ lệ/trung bình đều = tổng tử / tổng mẫu, KHÔNG lấy trung bình của các tỉ lệ con.
-Mẫu số = 0 → None (frontend hiển thị "—").
+Every rate/average = sum of numerators / sum of denominators, NEVER an average of sub-rates.
+Denominator = 0 → None (the frontend shows "—").
 """
 
 from collections.abc import Mapping
@@ -23,7 +23,7 @@ def to_float(value: float | Decimal | int | None) -> float:
 
 
 def kpi_from_sums(row: Mapping) -> KpiValues:
-    """Dựng KpiValues từ 1 dòng có các cột của booking_sql.KPI_SUMS."""
+    """Build KpiValues from a row with the columns of booking_sql.KPI_SUMS."""
     bookings = int(row["bookings"] or 0)
     room_nights = int(row["room_nights_sold"] or 0)
     realized = to_float(row["realized_revenue"])

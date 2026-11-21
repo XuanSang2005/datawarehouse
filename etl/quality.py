@@ -1,9 +1,9 @@
-"""Kiểm tra chất lượng dữ liệu: chạy các file trong database/checks/.
+"""Data quality checks: runs the files in database/checks/.
 
-Quy ước mỗi file check:
-  * Dòng đầu: `-- severity: error` hoặc `-- severity: warning`
-  * Câu SELECT trả về CÁC DÒNG VI PHẠM (0 dòng = đạt).
-  * error có vi phạm -> pipeline dừng với exit code 1; warning -> chỉ ghi log.
+Convention for each check file:
+  * First line: `-- severity: error` or `-- severity: warning`
+  * The SELECT returns the VIOLATING ROWS (0 rows = pass).
+  * error with violations -> pipeline stops with exit code 1; warning -> logged only.
 """
 
 from __future__ import annotations

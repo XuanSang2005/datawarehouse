@@ -1,4 +1,4 @@
-"""Kiểm tra chọn ngưỡng, gán risk band và metric (không cần DB)."""
+"""Tests for threshold selection, risk band assignment and metrics (no DB needed)."""
 
 import numpy as np
 import pytest
@@ -38,7 +38,7 @@ def test_precision_threshold_reaches_target():
     p = np.clip(y * 0.4 + rng.random(1000) * 0.6, 0, 1)
     t = precision_threshold(y, p, 0.8)
     assert y[p >= t].mean() >= 0.8
-    # là ngưỡng NHỎ NHẤT đạt mục tiêu: hạ thêm 0,02 thì precision không còn vượt hẳn mục tiêu
+    # it is the SMALLEST threshold reaching the target: 0.02 lower and precision no longer clears it
     assert y[p >= t - 0.02].mean() < 0.81
 
 

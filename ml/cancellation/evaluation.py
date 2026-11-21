@@ -1,4 +1,4 @@
-"""Hàm thuần (không cần DB) để chọn ngưỡng, gán risk band và tính metric phân loại."""
+"""Pure functions (no DB): choose thresholds, assign risk bands, compute classification metrics."""
 
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ from sklearn.metrics import (
 )
 
 RISK_BANDS = ("Low", "Medium", "High")
-# Ngưỡng High: precision tối thiểu trên tập validation. Booking "High" sẽ bị yêu cầu đặt cọc hoặc
-# được tính vào hạn mức overbooking, là hành động TỐN KÉM nếu đoán sai, nên cần >= 4/5 booking
-# được gắn High thực sự hủy.
+# High threshold: minimum precision on the validation set. "High" bookings will be asked for a
+# deposit or counted toward the overbooking allowance, an EXPENSIVE action when wrong, so at
+# least 4 out of 5 bookings labelled High must actually cancel.
 HIGH_TARGET_PRECISION = 0.80
 
 
@@ -33,22 +33,22 @@ class RiskThresholds:
 
     def __post_init__(self) -> None:
         if not 0.0 < self.medium <= self.high < 1.0:
-            raise ValueError(f"Ngưỡng không hợp lệ: medium={self.medium}, high={self.high}")
+            raise ValueError(f"Invalid thresholds: medium={self.medium}, high={self.high}")
 
 
 def best_f1_threshold(y_true, proba) -> float:
-    """Ngưỡng làm F1 lớn nhất (làm tròn 2 chữ số để dễ đọc, dễ giải thích)."""
+    """Threshold that maximizes F1 (rounded to 2 decimals so it is easy to read and explain)."""
     precision, recall, thresholds = precision_recall_curve(y_true, proba)
-    # precision/recall dài hơn thresholds 1 phần tử (điểm cuối recall = 0)
+    # precision/recall are 1 element longer than thresholds (final point recall = 0)
     p, r = precision[:-1], recall[:-1]
     f1 = np.divide(2 * p * r, p + r, out=np.zeros_like(p), where=(p + r) > 0)
     return round(float(thresholds[int(np.argmax(f1))]), 2)
 
 
 def precision_threshold(y_true, proba, target_precision: float = HIGH_TARGET_PRECISION) -> float:
-    """Ngưỡng NHỎ NHẤT (recall lớn nhất) mà precision (p >= ngưỡng) vẫn >= target_precision.
+    """SMALLEST threshold (largest recall) whose precision (p >= threshold) is >= target_precision.
 
-    Làm tròn LÊN 2 chữ số. Nếu không ngưỡng nào đạt target thì lấy ngưỡng có precision cao nhất.
+    Rounded UP to 2 decimals. If no threshold reaches the target, take the most precise one.
     """
     precision, _, thresholds = precision_recall_curve(y_true, proba)
     p = precision[:-1]
@@ -58,11 +58,11 @@ def precision_threshold(y_true, proba, target_precision: float = HIGH_TARGET_PRE
 
 
 def choose_thresholds(y_true, proba) -> RiskThresholds:
-    """Chọn ngưỡng trên tập validation.
+    """Choose the thresholds on the validation set.
 
-    High   = ngưỡng nhỏ nhất đạt precision >= 80% (hành động tốn kém: đòi cọc, overbooking).
-    Medium = ngưỡng làm F1 lớn nhất (cân bằng precision/recall; hành động rẻ: gọi xác nhận lại).
-    Nếu ngưỡng F1 cao hơn ngưỡng High thì Medium = High (không có band Medium).
+    High   = smallest threshold reaching precision >= 80% (expensive action: deposit, overbooking).
+    Medium = threshold that maximizes F1 (balances precision/recall; cheap action: reconfirm call).
+    If the F1 threshold is above the High threshold, Medium = High (no Medium band).
     """
     high = precision_threshold(y_true, proba)
     medium = min(max(best_f1_threshold(y_true, proba), 0.01), high)
@@ -80,7 +80,7 @@ def assign_risk_band(proba, thresholds: RiskThresholds) -> np.ndarray:
 
 
 def classification_metrics(y_true, proba, threshold: float) -> dict[str, float]:
-    """AUC, PR-AUC, Brier + precision/recall/F1/accuracy và confusion matrix tại ngưỡng."""
+    """AUC, PR-AUC, Brier + precision/recall/F1/accuracy and the confusion matrix at threshold."""
     y_true = np.asarray(y_true).astype(int)
     proba = np.asarray(proba, dtype=float)
     y_pred = (proba >= threshold).astype(int)

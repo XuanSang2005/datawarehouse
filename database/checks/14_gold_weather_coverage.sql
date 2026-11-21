@@ -1,6 +1,6 @@
 -- severity: error
--- Mọi đêm trong fact_daily_occupancy và mọi ngày đến trong fact_booking phải có thời tiết
--- của đúng khách sạn đó (thiếu = nguồn thời tiết không phủ đủ khoảng ngày của dữ liệu booking).
+-- Every night in fact_daily_occupancy and every arrival date in fact_booking must have weather
+-- for that same hotel (missing = the weather source does not cover the booking data's date range).
 SELECT 'fact_daily_occupancy' AS fact_table, o.hotel_key, o.stay_date_key AS date_key
 FROM gold.fact_daily_occupancy AS o
 LEFT JOIN gold.fact_daily_weather AS w

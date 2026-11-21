@@ -20,7 +20,7 @@ jobs:
       - run: pytest
 
   pipeline:
-    name: ETL pipeline (PostgreSQL thật)
+    name: ETL pipeline (real PostgreSQL)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -39,8 +39,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r etl/requirements.txt
-      # Giữ file nguồn giữa các lần chạy CI để không gọi lại API (Open-Meteo giới hạn request/ngày).
-      # Đổi code extract -> key đổi -> tải lại.
+      # Keep source files between CI runs so the APIs are not called again (Open-Meteo has a daily request limit).
+      # Extract code changes -> key changes -> re-download.
       - uses: actions/cache@v4
         with:
           path: data/raw
@@ -49,18 +49,18 @@ jobs:
       - run: python -m etl.run_pipeline
 
   docker:
-    name: Docker demo (DB rỗng -> pipeline -> app)
+    name: Docker demo (empty DB -> pipeline -> app)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
       - run: docker compose --profile app up -d --build
-      - name: Đợi container etl chạy xong pipeline
+      - name: Wait for the etl container to finish the pipeline
         run: |
           code=$(timeout 900 docker wait "$(docker compose ps -aq etl)")
           docker compose logs etl
           test "$code" = "0"
-      - name: Kiểm tra frontend -> backend -> database
+      - name: Check frontend -> backend -> database
         run: |
           curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://localhost:5173/api/health \
             | tee /dev/stderr | grep -q '"database":"up"'

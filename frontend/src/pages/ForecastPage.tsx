@@ -1,6 +1,6 @@
-// Dự báo nhu cầu (G3) — người dùng: Revenue Manager, Sales & Marketing Manager.
-// Quyết định hỗ trợ: chuẩn bị nhân sự, giá, mức overbooking cho các tuần tới.
-// Dữ liệu: gold.ml_demand_forecast (E4) + room-nights thực tế theo tuần (gold.kpi_weekly_occupancy).
+// Demand forecast (G3) — users: Revenue Manager, Sales & Marketing Manager.
+// Decisions supported: plan staffing, prices and overbooking levels for the coming weeks.
+// Data: gold.ml_demand_forecast (E4) + actual weekly room-nights (gold.kpi_weekly_occupancy).
 import { useMemo, useState } from 'react'
 import { getForecast, getForecastMetrics } from '../api/endpoints'
 import LedgerLineChart, { TipRow, type BandSeries, type ChartRow, type LineSeries } from '../components/charts/LedgerLineChart'
@@ -15,9 +15,9 @@ import type { ForecastMetricsResponse, HotelForecast } from '../types/api'
 type Range = '2017' | 'all'
 
 const MODEL_LABEL: Record<string, string> = {
-  forecast_gbm: 'Gradient Boosting (chính)',
-  forecast_seasonal_naive: 'Cùng tuần năm trước',
-  forecast_moving_avg: 'Trung bình 4 tuần',
+  forecast_gbm: 'Gradient Boosting (main)',
+  forecast_seasonal_naive: 'Same week last year',
+  forecast_moving_avg: '4-week average',
 }
 
 const shortName = (s: HotelForecast) => s.hotel_name.replace(' Hotel', '')
@@ -30,7 +30,7 @@ export default function ForecastPage() {
 
   const series = useMemo(() => forecast.data?.series ?? [], [forecast.data])
 
-  // 8 tuần tương lai: cộng dự báo các khách sạn đang chọn (tổng kỳ vọng cộng được)
+  // Next 8 weeks: sum the forecasts of the selected hotels (expected values are additive)
   const future = useMemo(() => {
     const weeks = new Map<string, { week: string; total: number; perHotel: { name: string; p: number; lo: number; hi: number }[] }>()
     series.forEach((s) =>
@@ -52,17 +52,17 @@ export default function ForecastPage() {
   return (
     <>
       <div className="grid items-stretch gap-x-12 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
-        <PageHead title={<>Room-nights,<br />8 tuần tới</>} />
+        <PageHead title={<>Room-nights,<br />next 8 weeks</>} />
         <Focal className="flex flex-col justify-between gap-[18px] px-[22px] py-[22px] sm:px-7 sm:py-6">
-          <Cap className="text-kangaroo">Tuần bận nhất sắp tới</Cap>
+          <Cap className="text-kangaroo">Busiest week ahead</Cap>
           <div>
             <BigNumber className="text-[clamp(64px,7vw,108px)]">{peak ? num(peak.total) : '—'}</BigNumber>
             <p className="mt-3.5 text-[17px] text-kangaroo">
               {peak ? (
                 <>
-                  <b className="font-semibold text-merino">Tuần {isoWeek(peak.week)}</b> · từ {dayMonth(peak.week)}
+                  <b className="font-semibold text-merino">Week {isoWeek(peak.week)}</b> · from {dayMonth(peak.week)}
                   {peak.perHotel.length === 1 &&
-                    ` · khoảng ${num(peak.perHotel[0].lo)}–${num(peak.perHotel[0].hi)}`}
+                    ` · range ${num(peak.perHotel[0].lo)}–${num(peak.perHotel[0].hi)}`}
                 </>
               ) : (
                 '—'
@@ -73,42 +73,42 @@ export default function ForecastPage() {
       </div>
 
       <Section
-        title={range === '2017' ? 'Room-nights theo tuần, 2017' : 'Room-nights theo tuần, 2015–2017'}
+        title={range === '2017' ? 'Weekly room-nights, 2017' : 'Weekly room-nights, 2015–2017'}
         aside={
           <Tabs
-            label="Khoảng thời gian"
+            label="Time range"
             value={range}
             onChange={setRange}
             options={[
               { value: '2017', label: '2017' },
-              { value: 'all', label: 'Toàn bộ' },
+              { value: 'all', label: 'All years' },
             ]}
           />
         }
       >
         <Legend
           items={[
-            ...series.map((s) => ({ label: `${shortName(s)} thực tế`, color: hotelColor(shortName(s)) })),
-            { label: 'Dự báo', color: COLORS.cedar, dashed: true },
-            { label: 'Khoảng 80%', color: COLORS.cedar, box: true },
+            ...series.map((s) => ({ label: `${shortName(s)} actual`, color: hotelColor(shortName(s)) })),
+            { label: 'Forecast', color: COLORS.cedar, dashed: true },
+            { label: '80% interval', color: COLORS.cedar, box: true },
           ]}
         />
         <DataState state={forecast} minHeight={340} isEmpty={(d) => d.series.length === 0}>
           {() => (
             <LedgerLineChart
-              label="Room-nights theo tuần: thực tế và dự báo"
+              label="Weekly room-nights: actual and forecast"
               data={rows}
               xKey="week"
-              xFormat={(w) => `T${isoWeek(w)}`}
+              xFormat={(w) => `W${isoWeek(w)}`}
               series={lines}
               bands={bands}
               height={340}
               yFormat={(v) => num(v)}
-              highlight={forecastFrom && forecastTo ? { from: forecastFrom, to: forecastTo, label: 'Dự báo' } : undefined}
+              highlight={forecastFrom && forecastTo ? { from: forecastFrom, to: forecastTo, label: 'Forecast' } : undefined}
               tooltip={(row) => (
                 <>
                   <b className="font-semibold">
-                    Tuần {isoWeek(String(row.week))} · {dayMonth(String(row.week))}
+                    Week {isoWeek(String(row.week))} · {dayMonth(String(row.week))}
                   </b>
                   {series.map((s) => {
                     const k = s.hotel_key
@@ -119,9 +119,9 @@ export default function ForecastPage() {
                     return (
                       <div key={k} className="mt-1">
                         {series.length > 1 && <span className="text-kangaroo">{shortName(s)}</span>}
-                        {typeof a === 'number' && <TipRow label="Thực tế" value={num(a)} color={c} />}
-                        {typeof f === 'number' && <TipRow label="Dự báo" value={num(f)} />}
-                        {b && <TipRow label="Khoảng" value={`${num(b[0])}–${num(b[1])}`} />}
+                        {typeof a === 'number' && <TipRow label="Actual" value={num(a)} color={c} />}
+                        {typeof f === 'number' && <TipRow label="Forecast" value={num(f)} />}
+                        {b && <TipRow label="Range" value={`${num(b[0])}–${num(b[1])}`} />}
                       </div>
                     )
                   })}
@@ -131,12 +131,12 @@ export default function ForecastPage() {
           )}
         </DataState>
         <span className="text-[13px] text-oyster-ink">
-          Nét đứt mảnh trong 2017 là dự báo backtest 1 tuần trước (model chỉ dùng dữ liệu đến tuần trước đó), để so
-          với thực tế.
+          The thin dashed line in 2017 is the one-week-ahead backtest forecast (the model only saw data up to the previous
+          week), for comparison with actuals.
         </span>
       </Section>
 
-      <Section title="Từng tuần" aside={<MapeCaption metrics={metrics.data} hotelName={series.length === 1 ? series[0].hotel_name : null} />}>
+      <Section title="Week by week" aside={<MapeCaption metrics={metrics.data} hotelName={series.length === 1 ? series[0].hotel_name : null} />}>
         <div className="overflow-x-auto">
           <div className="grid min-w-[760px] grid-cols-8">
             {future.map((w, i) => (
@@ -147,9 +147,9 @@ export default function ForecastPage() {
                 }`}
               >
                 <small className="font-mono text-[11.5px] text-oyster-ink">
-                  T{isoWeek(w.week)} · {dayMonth(w.week)}
+                  W{isoWeek(w.week)} · {dayMonth(w.week)}
                 </small>
-                <b className="font-display text-[30px] leading-[1.05] font-medium tabular-nums">{num(w.total)}</b>
+                <b className="font-display text-[30px] leading-[1.05] font-bold tabular-nums">{num(w.total)}</b>
                 {w.perHotel.length === 1 ? (
                   <small className="font-mono text-[11.5px] text-oyster-ink">
                     {num(w.perHotel[0].lo)}–{num(w.perHotel[0].hi)}
@@ -167,7 +167,7 @@ export default function ForecastPage() {
         </div>
       </Section>
 
-      <Section title="Sai số theo số tuần dự báo trước">
+      <Section title="Error by weeks ahead">
         <DataState state={metrics} isEmpty={(m) => m.models.length === 0}>
           {(m) => <MapeTable metrics={m} />}
         </DataState>
@@ -200,7 +200,7 @@ function buildChart(series: HotelForecast[], range: Range) {
         r[`bt${k}`] = p.predicted_room_nights
       }
     })
-    // Nối đường dự báo với tuần thực tế cuối cùng (như prototype)
+    // Join the forecast line to the last actual week (as in the prototype)
     if (lastActual) {
       const r = get(lastActual.week_start_date)
       r[`f${k}`] = lastActual.room_nights_sold
@@ -230,7 +230,7 @@ function MapeCaption({ metrics, hotelName }: { metrics: ForecastMetricsResponse 
   const get = (name: string) => metrics.models.find((m) => m.model_name === name)?.metrics.backtest?.[`mape${suffix}`]
   return (
     <Cap>
-      MAPE backtest {pct(get('forecast_gbm') ?? null)} · cùng tuần năm trước {pct(get('forecast_seasonal_naive') ?? null)}
+      Backtest MAPE {pct(get('forecast_gbm') ?? null)} · same week last year {pct(get('forecast_seasonal_naive') ?? null)}
     </Cap>
   )
 }
@@ -246,11 +246,11 @@ function MapeTable({ metrics }: { metrics: ForecastMetricsResponse }) {
             <th className={th}>Model</th>
             {hs.map((h) => (
               <th key={h} className={`${th} text-right`}>
-                {h} tuần
+                {h} {h === 1 ? 'week' : 'weeks'}
               </th>
             ))}
-            <th className={`${th} text-right`}>Chung</th>
-            <th className={`${th} text-right`}>Độ phủ 80%</th>
+            <th className={`${th} text-right`}>Overall</th>
+            <th className={`${th} text-right`}>80% coverage</th>
           </tr>
         </thead>
         <tbody>
@@ -273,7 +273,7 @@ function MapeTable({ metrics }: { metrics: ForecastMetricsResponse }) {
         </tbody>
       </table>
       <p className="mt-3 text-[13px] text-oyster-ink">
-        MAPE = trung bình |thực tế − dự báo| / thực tế trên backtest rolling-origin các tuần 2017. Càng thấp càng tốt.
+        MAPE = mean |actual − forecast| / actual over a rolling-origin backtest on the 2017 weeks. Lower is better.
       </p>
     </div>
   )

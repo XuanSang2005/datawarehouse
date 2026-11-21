@@ -20,14 +20,16 @@ router = APIRouter(prefix="/cancellation", tags=["cancellation"])
 def get_breakdown(
     conn: DbConn,
     flt: Filters,
-    by: Annotated[BreakdownDimension, Query(description="Chiều phân tích tỉ lệ hủy")] = "lead_time",
+    by: Annotated[
+        BreakdownDimension, Query(description="Dimension for the cancellation rate")
+    ] = "lead_time",
     top_n: Annotated[
-        int | None, Query(ge=1, le=200, description="Chỉ lấy N nhóm nhiều booking nhất")
+        int | None, Query(ge=1, le=200, description="Only the N groups with the most bookings")
     ] = None,
 ) -> CancellationBreakdown:
-    """Tỉ lệ hủy theo lead time / kênh / loại đặt cọc / quốc gia (+ phân khúc, loại khách).
+    """Cancellation rate by lead time / channel / deposit type / country (+ segment, customer type).
 
-    Tỉ lệ tính lại từ tổng.
+    Rates are recomputed from totals.
     """
     return cancellation_service.get_breakdown(conn, flt, by, top_n)
 
@@ -37,30 +39,36 @@ def get_high_risk(
     conn: DbConn,
     flt: Filters,
     risk_band: Annotated[
-        RiskBandFilter, Query(description="Nhóm rủi ro cần lấy; All = mọi nhóm")
+        RiskBandFilter, Query(description="Risk band to return; All = every band")
     ] = "High",
     min_probability: Annotated[
         float | None,
-        Query(ge=0, le=1, description="Chỉ booking có xác suất hủy >= ngưỡng (0–1)"),
+        Query(
+            ge=0, le=1, description="Only bookings with cancellation probability >= threshold (0–1)"
+        ),
     ] = None,
     test_set_only: Annotated[
-        bool, Query(description="Chỉ booking năm 2017 (điểm ngoài mẫu, model chưa thấy khi train)")
+        bool,
+        Query(description="Only 2017 bookings (out-of-sample scores, unseen in model training)"),
     ] = True,
     sort: Annotated[
         HighRiskSort,
-        Query(description="probability: xác suất hủy; expected_loss: xác suất × doanh thu đặt"),
+        Query(
+            description="probability: cancellation probability; "
+            "expected_loss: probability × booked revenue"
+        ),
     ] = "probability",
     model_version: Annotated[
-        str | None, Query(max_length=100, description="Mặc định: phiên bản mới nhất")
+        str | None, Query(max_length=100, description="Default: latest version")
     ] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> HighRiskPage:
-    """Danh sách booking rủi ro hủy cao (phân trang).
+    """List of high cancellation-risk bookings (paginated).
 
-    Dùng cho bộ phận Reservations gọi xác nhận / yêu cầu cọc.
+    Used by Reservations to call guests for confirmation / request a deposit.
 
-    404 nếu bảng gold.ml_booking_risk chưa có dữ liệu.
+    404 if gold.ml_booking_risk has no data yet.
     """
     return cancellation_service.get_high_risk(
         conn,
@@ -77,8 +85,8 @@ def get_high_risk(
 
 @router.get("/model-metrics", response_model=ModelMetricsResponse)
 def get_model_metrics(conn: DbConn) -> ModelMetricsResponse:
-    """AUC, precision, recall, F1, confusion matrix, ngưỡng rủi ro của các model dự đoán hủy.
+    """AUC, precision, recall, F1, confusion matrix and risk thresholds of the cancellation models.
 
-    404 nếu chưa chạy script ML.
+    404 if the ML script has not been run.
     """
     return ModelMetricsResponse(models=cancellation_service.get_model_metrics(conn))

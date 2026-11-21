@@ -1,6 +1,6 @@
 -- severity: warning
--- ADR bất thường cao (> 1.000 €/đêm). Giữ trong fact (booking thật), nhưng cần biết khi phân tích.
--- Hiện có 1 booking ADR = 5.400 € (đã hủy nên không vào doanh thu thực thu).
+-- Abnormally high ADR (> €1,000/night). Kept in the fact (a real booking), but worth knowing when analysing.
+-- Currently 1 booking has ADR = €5,400 (canceled, so it does not count toward realized revenue).
 SELECT booking_id, hotel_key, adr, is_canceled
 FROM gold.fact_booking
 WHERE adr > 1000;
