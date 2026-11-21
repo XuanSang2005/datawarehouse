@@ -89,7 +89,8 @@ Grain: **1 dòng = 1 ngày lễ** (gộp tên nếu trùng ngày). Năm 2013–2
 
 ## 4. Gold
 
-_Chưa có. Cập nhật sau khi chốt star schema (xem `ARCHITECTURE.md` mục 4)._
+_Chưa có bảng nào được tạo._ Thiết kế đề xuất, có đủ từng cột, nằm ở [`STAR_SCHEMA.md`](STAR_SCHEMA.md).
+Khi file SQL của bảng nào được merge thì chép mô tả cột của bảng đó vào đây.
 
 ## 5. `meta.etl_run_log`
 

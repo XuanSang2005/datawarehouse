@@ -176,6 +176,7 @@ Mô tả từng cột: [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md)
 |---|---|
 | [`docs/BUSINESS_PROBLEM.md`](docs/BUSINESS_PROBLEM.md) | Bối cảnh, người ra quyết định, mục tiêu |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Kiến trúc, luồng dữ liệu, star schema, lý do chọn công nghệ |
+| [`docs/STAR_SCHEMA.md`](docs/STAR_SCHEMA.md) | Thiết kế chi tiết star schema lớp Gold: grain, từng cột, measure, kế hoạch triển khai |
 | [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md) | Ý nghĩa từng bảng và từng cột |
 | [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Thuật ngữ data warehouse dùng trong dự án |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Lỗi gì, tìm ở đâu, sửa thế nào |
