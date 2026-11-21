@@ -1,7 +1,11 @@
-# Build context gốc repo (chỉ image etl dùng): chỉ cần etl/ và database/.
+# Build context gốc repo (image etl và job deploy/railway/jobs.Dockerfile): chỉ cần etl/, database/, ml/.
 *
 !etl/
 !database/
+!ml/
 **/__pycache__
 **/*.pyc
 etl/tests/
+ml/notebooks/
+ml/models/*
+ml/tests/
