@@ -1,0 +1,27 @@
+name: Task / docs / chore
+description: Documentation, report, configuration, refactoring or maintenance
+title: "<docs|chore|refactor>(<scope>): <short description>"
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this is needed.
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      value: |
+        - [ ] 
+    validations:
+      required: true

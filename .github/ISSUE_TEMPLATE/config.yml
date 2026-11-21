@@ -1,0 +1,9 @@
+# Force the forms so every issue has context, tasks and a definition of done (rule 11 in CLAUDE.md).
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/XuanSang2005/datawarehouse/blob/main/docs/TROUBLESHOOTING.md
+    about: Common errors (DB, pipeline, backend, frontend) and how to fix them.
+  - name: Contributing guide
+    url: https://github.com/XuanSang2005/datawarehouse/blob/main/CONTRIBUTING.md
+    about: Branches, commits, pull requests and code conventions.

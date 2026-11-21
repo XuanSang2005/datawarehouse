@@ -1,0 +1,57 @@
+name: Bug
+description: Something is broken or shows wrong numbers
+title: "fix(<scope>): <what is wrong>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Check [`docs/TROUBLESHOOTING.md`](https://github.com/XuanSang2005/datawarehouse/blob/main/docs/TROUBLESHOOTING.md) and the **Pipeline** page first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, including the exact error message or the wrong number and where it appears.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should have happened (e.g. the figure from docs/BUSINESS_PROBLEM.md or a SQL check).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1. 
+        2. 
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Local (python / npm)
+        - Docker compose
+        - Railway (live demo)
+        - CI
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant terminal output (backend, ETL, browser console). Do not paste secrets or `.env`.
+      render: shell
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      value: |
+        - [ ] Root cause found and fixed
+        - [ ] A test or data-quality check covers it
+    validations:
+      required: true

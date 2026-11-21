@@ -1,0 +1,41 @@
+name: Feature
+description: New functionality (table, pipeline step, model, endpoint, page)
+title: "feat(<scope>): <short description>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every piece of work starts from an issue (rule 11 in `CLAUDE.md`). Scope = directory or layer:
+        `database`, `bronze`, `silver`, `gold`, `checks`, `etl`, `ml`, `backend`, `frontend`, `docs`, `deploy`.
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why is this needed? Which decision maker / goal (G1–G5 in docs/BUSINESS_PROBLEM.md) does it serve?
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: What to do, as a checklist. Name the files or layers involved.
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: How we know it is finished (tests, numbers that must match, docs to update).
+      value: |
+        - [ ] `pytest` and `ruff check .` pass / `npm run lint` and `npm run build` pass
+        - [ ] Docs updated (DATA_DICTIONARY for tables, ARCHITECTURE for architecture changes)
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Issues or epics this depends on (e.g. #11).
