@@ -123,6 +123,13 @@ PostgreSQL
 ```
 - `core/config.py`: đọc `.env`. `core/db.py`: engine SQLAlchemy dùng chung.
 - Lỗi DB được bắt tập trung trong `main.py`, trả **HTTP 503** cho FE và log đầy đủ ở terminal backend.
+- Lỗi nghiệp vụ (`core/errors.py`) cũng được bắt tập trung: `DataNotReadyError` → **HTTP 404** kèm `hint`
+  (vd bảng `gold.ml_*` chưa có → lệnh chạy script ML); `InvalidParameterError` → **HTTP 422**.
+- Bộ lọc dùng chung (`hotel_key`, `date_from`, `date_to` theo ngày đến, `channel_group`, `country_code`):
+  `api/deps.py` đọc query string, `repositories/booking_sql.py` dựng `WHERE` bằng bind parameter.
+- Measure non-additive: repository chỉ trả TỔNG, `services/kpi_math.py` tính tỉ lệ/ADR từ tổng (quy tắc 8).
+- What-if (`services/what_if_service.py`): hàm thuần, công thức ghi trong docstring; công suất, chi phí
+  đền bù, hoa hồng OTA là tham số người dùng nhập (quy tắc 10). Danh sách endpoint: `backend/README.md`.
 
 ## 6. Frontend
 
@@ -176,3 +183,4 @@ CI có job `docker` chạy đúng lệnh trên từ DB rỗng, chờ `etl` thoá
 | 2026-11-21 | Chốt star schema (`STAR_SCHEMA.md`): 7 dimension, 2 fact, 5 view KPI |
 | 2026-11-21 | Loại 181 dòng bất thường khỏi fact; `CN` → `CAN`; giả định giữ 20% cọc khi booking Non Refund bị hủy; thêm nguồn mã ISO 3166 |
 | 2026-11-21 | Thêm nguồn thời tiết Open-Meteo (Lisbon, Faro) thành fact riêng `fact_daily_weather`; thêm service `etl` vào Docker Compose để demo chạy được từ DB rỗng (issue #8) |
+| 2026-11-21 | Backend E5: API dùng mã `UNK` cho quốc gia không rõ; what-if chỉ nhận thêm đặt phòng ở đêm "kín trên sổ" (đặt ≥ công suất), dùng tỉ lệ hủy thực tế từng đêm |
