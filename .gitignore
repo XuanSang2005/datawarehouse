@@ -1,0 +1,44 @@
+# ---- Secrets / local config ----
+.env
+*.local
+
+# ---- Data (không commit dữ liệu, tải lại bằng pipeline) ----
+data/raw/*
+!data/raw/.gitkeep
+data/processed/
+
+# ---- ML artifacts ----
+ml/models/*
+!ml/models/.gitkeep
+
+# ---- Deliverables nặng (video để link Drive/YouTube) ----
+deliverables/video/*
+!deliverables/video/.gitkeep
+!deliverables/video/README.md
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# ---- Node / Frontend ----
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# ---- Logs ----
+logs/
+*.log
+
+# ---- Editor / OS ----
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db

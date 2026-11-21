@@ -1,0 +1,6 @@
+# Thêm thư viện khi bắt đầu làm mô hình (vd: xgboost, prophet) và ghi lý do vào PR.
+pandas>=2.2,<3
+scikit-learn>=1.5,<2
+joblib>=1.4,<2
+matplotlib>=3.9,<4
+jupyter>=1.0,<2
