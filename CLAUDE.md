@@ -40,6 +40,9 @@ cd frontend && npm run lint && npm run build         # lint + build FE
 8. **Measure non-additive** (ADR, tỉ lệ hủy) phải tính lại từ tổng (`sum(revenue)/sum(nights)`), không lấy trung bình của trung bình.
 9. Không commit `.env`, `data/raw/*`, `ml/models/*`, video.
 10. Dataset không có số phòng của khách sạn: occupancy và RevPAR chỉ tính khi người dùng nhập công suất làm tham số.
+11. **Tạo GitHub issue trước khi làm bất cứ việc gì** (tính năng, sửa lỗi, tài liệu, cấu hình), áp dụng cho cả người và AI assistant.
+    Issue ghi rõ: bối cảnh, việc cần làm, tiêu chí hoàn thành. Chưa có issue thì chưa sửa code.
+    Mô tả PR phải có `Closes #<số issue>` để issue tự đóng khi merge. Việc phát sinh giữa chừng thì tạo issue riêng.
 
 ## Quy ước
 - Tài liệu và comment: tiếng Việt. Tên biến, bảng, cột: tiếng Anh, `snake_case` (Python/SQL), `camelCase` (TS).

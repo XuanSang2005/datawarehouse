@@ -1,5 +1,8 @@
+## Issue
+Closes #<!-- số issue, bắt buộc: tạo issue trước khi làm -->
+
 ## Thay đổi gì?
-<!-- 1–3 câu. Link issue nếu có: Closes #.. -->
+<!-- 1–3 câu. -->
 
 ## Thành phần bị ảnh hưởng
 - [ ] database/ (SQL)

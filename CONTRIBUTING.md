@@ -51,6 +51,10 @@ docs(report): write chapter 2 business problem
 ```
 
 ### Các bước làm một việc
+**Bước 0: tạo issue trước khi code** (bắt buộc, xem quy tắc 11 trong `CLAUDE.md`).
+Trên GitHub: tab **Issues → New issue**, ghi bối cảnh, việc cần làm và tiêu chí hoàn thành (checklist).
+Ghi lại số issue (ví dụ `#12`) để liên kết với PR.
+
 ```bash
 git checkout main && git pull
 ```
@@ -64,9 +68,10 @@ git add database/gold/10_dim_date.sql && git commit -m "feat(gold): add dim_date
 ```bash
 git push -u origin feat/gold-dim-date
 ```
-Sau đó mở Pull Request trên GitHub, điền template, và nhờ owner review.
+Sau đó mở Pull Request trên GitHub, điền template (ghi `Closes #12` để issue tự đóng khi merge), và nhờ owner review.
 
 ### Pull Request
+- Mỗi PR phải liên kết **một issue** (`Closes #..` trong mô tả). Không có issue thì không merge.
 - Một PR làm **một việc**, nên dưới khoảng 400 dòng thay đổi.
 - Phải qua **CI xanh** (lint, test, chạy pipeline, build frontend).
 - Ít nhất **1 người duyệt** trước khi merge. Dùng **Squash and merge**.
