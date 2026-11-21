@@ -24,7 +24,8 @@ Chi tiết bài toán: [`docs/BUSINESS_PROBLEM.md`](docs/BUSINESS_PROBLEM.md)
 ┌──────────────┐     ┌──────────────────┐     ┌────────────────────────────┐     ┌──────────────┐
 │ hotel_bookings│ ──▶ │ etl/extract      │ ──▶ │ bronze ─▶ silver ─▶ gold   │ ◀── │ backend      │ ◀── frontend
 │ pt_holidays   │     │ etl/load         │     │ (database/*.sql)           │     │ FastAPI :8000│     React :5173
-│ (weather...)  │     │ etl/run_pipeline │     │ meta (log pipeline)        │     └──────────────┘
+│ countries     │     │ etl/run_pipeline │     │ meta (log pipeline)        │     └──────────────┘
+│ weather       │     │                  │     │                            │
 └──────────────┘     └──────────────────┘     └────────────────────────────┘
                                                         ▲
                                               ml/ (train) ghi kết quả vào gold.ml_*
@@ -139,6 +140,21 @@ Tài liệu API tự sinh có ở http://localhost:8000/docs.
 
 > Có `make` (macOS/Linux)? Gõ `make help` để xem các lối tắt: `make db-up`, `make etl`, `make backend`…
 
+### Cách khác: chạy toàn bộ bằng Docker (demo, không cần Python/Node)
+
+Chỉ cần Docker. Lệnh dưới bật DB, chạy pipeline một lần trong container `etl`, rồi bật backend và frontend:
+```bash
+docker compose --profile app up -d --build
+```
+Theo dõi pipeline, đợi dòng `✔ Pipeline hoàn tất` (lần đầu ~1 phút, phần lớn là tải dữ liệu):
+```bash
+docker compose logs -f etl
+```
+Mở http://localhost:5173/system. Muốn làm lại từ DB rỗng (trước buổi demo):
+```bash
+docker compose --profile app down -v
+```
+
 ---
 
 ## Lệnh hay dùng
@@ -152,7 +168,8 @@ Tài liệu API tự sinh có ở http://localhost:8000/docs.
 | Test Python | `pytest` |
 | Lint | `ruff check .` và `cd frontend && npm run lint` |
 | Reset sạch database | `docker compose down -v && docker compose up -d db` |
-| Chạy cả hệ thống bằng Docker (demo) | `docker compose --profile app up -d --build` |
+| Chạy cả hệ thống bằng Docker (demo) | `docker compose --profile app up -d --build` (xem mục dưới) |
+| Chạy pipeline trong Docker | `docker compose run --rm etl` |
 
 ---
 
@@ -163,7 +180,7 @@ Tài liệu API tự sinh có ở http://localhost:8000/docs.
 | **Hotel Booking Demand** | 119.390 booking, City Hotel (Lisbon) và Resort Hotel (Algarve), 07/2015–08/2017 | Tự tải (mirror công khai của Kaggle) |
 | **Ngày lễ Bồ Đào Nha** | 2013–2018 | Sinh bằng thư viện `holidays` |
 | **Mã quốc gia ISO 3166** | Tên nước, châu lục (phân vùng UN M49) | Tự tải (GitHub `lukes/ISO-3166-Countries-with-Regional-Codes`) |
-| *(dự kiến)* Thời tiết lịch sử | Lisbon, Faro | Open-Meteo Archive API |
+| **Thời tiết lịch sử** | Theo ngày, Lisbon (City Hotel) và Faro (Resort Hotel), 2015–2017: nhiệt độ, lượng mưa, giờ nắng, mã WMO | Tự tải ([Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api), không cần key) |
 
 Mô tả từng cột: [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md)
 

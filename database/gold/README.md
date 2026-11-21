@@ -1,6 +1,6 @@
 # gold/ — Star schema & bảng phục vụ ứng dụng
 
-Thiết kế chi tiết (đã chốt): [`docs/STAR_SCHEMA.md`](../../docs/STAR_SCHEMA.md). Mô tả cột: `docs/DATA_DICTIONARY.md` mục 5.
+Thiết kế chi tiết (đã chốt): [`docs/STAR_SCHEMA.md`](../../docs/STAR_SCHEMA.md). Mô tả cột: `docs/DATA_DICTIONARY.md` mục 6.
 
 | File                              | Bảng                         | Loại                                   |
 |-----------------------------------|------------------------------|----------------------------------------|
@@ -14,7 +14,8 @@ Thiết kế chi tiết (đã chốt): [`docs/STAR_SCHEMA.md`](../../docs/STAR_S
 | `16_dim_booking_profile.sql`      | `gold.dim_booking_profile`   | Junk dimension                         |
 | `30_fact_booking.sql`             | `gold.fact_booking`          | Transaction fact                       |
 | `31_fact_daily_occupancy.sql`     | `gold.fact_daily_occupancy`  | Periodic snapshot fact                 |
-| `50_kpi_*.sql` … `54_kpi_*.sql`   | `gold.kpi_*`                 | View tổng hợp cho dashboard            |
+| `32_fact_daily_weather.sql`       | `gold.fact_daily_weather`    | Periodic snapshot fact (thời tiết, cần nguồn Open-Meteo) |
+| `50_kpi_*.sql` … `55_kpi_*.sql`   | `gold.kpi_*`                 | View tổng hợp cho dashboard            |
 
 Bảng kết quả ML (`gold.ml_*`) do code trong `ml/` ghi vào, **không** tạo ở đây (cột đã thống nhất trong `STAR_SCHEMA.md` mục 7).
 
