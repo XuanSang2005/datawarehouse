@@ -162,6 +162,26 @@ Thiết kế đầy đủ (lý do, công thức, ERD): [`STAR_SCHEMA.md`](STAR_S
 Bộ cột chung của 4 view đầu: `bookings`, `canceled_bookings`, `cancellation_rate`, `room_nights_sold`, `realized_revenue`,
 `lost_revenue`, `net_lost_revenue`, `adr`, `avg_lead_time`, `avg_los`. Tỉ lệ và ADR đều tính lại từ tổng.
 
+### `gold.ml_demand_forecast`: 1 dòng = 1 khách sạn × 1 tuần × 1 phiên bản model (252 dòng)
+
+Ghi bởi `python -m ml.forecast.train` (DDL: `database/ml/03_ml_demand_forecast.sql`), không do pipeline ETL tạo.
+Chi tiết phương pháp: [`ml/README.md`](../ml/README.md#e4-dự-báo-nhu-cầu-theo-tuần).
+
+| Cột | Ý nghĩa |
+|---|---|
+| `hotel_key`, `week_start_date`, `model_version` | PK. `week_start_date` = Thứ Hai đầu tuần (khớp `dim_date.week_start_date`) |
+| `model_version` | `forecast_gbm_v1` (model chính), `forecast_seasonal_naive_v1`, `forecast_moving_avg_v1` (baseline). Khớp `ml_model_metrics.model_version` |
+| `predicted_room_nights` | Room-nights bán được (booking không hủy) dự báo cho tuần đó |
+| `lower_bound`, `upper_bound` | Khoảng dự báo 80% (từ phân phối sai số backtest theo horizon) |
+| `actual_room_nights` | Thực tế; NULL với tuần tương lai và tuần 2017-08-28 (chỉ có 4/7 đêm dữ liệu) |
+| `horizon_weeks` | Dự báo trước bao nhiêu tuần: 1 cho các tuần backtest 2017, 1..8 cho 8 tuần tương lai |
+| `created_at` | Thời điểm ghi |
+
+Mỗi model có 84 dòng: 2 khách sạn × (34 tuần backtest 2017-01-02 → 2017-08-21 + 8 tuần tương lai 2017-08-28 → 2017-10-16).
+Metric tương ứng nằm trong `gold.ml_model_metrics` với `model_name` bắt đầu bằng `forecast_`
+(`mape`, `mape_h1`…`mape_h8`, `mape_<hotel>`, `mape_h1_<hotel>`, `interval_coverage_80`; `dataset` = `backtest` hoặc
+`calibration`). MAPE lưu dạng tỉ lệ (0.0857 = 8,57%).
+
 ## 6. `meta.etl_run_log`
 
 | Cột | Ý nghĩa |
